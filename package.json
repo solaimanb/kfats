@@ -2,7 +2,7 @@
   "name": "kushtia-charukola",
   "version": "1.0.0",
   "scripts": {
-    "dev": "concurrently \"cd server && npm run start:server\" \"cd client && npm run dev\""
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\""
   },
   "keywords": [],
   "author": "Kushtia Fine Arts & Technology School Team",
