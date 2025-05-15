@@ -7,6 +7,7 @@
  */
 
 require('dotenv').config();
+require('./config/passport');
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -18,6 +19,8 @@ const path = require("path");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const morgan = require("morgan");
+const session = require('express-session');
+const passport = require('passport');
 
 /**
  * Route Handlers
@@ -27,6 +30,8 @@ const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/auth");
 const courseRoutes = require("./routes/courseRoutes");
 const { handleError } = require("./utils/errorHandler");
+const oauthRoutes = require('./routes/oauth');
+
 
 const app = express();
 
@@ -43,6 +48,16 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for Swagger UI
   crossOriginEmbedderPolicy: false, // Disable for Swagger UI
 }));
+
+// OAUTH
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -106,6 +121,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/courses", courseRoutes);
+app.use('/api/v1/gAuth', oauthRoutes);
 
 /**
  * Global error handling middleware
