@@ -21,6 +21,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const session = require("express-session");
 const passport = require("passport");
+const { setupLogger } = require("./utils/logger");
 
 /**
  * Route Handlers
@@ -67,6 +68,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Rate limiting configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
@@ -74,8 +76,12 @@ const limiter = rateLimit({
 });
 app.use("/api/", limiter);
 
-if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
+// Request logger
+const logger = setupLogger();
+if (Array.isArray(logger)) {
+  logger.forEach((middleware) => app.use(middleware));
+} else {
+  app.use(logger);
 }
 
 app.use(
