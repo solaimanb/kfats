@@ -1,26 +1,49 @@
-const express = require('express');
-const passport = require('passport');
+const express = require("express");
+const passport = require("passport");
 const router = express.Router();
 
+// Check if Google OAuth is configured
+const isGoogleAuthConfigured =
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
 
-router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+router.get("/google", (req, res, next) => {
+  if (!isGoogleAuthConfigured) {
+    return res.status(503).json({
+      status: "error",
+      message: "Google authentication is not configured on the server",
+    });
+  }
+  passport.authenticate("google", { scope: ["profile", "email"] })(
+    req,
+    res,
+    next
+  );
+});
 
-
-router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
+router.get(
+  "/google/callback",
+  (req, res, next) => {
+    if (!isGoogleAuthConfigured) {
+      return res.redirect(
+        "http://localhost:3000/login?error=oauth_not_configured"
+      );
+    }
+    passport.authenticate("google", { failureRedirect: "/login" })(
+      req,
+      res,
+      next
+    );
+  },
   (req, res) => {
     // User info in req.user
-    res.redirect('http://localhost:3000/');
+    res.redirect("http://localhost:3000/");
   }
 );
 
-
-router.get('/logout', (req, res) => {
-  req.logout(err => {
-    if (err) return res.status(500).send('Error logging out');
-    res.redirect('/');
+router.get("/logout", (req, res) => {
+  req.logout((err) => {
+    if (err) return res.status(500).send("Error logging out");
+    res.redirect("/");
   });
 });
 
@@ -43,6 +66,8 @@ module.exports = router;
  *     responses:
  *       302:
  *         description: Redirect to Google login page
+ *       503:
+ *         description: Service unavailable - Google OAuth not configured
  */
 
 /**

@@ -6,8 +6,8 @@
  * @version 1.0.0
  */
 
-require('dotenv').config();
-require('./config/passport');
+require("dotenv").config();
+require("./config/passport");
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -19,8 +19,8 @@ const path = require("path");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const session = require('express-session');
-const passport = require('passport');
+const session = require("express-session");
+const passport = require("passport");
 
 /**
  * Route Handlers
@@ -30,8 +30,7 @@ const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/auth");
 const courseRoutes = require("./routes/courseRoutes");
 const { handleError } = require("./utils/errorHandler");
-const oauthRoutes = require('./routes/oauth');
-
+const oauthRoutes = require("./routes/oauth");
 
 const app = express();
 
@@ -44,17 +43,26 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cors());
 app.use(compression());
 
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for Swagger UI
-  crossOriginEmbedderPolicy: false, // Disable for Swagger UI
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Disable CSP for Swagger UI
+    crossOriginEmbedderPolicy: false, // Disable for Swagger UI
+  })
+);
 
 // OAUTH
-app.use(session({
-  secret: process.env.JWT_SECRET,
-  resave: false,
-  saveUninitialized: false
-}));
+app.use(
+  session({
+    secret: process.env.JWT_SECRET || "kushtia_charukola_fallback_secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    },
+  })
+);
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -62,7 +70,7 @@ app.use(passport.session());
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later"
+  message: "Too many requests from this IP, please try again later",
 });
 app.use("/api/", limiter);
 
@@ -112,7 +120,7 @@ app.get("/health", (req, res) => {
     status: "success",
     message: "Server is healthy",
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
@@ -121,7 +129,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/courses", courseRoutes);
-app.use('/api/v1/gAuth', oauthRoutes);
+app.use("/api/v1/gAuth", oauthRoutes);
 
 /**
  * Global error handling middleware
@@ -130,7 +138,7 @@ app.use('/api/v1/gAuth', oauthRoutes);
 app.use((req, res) => {
   res.status(404).json({
     status: "fail",
-    message: `Can't find ${req.originalUrl} on this server!`
+    message: `Can't find ${req.originalUrl} on this server!`,
   });
 });
 
@@ -146,17 +154,17 @@ mongoose
     socketTimeoutMS: 45000,
   })
   .then(() => {
-    console.log('Connected to MongoDB');
+    console.log("Connected to MongoDB");
     const port = process.env.PORT || 5000;
     app.listen(port, () => console.log(`Server running on port ${port}`));
   })
   .catch((err) => {
-    console.error('MongoDB connection error:', err);
+    console.error("MongoDB connection error:", err);
     process.exit(1);
   });
 
 // Unhandled rejection handler
-process.on("unhandledRejection", err => {
+process.on("unhandledRejection", (err) => {
   console.error("UNHANDLED REJECTION! 💥 Shutting down...");
   console.error(err.name, err.message);
   process.exit(1);
