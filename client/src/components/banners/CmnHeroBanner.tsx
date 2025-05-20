@@ -61,10 +61,10 @@ const CmnHeroBanner = () => {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <button className="bg-white border border-kc-text text-kc-text hover:border-kc-green hover:text-kc-green px-6 py-2 rounded">
+            <button className="bg-white border border-kc-text text-kc-text hover:border-kc-green hover:text-kc-green px-6 py-2 rounded cursor-pointer">
               আমাদের কোর্সগুলো দেখুন
             </button>
-            <button className="bg-kc-text hover:bg-kc-green text-white px-6 py-2 rounded">
+            <button className="bg-kc-text hover:bg-kc-green text-white px-6 py-2 rounded cursor-pointer">
               আমাদের সাথে যুক্ত হোন
             </button>
           </div>

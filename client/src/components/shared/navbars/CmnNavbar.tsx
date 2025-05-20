@@ -21,14 +21,14 @@ const CmnNavbar = () => {
           />
         </Link>
         <div className="flex items-center gap-4">
-          <Link href="/login" className="inline-block">
-            <button className="bg-kc-text text-white px-4 py-1 rounded hover:bg-kc-green">Log in</button>
+          <Link href="/login" className="inline-block ">
+            <button className="bg-kc-text text-white px-4 py-1 rounded cursor-pointer hover:bg-kc-green">Log in</button>
           </Link>
 
           <span className="text-gray-500">or</span>
 
-          <Link href="/signup" className="inline-block">
-            <button className="bg-white border border-kc-text text-kc-text px-4 py-1 rounded hover:text-kc-green hover:border-kc-green">Register</button>
+          <Link href="/signup" className="inline-block ">
+            <button className="bg-white border border-kc-text text-kc-text px-4 py-1 rounded cursor-pointer hover:text-kc-green hover:border-kc-green">Register</button>
           </Link>
         </div>
       </div>
