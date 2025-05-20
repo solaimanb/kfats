@@ -12,7 +12,7 @@ const PurposeSection = () => {
   };
 
   return (
-    <section className="bg-[#f5f5f5] py-10 px-4 text-center text-[#1e1e1e]">
+    <section className="bg-[#FDFCF8] py-10 px-4 text-center text-[#1e1e1e]">
       {/* Image Placeholder */}
       <div className="max-w-4xl mx-auto">
         <div

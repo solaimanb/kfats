@@ -4,6 +4,8 @@ import CmnHeroBanner from '../banners/CmnHeroBanner';
 import PurposeSection from './commonHomeSections/PurposeSection';
 import CourseSection from './commonHomeSections/CourseSection';
 import ArtworkGallerySection from './commonHomeSections/ArtworkGallerySection';
+import MentorsSection from './commonHomeSections/Mentors';
+import PromoSection from './commonHomeSections/PromoSection';
 
 const CommonHomePage = () => {
     return (
@@ -13,6 +15,8 @@ const CommonHomePage = () => {
             <PurposeSection/>
             <CourseSection/>
             <ArtworkGallerySection/>
+            <MentorsSection/>
+            <PromoSection/>
         </div>
     );
 };
