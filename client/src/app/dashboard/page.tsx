@@ -1,14 +1,10 @@
 "use client";
 
-
-
-export default function UserDashboardLayout({ children }: { children: React.ReactNode }) {
-
+export default function DashboardHomePage() {
   return (
-    <div className="min-h-screen flex">
-      <main className="flex-1 p-6 bg-white">
-        {children}
-      </main>
+    <div>
+      <h1 className="text-2xl font-bold mb-4">Welcome to Your Dashboard</h1>
+      <p>Here you can manage your courses, orders, and settings.</p>
     </div>
   );
 }
