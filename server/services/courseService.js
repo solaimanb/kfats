@@ -146,20 +146,25 @@ class CourseService extends BaseService {
   async validateCourseData(courseData) {
     const { title, description, price, level } = courseData;
 
-    if (title && title.length > COURSE.LIMITS.TITLE) {
-      throw createError(400, "Invalid title length");
+    if (title) {
+      if (title.length < COURSE.LIMITS.MIN_TITLE) {
+        throw createError(400, `Title must be at least ${COURSE.LIMITS.MIN_TITLE} characters`);
+      }
+      if (title.length > COURSE.LIMITS.TITLE) {
+        throw createError(400, `Title cannot exceed ${COURSE.LIMITS.TITLE} characters`);
+      }
     }
 
     if (description && description.length > COURSE.LIMITS.DESCRIPTION) {
-      throw createError(400, "Description too long");
+      throw createError(400, `Description cannot exceed ${COURSE.LIMITS.DESCRIPTION} characters`);
     }
 
-    if (price && (price < 0 || price > 10000)) {
-      throw createError(400, "Invalid price");
+    if (price && (price < COURSE.LIMITS.PRICE.MIN || price > COURSE.LIMITS.PRICE.MAX)) {
+      throw createError(400, `Price must be between ${COURSE.LIMITS.PRICE.MIN} and ${COURSE.LIMITS.PRICE.MAX}`);
     }
 
     if (level && !Object.values(COURSE.LEVELS).includes(level)) {
-      throw createError(400, "Invalid course level");
+      throw createError(400, ERROR_MESSAGES.COURSE.INVALID_LEVEL);
     }
   }
 

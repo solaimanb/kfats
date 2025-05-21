@@ -1,5 +1,6 @@
 const COURSE = {
   LIMITS: {
+    MIN_TITLE: 3,
     TITLE: 100,
     DESCRIPTION: 2000,
     CONTENT: {
@@ -7,6 +8,10 @@ const COURSE = {
       DESCRIPTION: 1000,
     },
     REVIEW: 500,
+    PRICE: {
+      MIN: 0,
+      MAX: 10000,
+    },
   },
   RATING: {
     MIN: 1,

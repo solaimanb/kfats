@@ -67,9 +67,11 @@ const courseSchemas = {
   base: Joi.object({
     title: Joi.string()
       .required()
+      .min(COURSE.LIMITS.MIN_TITLE)
       .max(COURSE.LIMITS.TITLE)
       .messages({
         'string.empty': 'Title is required',
+        'string.min': `Title must be at least ${COURSE.LIMITS.MIN_TITLE} characters`,
         'string.max': `Title cannot be more than ${COURSE.LIMITS.TITLE} characters`,
       }),
 
@@ -85,10 +87,12 @@ const courseSchemas = {
 
     price: Joi.number()
       .required()
-      .min(0)
+      .min(COURSE.LIMITS.PRICE.MIN)
+      .max(COURSE.LIMITS.PRICE.MAX)
       .messages({
         'number.base': 'Price must be a number',
-        'number.min': 'Price must be a positive number',
+        'number.min': `Price must be at least ${COURSE.LIMITS.PRICE.MIN}`,
+        'number.max': `Price cannot exceed ${COURSE.LIMITS.PRICE.MAX}`,
       }),
 
     category: baseSchemas.objectId.required(),
@@ -135,8 +139,10 @@ const courseSchemas = {
 
   update: Joi.object({
     title: Joi.string()
+      .min(COURSE.LIMITS.MIN_TITLE)
       .max(COURSE.LIMITS.TITLE)
       .messages({
+        'string.min': `Title must be at least ${COURSE.LIMITS.MIN_TITLE} characters`,
         'string.max': `Title cannot be more than ${COURSE.LIMITS.TITLE} characters`,
       }),
 
@@ -149,10 +155,12 @@ const courseSchemas = {
     thumbnail: baseSchemas.url,
 
     price: Joi.number()
-      .min(0)
+      .min(COURSE.LIMITS.PRICE.MIN)
+      .max(COURSE.LIMITS.PRICE.MAX)
       .messages({
         'number.base': 'Price must be a number',
-        'number.min': 'Price must be a positive number',
+        'number.min': `Price must be at least ${COURSE.LIMITS.PRICE.MIN}`,
+        'number.max': `Price cannot exceed ${COURSE.LIMITS.PRICE.MAX}`,
       }),
 
     category: baseSchemas.objectId,
@@ -201,17 +209,21 @@ const courseSchemas = {
 
   query: Joi.object({
     minPrice: Joi.number()
-      .min(0)
+      .min(COURSE.LIMITS.PRICE.MIN)
+      .max(COURSE.LIMITS.PRICE.MAX)
       .messages({
         'number.base': 'Invalid minimum price',
-        'number.min': 'Minimum price must be positive',
+        'number.min': `Minimum price must be at least ${COURSE.LIMITS.PRICE.MIN}`,
+        'number.max': `Minimum price cannot exceed ${COURSE.LIMITS.PRICE.MAX}`,
       }),
 
     maxPrice: Joi.number()
-      .min(0)
+      .min(COURSE.LIMITS.PRICE.MIN)
+      .max(COURSE.LIMITS.PRICE.MAX)
       .messages({
         'number.base': 'Invalid maximum price',
-        'number.min': 'Maximum price must be positive',
+        'number.min': `Maximum price must be at least ${COURSE.LIMITS.PRICE.MIN}`,
+        'number.max': `Maximum price cannot exceed ${COURSE.LIMITS.PRICE.MAX}`,
       }),
 
     sort: Joi.string()
