@@ -37,10 +37,22 @@ class CourseService extends BaseService {
     });
   }
 
-  async updateCourse(id, updateData, userId) {
+  async updateCourse(id, updateData, userId, userRole) {
     const course = await this.findById(id);
 
-    if (course.instructor.toString() !== userId) {
+    // Check if course exists
+    if (!course) {
+      throw createError(404, "Course not found");
+    }
+
+    // Convert instructor to string if it's an ObjectId or populated object
+    const instructorId = typeof course.instructor === 'object' && course.instructor !== null 
+      ? course.instructor.toString() 
+      : course.instructor;
+
+    // Check if user is the instructor or admin
+    if (instructorId !== userId.toString() && 
+        !["admin", "superAdmin"].includes(userRole)) {
       throw createError(403, "Not authorized to update this course");
     }
 
@@ -48,10 +60,22 @@ class CourseService extends BaseService {
     return this.update(id, updateData);
   }
 
-  async deleteCourse(id, userId) {
+  async deleteCourse(id, userId, userRole) {
     const course = await this.findById(id);
 
-    if (course.instructor.toString() !== userId) {
+    // Check if course exists
+    if (!course) {
+      throw createError(404, "Course not found");
+    }
+
+    // Convert instructor to string if it's an ObjectId or populated object
+    const instructorId = typeof course.instructor === 'object' && course.instructor !== null 
+      ? course.instructor.toString() 
+      : course.instructor;
+
+    // Check if user is the instructor or admin
+    if (instructorId !== userId.toString() && 
+        !["admin", "superAdmin"].includes(userRole)) {
       throw createError(403, "Not authorized to delete this course");
     }
 
@@ -122,19 +146,15 @@ class CourseService extends BaseService {
   async validateCourseData(courseData) {
     const { title, description, price, level } = courseData;
 
-    if (
-      title &&
-      (title.length < COURSE.LIMITS.TITLE.MIN ||
-        title.length > COURSE.LIMITS.TITLE.MAX)
-    ) {
+    if (title && title.length > COURSE.LIMITS.TITLE) {
       throw createError(400, "Invalid title length");
     }
 
-    if (description && description.length > COURSE.LIMITS.DESCRIPTION.MAX) {
+    if (description && description.length > COURSE.LIMITS.DESCRIPTION) {
       throw createError(400, "Description too long");
     }
 
-    if (price && (price < 0 || price > COURSE.LIMITS.PRICE.MAX)) {
+    if (price && (price < 0 || price > 10000)) {
       throw createError(400, "Invalid price");
     }
 

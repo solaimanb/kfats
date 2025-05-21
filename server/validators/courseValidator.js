@@ -25,6 +25,17 @@ const baseSchemas = {
     }),
 };
 
+// Course ID schema
+const idSchema = Joi.object({
+  id: Joi.string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .required()
+    .messages({
+      'string.empty': 'Course ID is required',
+      'string.pattern.base': 'Invalid course ID format',
+    }),
+});
+
 // Content item schema
 const contentItemSchema = Joi.object({
   title: Joi.string()
@@ -276,5 +287,5 @@ module.exports = {
   validateCourseUpdate: createValidator(courseSchemas.update),
   validateRating: createValidator(courseSchemas.rating),
   validateQuery: createValidator(courseSchemas.query, 'query'),
-  validateId: createValidator(baseSchemas.objectId, 'params'),
+  validateId: createValidator(idSchema, 'params'),
 }; 

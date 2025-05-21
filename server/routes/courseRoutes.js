@@ -234,8 +234,89 @@ router.delete(
   courseController.deleteCourse
 );
 
+/**
+ * @swagger
+ * /api/v1/courses/{id}/enroll:
+ *   post:
+ *     summary: Enroll in a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     responses:
+ *       200:
+ *         description: Successfully enrolled in the course
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Successfully enrolled in the course
+ *       400:
+ *         description: Already enrolled or course not published
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Server error
+ */
 router.post("/:id/enroll", auth, validateId, courseController.enrollInCourse);
 
+/**
+ * @swagger
+ * /api/v1/courses/{id}/rate:
+ *   post:
+ *     summary: Rate a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Rating'
+ *     responses:
+ *       200:
+ *         description: Course rated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   $ref: '#/components/schemas/Course'
+ *       400:
+ *         description: Invalid rating or not enrolled in the course
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Server error
+ */
 router.post(
   "/:id/rate",
   auth,

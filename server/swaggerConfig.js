@@ -5,7 +5,7 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Kustia Fine Arts & Technology School API",
+      title: "Kushtia Fine Arts & Technology School API",
       version: "1.0.0",
       description: "API documentation for Kushtia Fine Arts & Technology School",
       contact: {
@@ -28,14 +28,58 @@ const options = {
         },
       },
       schemas: {
+        User: {
+          type: "object",
+          required: ["name", "email", "password"],
+          properties: {
+            _id: {
+              type: "string",
+              description: "User ID",
+            },
+            name: {
+              type: "string",
+              description: "User's full name",
+            },
+            email: {
+              type: "string",
+              format: "email",
+              description: "User's email address",
+            },
+            password: {
+              type: "string",
+              format: "password",
+              description: "User's password",
+            },
+            role: {
+              type: "string",
+              enum: Object.values(ROLES),
+              default: ROLES.STUDENT,
+              description: "User's role in the system",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "User creation timestamp",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+              description: "User last update timestamp",
+            },
+          },
+        },
         Category: {
           type: "object",
           required: ["name"],
           properties: {
+            _id: {
+              type: "string",
+              description: "Category ID",
+            },
             name: {
               type: "string",
               description: "Category name",
-              maxLength: COURSE.LIMITS.TITLE,
+              maxLength: 50,
             },
             slug: {
               type: "string",
@@ -44,19 +88,89 @@ const options = {
             description: {
               type: "string",
               description: "Category description",
-              maxLength: COURSE.LIMITS.DESCRIPTION,
+              maxLength: 500,
             },
             isActive: {
               type: "boolean",
               description: "Whether the category is active",
               default: true,
             },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "Category creation timestamp",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+              description: "Category last update timestamp",
+            },
+          },
+        },
+        ContentItem: {
+          type: "object",
+          required: ["title"],
+          properties: {
+            _id: {
+              type: "string",
+              description: "Content item ID",
+            },
+            title: {
+              type: "string",
+              description: "Content item title",
+              maxLength: COURSE.LIMITS.CONTENT.TITLE,
+            },
+            description: {
+              type: "string",
+              description: "Content item description",
+              maxLength: COURSE.LIMITS.CONTENT.DESCRIPTION,
+            },
+            videoUrl: {
+              type: "string",
+              format: "uri",
+              description: "URL to video content",
+            },
+            duration: {
+              type: "number",
+              description: "Content duration in minutes",
+              minimum: 0,
+            },
+          },
+        },
+        Rating: {
+          type: "object",
+          required: ["rating"],
+          properties: {
+            user: {
+              type: "string",
+              description: "ID of the user who provided the rating",
+            },
+            rating: {
+              type: "number",
+              description: "Rating value",
+              minimum: COURSE.RATING.MIN,
+              maximum: COURSE.RATING.MAX,
+            },
+            review: {
+              type: "string",
+              description: "Written review",
+              maxLength: COURSE.LIMITS.REVIEW,
+            },
+            date: {
+              type: "string",
+              format: "date-time",
+              description: "Rating timestamp",
+            },
           },
         },
         Course: {
           type: "object",
-          required: ["title", "categoryId", "price"],
+          required: ["title", "description", "thumbnail", "price", "category", "level", "duration", "content"],
           properties: {
+            _id: {
+              type: "string",
+              description: "Course ID",
+            },
             title: {
               type: "string",
               description: "Course title",
@@ -71,19 +185,81 @@ const options = {
               description: "Course description",
               maxLength: COURSE.LIMITS.DESCRIPTION,
             },
-            categoryId: {
+            thumbnail: {
               type: "string",
-              description: "ID of the course category",
+              format: "uri",
+              description: "URL to course thumbnail image",
             },
             price: {
               type: "number",
               description: "Course price",
               minimum: 0,
             },
+            instructor: {
+              oneOf: [
+                {
+                  type: "string",
+                  description: "ID of the course instructor",
+                },
+                {
+                  $ref: "#/components/schemas/User",
+                  description: "Instructor details",
+                },
+              ],
+            },
+            category: {
+              oneOf: [
+                {
+                  type: "string",
+                  description: "ID of the course category",
+                },
+                {
+                  $ref: "#/components/schemas/Category",
+                  description: "Category details",
+                },
+              ],
+            },
             level: {
               type: "string",
               enum: Object.values(COURSE.LEVELS),
               description: "Course difficulty level",
+            },
+            duration: {
+              type: "number",
+              description: "Total course duration in minutes",
+              minimum: 0,
+            },
+            content: {
+              type: "array",
+              items: {
+                $ref: "#/components/schemas/ContentItem",
+              },
+              description: "Course content items",
+            },
+            enrolledStudents: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+              description: "IDs of enrolled students",
+            },
+            ratings: {
+              type: "array",
+              items: {
+                $ref: "#/components/schemas/Rating",
+              },
+              description: "Course ratings",
+            },
+            averageRating: {
+              type: "number",
+              description: "Average course rating",
+              minimum: 0,
+              maximum: COURSE.RATING.MAX,
+            },
+            isPublished: {
+              type: "boolean",
+              description: "Whether the course is published",
+              default: false,
             },
             status: {
               type: "string",
@@ -91,16 +267,15 @@ const options = {
               description: "Course status",
               default: COURSE.STATUS.DRAFT,
             },
-            rating: {
-              type: "number",
-              description: "Course rating",
-              minimum: COURSE.RATING.MIN,
-              maximum: COURSE.RATING.MAX,
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "Course creation timestamp",
             },
-            enrolledStudents: {
-              type: "number",
-              description: "Number of enrolled students",
-              minimum: 0,
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+              description: "Course last update timestamp",
             },
           },
         },
@@ -130,8 +305,63 @@ const options = {
             },
           },
         },
+        PaginationResponse: {
+          type: "object",
+          properties: {
+            status: {
+              type: "string",
+              example: "success",
+            },
+            data: {
+              type: "object",
+              properties: {
+                data: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                  },
+                },
+                pagination: {
+                  type: "object",
+                  properties: {
+                    total: {
+                      type: "integer",
+                      description: "Total number of items",
+                    },
+                    page: {
+                      type: "integer",
+                      description: "Current page number",
+                    },
+                    pages: {
+                      type: "integer",
+                      description: "Total number of pages",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     },
+    tags: [
+      {
+        name: "Auth",
+        description: "Authentication endpoints",
+      },
+      {
+        name: "Users",
+        description: "User management endpoints",
+      },
+      {
+        name: "Categories",
+        description: "Category management endpoints",
+      },
+      {
+        name: "Courses",
+        description: "Course management endpoints",
+      },
+    ],
   },
   apis: ["./routes/*.js"],
 };

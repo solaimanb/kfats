@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const categoryController = require("../controllers/categoryController");
-const { protect, restrictTo } = require("../middleware/authMiddleware");
+const { auth, checkRole } = require("../middleware/auth");
 const { validateCategory } = require("../validators/categoryValidator");
 
 /**
@@ -122,8 +122,8 @@ router.get("/:id", categoryController.getCategoryById);
  */
 router.post(
   "/",
-  protect,
-  restrictTo("admin"),
+  auth,
+  checkRole(["admin", "superAdmin"]),
   validateCategory,
   categoryController.createCategory
 );
@@ -173,8 +173,8 @@ router.post(
  */
 router.patch(
   "/:id",
-  protect,
-  restrictTo("admin"),
+  auth,
+  checkRole(["admin", "superAdmin"]),
   validateCategory,
   categoryController.updateCategory
 );
@@ -206,8 +206,8 @@ router.patch(
  */
 router.delete(
   "/:id",
-  protect,
-  restrictTo("admin"),
+  auth,
+  checkRole(["admin", "superAdmin"]),
   categoryController.deleteCategory
 );
 
