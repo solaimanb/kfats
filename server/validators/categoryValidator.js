@@ -1,21 +1,22 @@
 const Joi = require('joi');
+const { CATEGORY } = require('../constants');
 
 const categorySchema = Joi.object({
   name: Joi.string()
     .required()
     .trim()
-    .min(2)
-    .max(50)
+    .min(CATEGORY.LIMITS.MIN_NAME)
+    .max(CATEGORY.LIMITS.NAME)
     .messages({
       'string.empty': 'Category name is required',
-      'string.min': 'Category name must be at least 2 characters',
-      'string.max': 'Category name cannot exceed 50 characters',
+      'string.min': `Category name must be at least ${CATEGORY.LIMITS.MIN_NAME} characters`,
+      'string.max': `Category name cannot exceed ${CATEGORY.LIMITS.NAME} characters`,
     }),
   
   description: Joi.string()
-    .max(500)
+    .max(CATEGORY.LIMITS.DESCRIPTION)
     .messages({
-      'string.max': 'Category description cannot exceed 500 characters',
+      'string.max': `Category description cannot exceed ${CATEGORY.LIMITS.DESCRIPTION} characters`,
     }),
   
   isActive: Joi.boolean()

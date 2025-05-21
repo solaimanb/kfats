@@ -144,7 +144,7 @@ class CourseService extends BaseService {
   }
 
   async validateCourseData(courseData) {
-    const { title, description, price, level } = courseData;
+    const { title, description, price, level, duration, content } = courseData;
 
     if (title) {
       if (title.length < COURSE.LIMITS.MIN_TITLE) {
@@ -161,6 +161,24 @@ class CourseService extends BaseService {
 
     if (price && (price < COURSE.LIMITS.PRICE.MIN || price > COURSE.LIMITS.PRICE.MAX)) {
       throw createError(400, `Price must be between ${COURSE.LIMITS.PRICE.MIN} and ${COURSE.LIMITS.PRICE.MAX}`);
+    }
+
+    if (duration && duration < COURSE.LIMITS.MIN_DURATION) {
+      throw createError(400, `Duration must be at least ${COURSE.LIMITS.MIN_DURATION} minute`);
+    }
+
+    if (content && Array.isArray(content)) {
+      content.forEach((item, index) => {
+        if (item.title && item.title.length > COURSE.LIMITS.CONTENT.TITLE) {
+          throw createError(400, `Content item ${index + 1} title cannot exceed ${COURSE.LIMITS.CONTENT.TITLE} characters`);
+        }
+        if (item.description && item.description.length > COURSE.LIMITS.CONTENT.DESCRIPTION) {
+          throw createError(400, `Content item ${index + 1} description cannot exceed ${COURSE.LIMITS.CONTENT.DESCRIPTION} characters`);
+        }
+        if (item.duration && item.duration < COURSE.LIMITS.CONTENT.MIN_DURATION) {
+          throw createError(400, `Content item ${index + 1} duration must be at least ${COURSE.LIMITS.CONTENT.MIN_DURATION} minute`);
+        }
+      });
     }
 
     if (level && !Object.values(COURSE.LEVELS).includes(level)) {

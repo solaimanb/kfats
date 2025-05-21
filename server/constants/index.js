@@ -6,12 +6,14 @@ const COURSE = {
     CONTENT: {
       TITLE: 200,
       DESCRIPTION: 1000,
+      MIN_DURATION: 1,
     },
     REVIEW: 500,
     PRICE: {
       MIN: 0,
       MAX: 10000,
     },
+    MIN_DURATION: 1,
   },
   RATING: {
     MIN: 1,
@@ -50,6 +52,14 @@ const COURSE = {
   },
 };
 
+const CATEGORY = {
+  LIMITS: {
+    MIN_NAME: 2,
+    NAME: 50,
+    DESCRIPTION: 500,
+  },
+};
+
 const ROLES = {
   ADMIN: "admin",
   SUPER_ADMIN: "superAdmin",
@@ -84,6 +94,7 @@ const HTTP_STATUS = {
 
 module.exports = {
   COURSE,
+  CATEGORY,
   ROLES,
   ERROR_MESSAGES,
   HTTP_STATUS,

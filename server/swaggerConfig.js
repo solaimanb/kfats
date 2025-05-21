@@ -1,5 +1,5 @@
-const swaggerJSDoc = require('swagger-jsdoc');
-const { COURSE, ROLES } = require('./constants');
+const swaggerJSDoc = require("swagger-jsdoc");
+const { COURSE, ROLES, CATEGORY } = require("./constants");
 
 const options = {
   definition: {
@@ -7,7 +7,8 @@ const options = {
     info: {
       title: "Kushtia Fine Arts & Technology School API",
       version: "1.0.0",
-      description: "API documentation for Kushtia Fine Arts & Technology School",
+      description:
+        "API documentation for Kushtia Fine Arts & Technology School",
       contact: {
         name: "API Support",
         email: "support@kfats.com",
@@ -79,7 +80,8 @@ const options = {
             name: {
               type: "string",
               description: "Category name",
-              maxLength: 50,
+              minLength: CATEGORY.LIMITS.MIN_NAME,
+              maxLength: CATEGORY.LIMITS.NAME,
             },
             slug: {
               type: "string",
@@ -88,7 +90,7 @@ const options = {
             description: {
               type: "string",
               description: "Category description",
-              maxLength: 500,
+              maxLength: CATEGORY.LIMITS.DESCRIPTION,
             },
             isActive: {
               type: "boolean",
@@ -133,7 +135,7 @@ const options = {
             duration: {
               type: "number",
               description: "Content duration in minutes",
-              minimum: 0,
+              minimum: COURSE.LIMITS.CONTENT.MIN_DURATION,
             },
           },
         },
@@ -165,7 +167,16 @@ const options = {
         },
         Course: {
           type: "object",
-          required: ["title", "description", "thumbnail", "price", "category", "level", "duration", "content"],
+          required: [
+            "title",
+            "description",
+            "thumbnail",
+            "price",
+            "category",
+            "level",
+            "duration",
+            "content",
+          ],
           properties: {
             _id: {
               type: "string",
@@ -174,6 +185,7 @@ const options = {
             title: {
               type: "string",
               description: "Course title",
+              minLength: COURSE.LIMITS.MIN_TITLE,
               maxLength: COURSE.LIMITS.TITLE,
             },
             slug: {
@@ -193,7 +205,8 @@ const options = {
             price: {
               type: "number",
               description: "Course price",
-              minimum: 0,
+              minimum: COURSE.LIMITS.PRICE.MIN,
+              maximum: COURSE.LIMITS.PRICE.MAX,
             },
             instructor: {
               oneOf: [
@@ -227,7 +240,7 @@ const options = {
             duration: {
               type: "number",
               description: "Total course duration in minutes",
-              minimum: 0,
+              minimum: COURSE.LIMITS.MIN_DURATION,
             },
             content: {
               type: "array",
@@ -253,7 +266,7 @@ const options = {
             averageRating: {
               type: "number",
               description: "Average course rating",
-              minimum: 0,
+              minimum: COURSE.RATING.MIN,
               maximum: COURSE.RATING.MAX,
             },
             isPublished: {

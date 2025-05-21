@@ -55,10 +55,10 @@ const contentItemSchema = Joi.object({
   videoUrl: baseSchemas.url,
 
   duration: Joi.number()
-    .min(0)
+    .min(COURSE.LIMITS.CONTENT.MIN_DURATION)
     .messages({
       'number.base': 'Content duration must be a number',
-      'number.min': 'Content duration must be a positive number',
+      'number.min': `Content duration must be at least ${COURSE.LIMITS.CONTENT.MIN_DURATION} minute`,
     }),
 });
 
@@ -107,10 +107,10 @@ const courseSchemas = {
 
     duration: Joi.number()
       .required()
-      .min(0)
+      .min(COURSE.LIMITS.MIN_DURATION)
       .messages({
         'number.base': 'Duration must be a number',
-        'number.min': 'Duration must be a positive number',
+        'number.min': `Duration must be at least ${COURSE.LIMITS.MIN_DURATION} minute`,
       }),
 
     content: Joi.array()
@@ -172,10 +172,10 @@ const courseSchemas = {
       }),
 
     duration: Joi.number()
-      .min(0)
+      .min(COURSE.LIMITS.MIN_DURATION)
       .messages({
         'number.base': 'Duration must be a number',
-        'number.min': 'Duration must be a positive number',
+        'number.min': `Duration must be at least ${COURSE.LIMITS.MIN_DURATION} minute`,
       }),
 
     content: Joi.array()
