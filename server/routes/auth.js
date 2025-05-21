@@ -100,7 +100,7 @@ module.exports = router;
 
 /**
  * @swagger
- * /auth/signup:
+ * /api/v1/auth/signup:
  *   post:
  *     summary: Create a new user account
  *     tags: [Auth]
@@ -121,7 +121,7 @@ module.exports = router;
 
 /**
  * @swagger
- * /auth/login:
+ * /api/v1/auth/login:
  *   post:
  *     summary: Login and get a JWT token
  *     tags: [Auth]

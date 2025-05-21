@@ -58,7 +58,7 @@ module.exports = router;
 
 /**
  * @swagger
- * /gAuth/google:
+ * /api/v1/gAuth/google:
  *   get:
  *     summary: Initiate Google OAuth login
  *     tags: [GoogleAuth]
@@ -72,7 +72,7 @@ module.exports = router;
 
 /**
  * @swagger
- * /gAuth/google/callback:
+ * /api/v1/gAuth/google/callback:
  *   get:
  *     summary: Google OAuth callback endpoint
  *     tags: [GoogleAuth]
@@ -110,7 +110,7 @@ module.exports = router;
 
 /**
  * @swagger
- * /gAuth/logout:
+ * /api/v1/gAuth/logout:
  *   get:
  *     summary: Logout user
  *     tags: [GoogleAuth]
