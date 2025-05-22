@@ -1,5 +1,6 @@
 "use client";
 
+// import SearchInput from "@/components/SearchInput";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -18,7 +19,7 @@ export default function UserHomeNavbar() {
   // ✅ Dummy user for now
   const user = {
     name: "John Doe",
-    role: "admin", // change to 'seller', 'writer', or 'student' to test
+    role: "mentor", // change to 'seller', 'writer', or 'student' to test
   };
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
@@ -73,11 +74,12 @@ export default function UserHomeNavbar() {
 
         {/* Search Bar */}
         <div className="hidden md:flex flex-1 mx-6 max-w-md">
-          <input
-            type="text"
-            placeholder="Search courses, products..."
-            className="w-full px-4 py-2 border-2 border-amber-600 bg-white text-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-kc-text"
-          />
+          {/* Search Bar Placeholder (Design only) */}
+<div className="hidden md:flex flex-1 mx-6 max-w-md">
+  <div className="w-full px-4 py-2 border-2 border-amber-600 bg-white text-gray-400 rounded-md">
+    Search courses, products...
+  </div>
+</div>
         </div>
 
         {/* Desktop Nav */}
