@@ -5,7 +5,7 @@ import UsersHomePage from '@/components/home/UsersHomePage'; // Adjust path as n
 import Footer from '@/components/shared/footer/Footer';
 import React from 'react';
 
-const isUser = false;
+const isUser = true;
 
 export default function HomePage() {
   return (

@@ -15,8 +15,23 @@ export default function UserHomeNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  // ✅ Dummy user for now
+  const user = {
+    name: "John Doe",
+    role: "admin", // change to 'seller', 'writer', or 'student' to test
+  };
+
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+
+  // Role-based dashboard link
+  const getDashboardLink = () => {
+    if (user.role === "mentor") return "/dashboard/mentor";
+    if (user.role === "seller") return "/dashboard/seller";
+    if (user.role === "writer") return "/dashboard/writer";
+    if (user.role === "admin") return "/dashboard/admin";
+    return "/dashboard/user";
+  };
 
   return (
     <header className="bg-orange-100 shadow-md sticky top-0 z-50">
@@ -33,7 +48,6 @@ export default function UserHomeNavbar() {
             />
           </Link>
 
-          {/* Dropdown */}
           <div className="relative">
             <button
               onClick={toggleDropdown}
@@ -43,25 +57,13 @@ export default function UserHomeNavbar() {
             </button>
             {dropdownOpen && (
               <div className="absolute top-full mt-2 w-48 bg-white text-gray-600 shadow-md border rounded-md z-50">
-                <Link
-                  href="/become-mentor"
-                  onClick={() => setDropdownOpen(false)}
-                  className="block px-4 py-2 hover:bg-orange-50"
-                >
+                <Link href="/become-mentor" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-orange-50">
                   ✅ Become a Mentor
                 </Link>
-                <Link
-                  href="/become-seller"
-                  onClick={() => setDropdownOpen(false)}
-                  className="block px-4 py-2 hover:bg-orange-50"
-                >
+                <Link href="/become-seller" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-orange-50">
                   🛍️ Become a Seller
                 </Link>
-                <Link
-                  href="/become-writer"
-                  onClick={() => setDropdownOpen(false)}
-                  className="block px-4 py-2 hover:bg-orange-50"
-                >
+                <Link href="/become-writer" onClick={() => setDropdownOpen(false)} className="block px-4 py-2 hover:bg-orange-50">
                   ✍️ Become a Writer
                 </Link>
               </div>
@@ -74,7 +76,7 @@ export default function UserHomeNavbar() {
           <input
             type="text"
             placeholder="Search courses, products..."
-            className="w-full px-4 py-2 border-2  border-amber-600 bg-white text-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-kc-text"
+            className="w-full px-4 py-2 border-2 border-amber-600 bg-white text-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-kc-text"
           />
         </div>
 
@@ -82,9 +84,8 @@ export default function UserHomeNavbar() {
         <nav className="hidden md:flex gap-6 items-center">
           <Link href="/courses" className="text-kc-text hover:text-kc-green">কোর্সসমূহ</Link>
           <Link href="/products" className="text-kc-text hover:text-kc-green">প্রোডাক্টস</Link>
-          <Link href="/dashboard" className="text-kc-text hover:text-kc-green">ড্যাশবোর্ড</Link>
+          <Link href={getDashboardLink()} className="text-kc-text hover:text-kc-green">ড্যাশবোর্ড</Link>
           <Link href="/about" className="text-kc-text hover:text-kc-green">আমাদের সম্পর্কে</Link>
-
           <Link href="/cart" className="text-kc-text hover:text-kc-green relative">
             <AiOutlineShoppingCart size={20} />
           </Link>
@@ -99,17 +100,16 @@ export default function UserHomeNavbar() {
         </button>
       </div>
 
-      {/* Mobile Nav Menu */}
+      {/* Mobile Nav */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t px-4 py-4 flex flex-col gap-4">
+        <div className="md:hidden bg-white border-t px-4 py-4 flex flex-col gap-4 text-kc-dark">
           <Link href="/courses" onClick={toggleMenu}>কোর্সসমূহ</Link>
           <Link href="/products" onClick={toggleMenu}>প্রোডাক্টস</Link>
-          <Link href="/dashboard" onClick={toggleMenu}>ড্যাশবোর্ড</Link>
+          <Link href={getDashboardLink()} onClick={toggleMenu}>ড্যাশবোর্ড</Link>
           <Link href="/about" onClick={toggleMenu}>আমাদের সম্পর্কে</Link>
           <Link href="/cart" onClick={toggleMenu}>🛒 কার্ট</Link>
           <Link href="/profile" onClick={toggleMenu}>👤 প্রোফাইল</Link>
 
-          {/* Mobile Dropdown */}
           <details className="border-t pt-2">
             <summary className="cursor-pointer text-kc-text">Join as</summary>
             <div className="ml-4 mt-2 flex flex-col gap-2">
