@@ -42,10 +42,12 @@ const User = require('../models/User');
 
 /**
  * @swagger
- * /users:
+ * /api/v1/users:
  *   get:
  *     summary: Get all users
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of users
@@ -55,6 +57,10 @@ const User = require('../models/User');
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 
 router.get('/', async (req, res) => {
@@ -66,10 +72,12 @@ router.get('/', async (req, res) => {
 
 /**
  * @swagger
- * /users:
+ * /api/v1/users:
  *   post:
  *     summary: Create a new user
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -83,6 +91,12 @@ router.get('/', async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
 
 router.post('/', async (req, res) => {

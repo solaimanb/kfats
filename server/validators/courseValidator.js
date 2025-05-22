@@ -25,6 +25,17 @@ const baseSchemas = {
     }),
 };
 
+// Course ID schema
+const idSchema = Joi.object({
+  id: Joi.string()
+    .regex(/^[0-9a-fA-F]{24}$/)
+    .required()
+    .messages({
+      'string.empty': 'Course ID is required',
+      'string.pattern.base': 'Invalid course ID format',
+    }),
+});
+
 // Content item schema
 const contentItemSchema = Joi.object({
   title: Joi.string()
@@ -44,10 +55,10 @@ const contentItemSchema = Joi.object({
   videoUrl: baseSchemas.url,
 
   duration: Joi.number()
-    .min(0)
+    .min(COURSE.LIMITS.CONTENT.MIN_DURATION)
     .messages({
       'number.base': 'Content duration must be a number',
-      'number.min': 'Content duration must be a positive number',
+      'number.min': `Content duration must be at least ${COURSE.LIMITS.CONTENT.MIN_DURATION} minute`,
     }),
 });
 
@@ -56,9 +67,11 @@ const courseSchemas = {
   base: Joi.object({
     title: Joi.string()
       .required()
+      .min(COURSE.LIMITS.MIN_TITLE)
       .max(COURSE.LIMITS.TITLE)
       .messages({
         'string.empty': 'Title is required',
+        'string.min': `Title must be at least ${COURSE.LIMITS.MIN_TITLE} characters`,
         'string.max': `Title cannot be more than ${COURSE.LIMITS.TITLE} characters`,
       }),
 
@@ -74,10 +87,12 @@ const courseSchemas = {
 
     price: Joi.number()
       .required()
-      .min(0)
+      .min(COURSE.LIMITS.PRICE.MIN)
+      .max(COURSE.LIMITS.PRICE.MAX)
       .messages({
         'number.base': 'Price must be a number',
-        'number.min': 'Price must be a positive number',
+        'number.min': `Price must be at least ${COURSE.LIMITS.PRICE.MIN}`,
+        'number.max': `Price cannot exceed ${COURSE.LIMITS.PRICE.MAX}`,
       }),
 
     category: baseSchemas.objectId.required(),
@@ -92,10 +107,10 @@ const courseSchemas = {
 
     duration: Joi.number()
       .required()
-      .min(0)
+      .min(COURSE.LIMITS.MIN_DURATION)
       .messages({
         'number.base': 'Duration must be a number',
-        'number.min': 'Duration must be a positive number',
+        'number.min': `Duration must be at least ${COURSE.LIMITS.MIN_DURATION} minute`,
       }),
 
     content: Joi.array()
@@ -124,8 +139,10 @@ const courseSchemas = {
 
   update: Joi.object({
     title: Joi.string()
+      .min(COURSE.LIMITS.MIN_TITLE)
       .max(COURSE.LIMITS.TITLE)
       .messages({
+        'string.min': `Title must be at least ${COURSE.LIMITS.MIN_TITLE} characters`,
         'string.max': `Title cannot be more than ${COURSE.LIMITS.TITLE} characters`,
       }),
 
@@ -138,10 +155,12 @@ const courseSchemas = {
     thumbnail: baseSchemas.url,
 
     price: Joi.number()
-      .min(0)
+      .min(COURSE.LIMITS.PRICE.MIN)
+      .max(COURSE.LIMITS.PRICE.MAX)
       .messages({
         'number.base': 'Price must be a number',
-        'number.min': 'Price must be a positive number',
+        'number.min': `Price must be at least ${COURSE.LIMITS.PRICE.MIN}`,
+        'number.max': `Price cannot exceed ${COURSE.LIMITS.PRICE.MAX}`,
       }),
 
     category: baseSchemas.objectId,
@@ -153,10 +172,10 @@ const courseSchemas = {
       }),
 
     duration: Joi.number()
-      .min(0)
+      .min(COURSE.LIMITS.MIN_DURATION)
       .messages({
         'number.base': 'Duration must be a number',
-        'number.min': 'Duration must be a positive number',
+        'number.min': `Duration must be at least ${COURSE.LIMITS.MIN_DURATION} minute`,
       }),
 
     content: Joi.array()
@@ -190,17 +209,21 @@ const courseSchemas = {
 
   query: Joi.object({
     minPrice: Joi.number()
-      .min(0)
+      .min(COURSE.LIMITS.PRICE.MIN)
+      .max(COURSE.LIMITS.PRICE.MAX)
       .messages({
         'number.base': 'Invalid minimum price',
-        'number.min': 'Minimum price must be positive',
+        'number.min': `Minimum price must be at least ${COURSE.LIMITS.PRICE.MIN}`,
+        'number.max': `Minimum price cannot exceed ${COURSE.LIMITS.PRICE.MAX}`,
       }),
 
     maxPrice: Joi.number()
-      .min(0)
+      .min(COURSE.LIMITS.PRICE.MIN)
+      .max(COURSE.LIMITS.PRICE.MAX)
       .messages({
         'number.base': 'Invalid maximum price',
-        'number.min': 'Maximum price must be positive',
+        'number.min': `Maximum price must be at least ${COURSE.LIMITS.PRICE.MIN}`,
+        'number.max': `Maximum price cannot exceed ${COURSE.LIMITS.PRICE.MAX}`,
       }),
 
     sort: Joi.string()
@@ -276,5 +299,5 @@ module.exports = {
   validateCourseUpdate: createValidator(courseSchemas.update),
   validateRating: createValidator(courseSchemas.rating),
   validateQuery: createValidator(courseSchemas.query, 'query'),
-  validateId: createValidator(baseSchemas.objectId, 'params'),
+  validateId: createValidator(idSchema, 'params'),
 }; 

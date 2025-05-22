@@ -37,10 +37,22 @@ class CourseService extends BaseService {
     });
   }
 
-  async updateCourse(id, updateData, userId) {
+  async updateCourse(id, updateData, userId, userRole) {
     const course = await this.findById(id);
 
-    if (course.instructor.toString() !== userId) {
+    // Check if course exists
+    if (!course) {
+      throw createError(404, "Course not found");
+    }
+
+    // Convert instructor to string if it's an ObjectId or populated object
+    const instructorId = typeof course.instructor === 'object' && course.instructor !== null 
+      ? course.instructor.toString() 
+      : course.instructor;
+
+    // Check if user is the instructor or admin
+    if (instructorId !== userId.toString() && 
+        !["admin", "superAdmin"].includes(userRole)) {
       throw createError(403, "Not authorized to update this course");
     }
 
@@ -48,10 +60,22 @@ class CourseService extends BaseService {
     return this.update(id, updateData);
   }
 
-  async deleteCourse(id, userId) {
+  async deleteCourse(id, userId, userRole) {
     const course = await this.findById(id);
 
-    if (course.instructor.toString() !== userId) {
+    // Check if course exists
+    if (!course) {
+      throw createError(404, "Course not found");
+    }
+
+    // Convert instructor to string if it's an ObjectId or populated object
+    const instructorId = typeof course.instructor === 'object' && course.instructor !== null 
+      ? course.instructor.toString() 
+      : course.instructor;
+
+    // Check if user is the instructor or admin
+    if (instructorId !== userId.toString() && 
+        !["admin", "superAdmin"].includes(userRole)) {
       throw createError(403, "Not authorized to delete this course");
     }
 
@@ -120,26 +144,45 @@ class CourseService extends BaseService {
   }
 
   async validateCourseData(courseData) {
-    const { title, description, price, level } = courseData;
+    const { title, description, price, level, duration, content } = courseData;
 
-    if (
-      title &&
-      (title.length < COURSE.LIMITS.TITLE.MIN ||
-        title.length > COURSE.LIMITS.TITLE.MAX)
-    ) {
-      throw createError(400, "Invalid title length");
+    if (title) {
+      if (title.length < COURSE.LIMITS.MIN_TITLE) {
+        throw createError(400, `Title must be at least ${COURSE.LIMITS.MIN_TITLE} characters`);
+      }
+      if (title.length > COURSE.LIMITS.TITLE) {
+        throw createError(400, `Title cannot exceed ${COURSE.LIMITS.TITLE} characters`);
+      }
     }
 
-    if (description && description.length > COURSE.LIMITS.DESCRIPTION.MAX) {
-      throw createError(400, "Description too long");
+    if (description && description.length > COURSE.LIMITS.DESCRIPTION) {
+      throw createError(400, `Description cannot exceed ${COURSE.LIMITS.DESCRIPTION} characters`);
     }
 
-    if (price && (price < 0 || price > COURSE.LIMITS.PRICE.MAX)) {
-      throw createError(400, "Invalid price");
+    if (price && (price < COURSE.LIMITS.PRICE.MIN || price > COURSE.LIMITS.PRICE.MAX)) {
+      throw createError(400, `Price must be between ${COURSE.LIMITS.PRICE.MIN} and ${COURSE.LIMITS.PRICE.MAX}`);
+    }
+
+    if (duration && duration < COURSE.LIMITS.MIN_DURATION) {
+      throw createError(400, `Duration must be at least ${COURSE.LIMITS.MIN_DURATION} minute`);
+    }
+
+    if (content && Array.isArray(content)) {
+      content.forEach((item, index) => {
+        if (item.title && item.title.length > COURSE.LIMITS.CONTENT.TITLE) {
+          throw createError(400, `Content item ${index + 1} title cannot exceed ${COURSE.LIMITS.CONTENT.TITLE} characters`);
+        }
+        if (item.description && item.description.length > COURSE.LIMITS.CONTENT.DESCRIPTION) {
+          throw createError(400, `Content item ${index + 1} description cannot exceed ${COURSE.LIMITS.CONTENT.DESCRIPTION} characters`);
+        }
+        if (item.duration && item.duration < COURSE.LIMITS.CONTENT.MIN_DURATION) {
+          throw createError(400, `Content item ${index + 1} duration must be at least ${COURSE.LIMITS.CONTENT.MIN_DURATION} minute`);
+        }
+      });
     }
 
     if (level && !Object.values(COURSE.LEVELS).includes(level)) {
-      throw createError(400, "Invalid course level");
+      throw createError(400, ERROR_MESSAGES.COURSE.INVALID_LEVEL);
     }
   }
 

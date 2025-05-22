@@ -30,6 +30,7 @@ const { setupLogger } = require("./utils/logger");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/auth");
 const courseRoutes = require("./routes/courseRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
 const { handleError } = require("./utils/errorHandler");
 const oauthRoutes = require("./routes/oauth");
 
@@ -135,6 +136,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/courses", courseRoutes);
+app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/gAuth", oauthRoutes);
 
 /**

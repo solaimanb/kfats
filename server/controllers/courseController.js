@@ -38,7 +38,8 @@ class CourseController extends BaseController {
       const course = await courseService.updateCourse(
         req.params.id,
         req.body,
-        req.user._id
+        req.user._id,
+        req.user.role
       );
       res.json({
         status: "success",
@@ -51,7 +52,11 @@ class CourseController extends BaseController {
 
   deleteCourse = async (req, res, next) => {
     try {
-      await courseService.deleteCourse(req.params.id, req.user._id);
+      await courseService.deleteCourse(
+        req.params.id, 
+        req.user._id,
+        req.user.role
+      );
       res.status(204).json({
         status: "success",
         data: null,
