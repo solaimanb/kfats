@@ -1,0 +1,68 @@
+{
+  "courses": [
+    {
+      "name": "Young Chef Academy: Cooking Basics for Kids",
+      "thumbnail": "/images/courses/thumbnail8.jpeg",
+      "instructor": "Sumaiya Rahman",
+      "instructorImage": "/images/instructors/sumaiya.jpg",
+      "ratings": 4.9,
+      "fee": "৳2500"
+    },
+    {
+      "name": "Tailoring Basics: Dressmaking for Beginners",
+      "thumbnail": "/images/courses/thumbnail1.jpeg",
+      "instructor": "Nusrat Jahan",
+      "instructorImage": "/images/instructors/nusrat.jpg",
+      "ratings": 4.7,
+      "fee": "৳3200"
+    },
+    {
+      "name": "Clay Crafting: Jewelry, Pots & Toys",
+      "thumbnail": "/images/courses/thumbnail2.jpeg",
+      "instructor": "Shamim Reza",
+      "instructorImage": "/images/instructors/shamim.jpg",
+      "ratings": 4.8,
+      "fee": "৳2700"
+    },
+    {
+      "name": "Mathematics Made Easy: A Teen's Guide to Success",
+      "thumbnail": "/images/courses/thumbnail3.jpeg",
+      "instructor": "Tanvir Ahmed",
+      "instructorImage": "/images/instructors/tanvir.jpg",
+      "ratings": 4.5,
+      "fee": "৳4500"
+    },
+    {
+      "name": "Creative Drawing & Illustration for Kids",
+      "thumbnail": "/images/courses/thumbnail4.jpeg",
+      "instructor": "Maliha Tabassum",
+      "instructorImage": "/images/instructors/maliha.jpg",
+      "ratings": 4.8,
+      "fee": "৳2800"
+    },
+    {
+      "name": "Intro to Coding with Scratch for Young Learners",
+      "thumbnail": "/images/courses/thumbnail5.jpeg",
+      "instructor": "Fahim Hasan",
+      "instructorImage": "/images/instructors/fahim.jpg",
+      "ratings": 4.7,
+      "fee": "৳3900"
+    },
+    {
+      "name": "Hands-On Science Experiments at Home",
+      "thumbnail": "/images/courses/thumbnail6.jpeg",
+      "instructor": "Nabila Sultana",
+      "instructorImage": "/images/instructors/nabila.jpg",
+      "ratings": 4.6,
+      "fee": "৳2100"
+    },
+    {
+      "name": "2D Animation Fundamentals with FlipaClip",
+      "thumbnail": "/images/courses/thumbnail7.jpeg",
+      "instructor": "Rifat Karim",
+      "instructorImage": "/images/instructors/rifat.jpg",
+      "ratings": 4.6,
+      "fee": "৳3000"
+    }
+  ]
+}

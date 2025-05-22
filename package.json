@@ -10,5 +10,8 @@
   "description": "Kushtia Fine Arts & Technology School API",
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "swiper": "^11.2.6"
   }
 }

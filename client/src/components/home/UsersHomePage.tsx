@@ -1,9 +1,12 @@
 import React from 'react';
+import UserHomeNavbar from '../shared/navbars/UserHomeNavbar';
+import HeroLoggedIn from '../banners/HeroLoggedIn';
 
 const UsersHomePage = () => {
     return (
         <div>
-            this is users homepage
+            <UserHomeNavbar/>
+            <HeroLoggedIn/>
         </div>
     );
 };
