@@ -11,8 +11,8 @@ import { motion} from "framer-motion";
 interface Course {
   name: string;
   thumbnail: string;
-  instructor: string;
-  instructorImage: string;
+  mentor: string;
+  mentorImage: string;
   ratings: number;
   fee: string;
 }
@@ -96,13 +96,13 @@ export default function CourseSection() {
                   <div className="flex items-center gap-2 mt-2 text-xs text-gray-700">
                     <div className="w-6 h-6 relative rounded-full overflow-hidden border">
                       <Image
-                        src={course.instructorImage}
-                        alt={course.instructor}
+                        src={course.mentorImage}
+                        alt={course.mentor}
                         fill
                         className="object-cover"
                       />
                     </div>
-                    <span className="text-[0.75rem]">{course.instructor}</span>
+                    <span className="text-[0.75rem]">{course.mentor}</span>
                   </div>
 
                   <div className="mt-1 text-xs text-gray-600">
@@ -155,7 +155,7 @@ export default function CourseSection() {
 
             <h2 className="text-lg font-bold mb-2">{selectedCourse.name}</h2>
             <p className="text-sm text-gray-700 mb-1">
-              Instructor: {selectedCourse.instructor}
+              Mentor: {selectedCourse.mentor}
             </p>
             <p className="text-sm text-gray-700 mb-1">💳 {selectedCourse.fee} ৳</p>
             <p className="text-sm text-gray-700 mb-4">⭐ {selectedCourse.ratings}</p>
