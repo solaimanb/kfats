@@ -42,7 +42,10 @@ export class RoleApplicationController {
   });
 
   approveApplication = catchAsync(async (req: Request, res: Response) => {
-    const application = await this.roleApplicationService.approveApplication(req.params.id);
+    const application = await this.roleApplicationService.approveApplication(
+      req.params.id,
+      req.user!.id
+    );
     res.status(200).json({
       status: "success",
       data: application
@@ -50,7 +53,11 @@ export class RoleApplicationController {
   });
 
   rejectApplication = catchAsync(async (req: Request, res: Response) => {
-    const application = await this.roleApplicationService.rejectApplication(req.params.id);
+    const application = await this.roleApplicationService.rejectApplication(
+      req.params.id,
+      req.user!.id,
+      req.body.reason
+    );
     res.status(200).json({
       status: "success",
       data: application

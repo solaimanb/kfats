@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Document, Schema } from "mongoose";
-import { AuditLogModel, IAuditLog } from "../models/audit-Log.model";
+import { AuditLogModel, IAuditLog } from "../models/audit-log.model";
 import { IUser } from "../models/user.model";
 
 // Extend Express Request type to include user

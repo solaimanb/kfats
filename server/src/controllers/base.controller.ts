@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import { BaseService } from '../services/base.service';
-import { createError } from '../utils/error-handler.util';
 
 export class BaseController {
   protected service: BaseService;

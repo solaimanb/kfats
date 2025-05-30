@@ -13,7 +13,7 @@ const createLimiter = (options: {
     message: options.message,
     standardHeaders: true,
     legacyHeaders: false,
-    handler: (req, res, next) => {
+    handler: (_req, _res, next) => {
       next(new AppError(options.message, 429));
     },
   });

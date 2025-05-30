@@ -5,7 +5,7 @@ import { ROLE_PERMISSIONS, UserRole, PERMISSIONS } from "../config/rbac.config";
 import { catchAsync } from "../utils/catch-async.util";
 import { AppError } from "../utils/error.util";
 import { permissionCache } from "../utils/permission-cache.util";
-import { AuditLogModel } from "../models/audit-Log.model";
+import { AuditLogModel } from "../models/audit-log.model";
 import { PermissionService } from "../services/permission.service";
 
 // Extend IUser to include customPermissions
