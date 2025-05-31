@@ -12,6 +12,8 @@ import {
 import { permissionCache } from "../utils/permission-cache.util";
 import { Document } from "mongoose";
 import rateLimit from "express-rate-limit";
+import crypto from "crypto";
+import { RefreshTokenModel } from "../models/refresh-token.model";
 
 dotenv.config();
 
@@ -33,7 +35,7 @@ declare module "express-serve-static-core" {
 
 export const protect = async (
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
@@ -50,40 +52,116 @@ export const protect = async (
       throw new AppError("Not authenticated. Please log in.", 401);
     }
 
-    // 2. Verify token
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as JWTPayload;
+    try {
+      // 2. Verify token
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET as string
+      ) as JWTPayload;
 
-    // 3. Check if user exists
-    const user = (await UserModel.findById(decoded.id).select(
-      "+security"
-    )) as AuthUser;
-    if (!user) {
-      throw new AppError("User no longer exists", 404);
-    }
+      // 3. Check if user exists
+      const user = (await UserModel.findById(decoded.id).select(
+        "+security"
+      )) as AuthUser;
+      if (!user) {
+        throw new AppError("User no longer exists", 404);
+      }
 
-    // 4. Check if user changed password after token was issued
-    if (user.security?.passwordChangedAt && decoded.iat) {
-      const changedTimestamp = user.security.passwordChangedAt.getTime() / 1000;
-      if (decoded.iat < changedTimestamp) {
+      // 4. Check if user changed password after token was issued
+      if (user.security?.passwordChangedAt && decoded.iat) {
+        const changedTimestamp =
+          user.security.passwordChangedAt.getTime() / 1000;
+        if (decoded.iat < changedTimestamp) {
+          throw new AppError(
+            "Password recently changed. Please log in again.",
+            401
+          );
+        }
+      }
+
+      // 5. Check if user is active
+      if (user.status !== UserStatus.ACTIVE) {
         throw new AppError(
-          "Password recently changed. Please log in again.",
+          "Account is not active. Please contact support.",
           401
         );
       }
-    }
 
-    // 5. Check if user is active
-    if (user.status !== UserStatus.ACTIVE) {
-      throw new AppError("Account is not active. Please contact support.", 401);
-    }
+      // 6. Attach user and token to request
+      req.user = user;
+      req.token = token;
+      next();
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        // Get refresh token from cookies
+        const refreshToken = req.cookies?.refreshToken;
+        if (!refreshToken) {
+          throw new AppError("Session expired. Please log in again.", 401);
+        }
 
-    // 6. Attach user and token to request
-    req.user = user;
-    req.token = token;
-    next();
+        // Find valid refresh token
+        const validToken = await RefreshTokenModel.findOne({
+          token: refreshToken,
+          isRevoked: false,
+          expiresAt: { $gt: new Date() },
+        });
+
+        if (!validToken) {
+          throw new AppError(
+            "Invalid refresh token. Please log in again.",
+            401
+          );
+        }
+
+        // Get user and verify status
+        const user = await UserModel.findById(validToken.user).select(
+          "+security"
+        );
+        if (!user || user.status !== UserStatus.ACTIVE) {
+          throw new AppError("User not found or inactive", 401);
+        }
+
+        // Generate new access token
+        const newToken = jwt.sign(
+          { id: user._id, roles: user.roles, email: user.email },
+          process.env.JWT_SECRET as string,
+          { expiresIn: "15m" }
+        );
+
+        // Revoke used refresh token and generate new one
+        validToken.isRevoked = true;
+        await validToken.save();
+
+        // Generate new refresh token
+        const newRefreshToken = await RefreshTokenModel.create({
+          user: user._id,
+          token: crypto.randomBytes(40).toString("hex"),
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          deviceInfo: {
+            ip: req.ip || req.socket.remoteAddress || "unknown",
+            userAgent: req.headers["user-agent"] || "",
+          },
+        });
+
+        // Set new refresh token in cookie
+        res.cookie("refreshToken", newRefreshToken.token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        });
+
+        // Set new access token in header
+        res.setHeader("X-New-Access-Token", newToken);
+
+        // Attach user and new token to request
+        req.user = user;
+        req.token = newToken;
+        next();
+      } else {
+        throw new AppError("Invalid token. Please log in again.", 401);
+      }
+    }
   } catch (error) {
     next(error);
   }

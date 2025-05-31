@@ -220,10 +220,11 @@ export class PermissionController {
     });
   });
 
-  updateRolePermissions = catchAsync(async (req: Request, res: Response) => {
+  updateRolePermissions = catchAsync(async (req: Request, res: Response, _next: NextFunction) => {
     const permissions = await this.permissionService.updateRolePermissions(
       req.params.role,
-      req.body.permissions
+      req.body.permissions,
+      req.user!._id.toString()
     );
     res.status(200).json({
       status: "success",

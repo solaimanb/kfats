@@ -111,6 +111,8 @@ export interface IUser extends Document {
     twoFactorSecret?: string;
     loginAttempts: number;
     lockUntil?: Date;
+    refreshToken?: string;
+    refreshTokenExpires?: Date;
   };
   preferences: {
     language: string;
@@ -379,6 +381,8 @@ const userSchema = new Schema<IUser>(
         default: 0,
       },
       lockUntil: Date,
+      refreshToken: String,
+      refreshTokenExpires: Date,
     },
     preferences: {
       language: {

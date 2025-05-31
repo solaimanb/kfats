@@ -10,7 +10,6 @@ import {
 import { AuthController } from "../controllers/auth.controller";
 
 const router = express.Router();
-const authController = new AuthController();
 
 /**
  * @swagger
@@ -73,7 +72,7 @@ const authController = new AuthController();
 router.post(
   "/register",
   validateRequest(registerSchema),
-  authController.register
+  AuthController.register
 );
 
 /**
@@ -123,7 +122,7 @@ router.post(
  *       422:
  *         description: Validation error
  */
-router.post("/login", validateRequest(loginSchema), authController.login);
+router.post("/login", validateRequest(loginSchema), AuthController.login);
 
 /**
  * @swagger
@@ -154,7 +153,7 @@ router.post("/login", validateRequest(loginSchema), authController.login);
 router.post(
   "/forgot-password",
   validateRequest(forgotPasswordSchema),
-  authController.forgotPassword
+  AuthController.forgotPassword
 );
 
 /**
@@ -197,39 +196,8 @@ router.post(
 router.post(
   "/reset-password/:token",
   validateRequest(resetPasswordSchema),
-  authController.resetPassword
+  AuthController.resetPassword
 );
-
-/**
- * @swagger
- * /api/v1/auth/me:
- *   get:
- *     tags:
- *       - Authentication
- *     summary: Get current user
- *     description: Retrieve currently authenticated user's details
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: Current user details
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *       401:
- *         description: Not authenticated
- */
-router.get("/me", protect, authController.getMe);
 
 /**
  * @swagger
@@ -238,7 +206,7 @@ router.get("/me", protect, authController.getMe);
  *     tags:
  *       - Authentication
  *     summary: Logout user
- *     description: Invalidate user's authentication token
+ *     description: Clear user's refresh token and cookie
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -247,7 +215,25 @@ router.get("/me", protect, authController.getMe);
  *       401:
  *         description: Not authenticated
  */
-router.post("/logout", protect, authController.logout);
+router.post("/logout", protect, AuthController.logout);
+
+/**
+ * @swagger
+ * /api/v1/auth/logout-all:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Logout all devices
+ *     description: Clear all refresh tokens and cookies for the authenticated user
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *       401:
+ *         description: Not authenticated
+ */
+router.post("/logout-all", protect, AuthController.logoutAllDevices);
 
 /**
  * @swagger
@@ -256,12 +242,10 @@ router.post("/logout", protect, authController.logout);
  *     tags:
  *       - Authentication
  *     summary: Refresh access token
- *     description: Get a new access token using refresh token
- *     security:
- *       - BearerAuth: []
+ *     description: Get a new access token using refresh token from HTTP-only cookie
  *     responses:
  *       200:
- *         description: New access token generated
+ *         description: Token refresh successful
  *         content:
  *           application/json:
  *             schema:
@@ -273,11 +257,39 @@ router.post("/logout", protect, authController.logout);
  *                 data:
  *                   type: object
  *                   properties:
- *                     token:
+ *                     accessToken:
  *                       type: string
  *       401:
- *         description: Invalid or expired refresh token
+ *         description: Invalid or missing refresh token
  */
-router.post("/refresh-token", authController.refreshToken);
+router.post("/refresh-token", AuthController.refreshToken);
+
+/**
+ * @swagger
+ * /api/v1/auth/me:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: Get current user
+ *     description: Get the currently authenticated user's details
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Not authenticated
+ */
+router.get("/me", protect, AuthController.getMe);
 
 export default router;

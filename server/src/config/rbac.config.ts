@@ -158,3 +158,75 @@ export const ROLE_PERMISSIONS = {
     ...Object.values(PERMISSIONS.ADMIN),
   ],
 };
+
+export const ROLE_TRANSITIONS: Record<UserRole, UserRole[]> = {
+  [UserRole.STUDENT]: [UserRole.MENTOR, UserRole.WRITER, UserRole.SELLER], // Student can transition to one specialized role
+  [UserRole.MENTOR]: [], // No further transitions allowed
+  [UserRole.WRITER]: [], // No further transitions allowed
+  [UserRole.SELLER]: [], // No further transitions allowed
+  [UserRole.ADMIN]: [], // Admin role is assigned directly, not through transitions
+};
+
+export function isValidRoleTransition(
+  currentRoles: UserRole[],
+  targetRole: UserRole
+): boolean {
+  // Only allow transitions from STUDENT role to a specialized role
+  return (
+    currentRoles.length === 1 && // Must have exactly one role
+    currentRoles[0] === UserRole.STUDENT && // Must be a STUDENT
+    ROLE_TRANSITIONS[UserRole.STUDENT].includes(targetRole) // Can only transition to allowed specialized roles
+  );
+}
+
+/**
+ * Defines which roles are mutually exclusive and cannot be assigned together
+ */
+export const MUTUALLY_EXCLUSIVE_ROLES: UserRole[][] = [
+  // Specialized roles are mutually exclusive - a user can only have one of these
+  [UserRole.MENTOR, UserRole.WRITER, UserRole.SELLER]
+];
+
+/**
+ * Validates that a user's roles don't violate mutual exclusivity rules
+ * @param roles Array of roles to validate
+ * @returns true if roles are valid, false if they violate constraints
+ */
+export function validateRoleConstraints(roles: UserRole[]): boolean {
+  // Skip validation for admin role
+  if (roles.includes(UserRole.ADMIN)) {
+    return true;
+  }
+
+  // Check each mutually exclusive role group
+  for (const exclusiveGroup of MUTUALLY_EXCLUSIVE_ROLES) {
+    const matchingRoles = roles.filter(role => exclusiveGroup.includes(role));
+    if (matchingRoles.length > 1) {
+      return false; // Found multiple roles from an exclusive group
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Gets a descriptive error message for invalid role combinations
+ * @param roles Array of roles to validate
+ * @returns Error message if invalid, empty string if valid
+ */
+export function getRoleConstraintViolationMessage(roles: UserRole[]): string {
+  // Skip validation for admin role
+  if (roles.includes(UserRole.ADMIN)) {
+    return '';
+  }
+
+  // Check each mutually exclusive role group
+  for (const exclusiveGroup of MUTUALLY_EXCLUSIVE_ROLES) {
+    const matchingRoles = roles.filter(role => exclusiveGroup.includes(role));
+    if (matchingRoles.length > 1) {
+      return `The following roles cannot be assigned together: ${matchingRoles.join(', ')}`;
+    }
+  }
+
+  return '';
+}

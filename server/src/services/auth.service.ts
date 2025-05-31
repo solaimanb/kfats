@@ -1,6 +1,7 @@
 import jwt, { SignOptions } from "jsonwebtoken";
 import crypto from "crypto";
 import { UserModel, IUser } from "../models/user.model";
+import { RefreshTokenModel } from "../models/refresh-token.model";
 import {
   RoleApplicationModel,
   IRoleApplication,
@@ -10,9 +11,9 @@ import { AppError } from "../utils/error.util";
 import { emailService } from "../utils/email.util";
 
 export class AuthService {
-  private static generateToken(userId: string): string {
+  private static generateAccessToken(userId: string): string {
     const signOptions: SignOptions = {
-      expiresIn: 3600, // 1 hour in seconds
+      expiresIn: "15m", // 15 minutes
     };
 
     return jwt.sign(
@@ -22,12 +23,50 @@ export class AuthService {
     );
   }
 
-  static async register(userData: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-  }): Promise<{ user: IUser; token: string }> {
+  private static async generateRefreshToken(
+    userId: string,
+    deviceInfo: { ip: string; userAgent: string; deviceId?: string }
+  ): Promise<string> {
+    // Limit active refresh tokens per user (e.g., max 5 devices)
+    const activeTokenCount = await RefreshTokenModel.countDocuments({
+      user: userId,
+      isRevoked: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (activeTokenCount >= 5) {
+      // Revoke oldest token if limit reached
+      const oldestToken = await RefreshTokenModel.findOne({
+        user: userId,
+        isRevoked: false,
+      }).sort({ issuedAt: 1 });
+      
+      if (oldestToken) {
+        oldestToken.isRevoked = true;
+        await oldestToken.save();
+      }
+    }
+
+    const token = crypto.randomBytes(40).toString("hex");
+    await RefreshTokenModel.create({
+      user: userId,
+      token,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      deviceInfo,
+    });
+
+    return token;
+  }
+
+  static async register(
+    userData: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+    },
+    deviceInfo: { ip: string; userAgent: string; deviceId?: string }
+  ): Promise<{ user: IUser; accessToken: string; refreshToken: string }> {
     const existingUser = await UserModel.findOne({ email: userData.email });
     if (existingUser) {
       throw new AppError("Email already registered", 400);
@@ -47,20 +86,26 @@ export class AuthService {
           : UserStatus.PENDING_VERIFICATION,
     });
 
-    const token = this.generateToken(user._id.toString());
+    const accessToken = this.generateAccessToken(user._id.toString());
+    const refreshToken = await this.generateRefreshToken(user._id.toString(), deviceInfo);
 
     // Skip email verification in development
     if (process.env.NODE_ENV !== "development") {
-      await this.sendVerificationEmail(user.email, token);
+      await this.sendVerificationEmail(user.email, accessToken);
     }
 
-    return { user, token };
+    return { user, accessToken, refreshToken };
   }
 
   static async login(
     email: string,
-    password: string
-  ): Promise<{ user: Partial<IUser>; token: string }> {
+    password: string,
+    deviceInfo: { ip: string; userAgent: string; deviceId?: string }
+  ): Promise<{
+    user: Partial<IUser>;
+    accessToken: string;
+    refreshToken: string;
+  }> {
     const user = await UserModel.findOne({ email }).select("+password");
     if (!user || !(await user.comparePassword(password))) {
       throw new AppError("Invalid credentials", 401);
@@ -70,13 +115,66 @@ export class AuthService {
       throw new AppError("Account not active", 403);
     }
 
-    const token = this.generateToken(user._id.toString());
+    const accessToken = this.generateAccessToken(user._id.toString());
+    const refreshToken = await this.generateRefreshToken(user._id.toString(), deviceInfo);
 
     // Remove sensitive data before sending response
     const sanitizedUser = user.toObject();
-    delete sanitizedUser.password;
+    const { password: pwd, security, ...userWithoutSensitiveData } = sanitizedUser;
+    
+    return { user: userWithoutSensitiveData, accessToken, refreshToken };
+  }
 
-    return { user: sanitizedUser, token };
+  static async refreshToken(
+    oldRefreshToken: string,
+    deviceInfo: { ip: string; userAgent: string; deviceId?: string }
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Find and validate the old refresh token
+    const existingToken = await RefreshTokenModel.findOne({
+      token: oldRefreshToken,
+      isRevoked: false,
+      expiresAt: { $gt: new Date() },
+    }).populate<{ user: IUser }>("user");
+
+    if (!existingToken) {
+      throw new AppError("Invalid or expired refresh token", 401);
+    }
+
+    // Revoke the old refresh token (one-time use)
+    existingToken.isRevoked = true;
+    await existingToken.save();
+
+    // Generate new tokens
+    const accessToken = this.generateAccessToken(existingToken.user._id.toString());
+    const refreshToken = await this.generateRefreshToken(
+      existingToken.user._id.toString(),
+      deviceInfo
+    );
+
+    return { accessToken, refreshToken };
+  }
+
+  static async logout(userId: string, refreshToken?: string): Promise<void> {
+    if (refreshToken) {
+      // Revoke specific refresh token
+      await RefreshTokenModel.updateOne(
+        { user: userId, token: refreshToken },
+        { isRevoked: true }
+      );
+    } else {
+      // Revoke all refresh tokens for user
+      await RefreshTokenModel.updateMany(
+        { user: userId, isRevoked: false },
+        { isRevoked: true }
+      );
+    }
+  }
+
+  static async revokeAllUserSessions(userId: string): Promise<void> {
+    await RefreshTokenModel.updateMany(
+      { user: userId },
+      { isRevoked: true }
+    );
   }
 
   static async forgotPassword(email: string): Promise<void> {
@@ -123,15 +221,6 @@ export class AuthService {
       resetPasswordExpires: undefined,
     };
     await user.save();
-  }
-
-  static async refreshToken(userId: string): Promise<string> {
-    const user = await UserModel.findById(userId);
-    if (!user) {
-      throw new AppError("User not found", 404);
-    }
-
-    return this.generateToken(user._id.toString());
   }
 
   private static async sendVerificationEmail(

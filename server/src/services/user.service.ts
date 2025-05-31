@@ -1,6 +1,7 @@
 import { UserModel, IUser } from '../models/user.model';
 import { AppError } from '../utils/error.util';
 import { Document, FilterQuery } from 'mongoose';
+import { validateRoleConstraints, getRoleConstraintViolationMessage } from "../config/rbac.config";
 
 export class UserService {
   async getProfile(userId: string): Promise<IUser & Document> {
@@ -53,15 +54,27 @@ export class UserService {
     return UserModel.create(userData);
   }
 
-  async updateUser(userId: string, updateData: Partial<IUser>): Promise<IUser & Document> {
-    const user = await UserModel.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
-    if (!user) {
-      throw new AppError('User not found', 404);
+  async updateUser(id: string, data: Partial<IUser>) {
+    // If roles are being updated, validate role constraints
+    if (data.roles) {
+      if (!validateRoleConstraints(data.roles)) {
+        throw new AppError(
+          getRoleConstraintViolationMessage(data.roles),
+          400
+        );
+      }
     }
+
+    const user = await UserModel.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true }
+    );
+
+    if (!user) {
+      throw new AppError(`User with ID ${id} not found`, 404);
+    }
+
     return user;
   }
 
