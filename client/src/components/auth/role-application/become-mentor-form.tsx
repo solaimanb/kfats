@@ -437,11 +437,14 @@ export const BecomeMentorForm = () => {
                     value={expertiseInput}
                     onChange={(e) => setExpertiseInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         e.preventDefault();
                         if (expertiseInput.trim()) {
-                          form.setValue('expertise', [...form.watch('expertise'), expertiseInput.trim()]);
-                          setExpertiseInput('');
+                          form.setValue("expertise", [
+                            ...form.watch("expertise"),
+                            expertiseInput.trim(),
+                          ]);
+                          setExpertiseInput("");
                         }
                       }
                     }}
@@ -451,8 +454,11 @@ export const BecomeMentorForm = () => {
                     variant="outline"
                     onClick={() => {
                       if (expertiseInput.trim()) {
-                        form.setValue('expertise', [...form.watch('expertise'), expertiseInput.trim()]);
-                        setExpertiseInput('');
+                        form.setValue("expertise", [
+                          ...form.watch("expertise"),
+                          expertiseInput.trim(),
+                        ]);
+                        setExpertiseInput("");
                       }
                     }}
                   >
@@ -465,7 +471,7 @@ export const BecomeMentorForm = () => {
                   render={() => (
                     <FormItem>
                       <div className="flex flex-wrap gap-2">
-                        {form.watch('expertise').map((item, index) => (
+                        {form.watch("expertise").map((item, index) => (
                           <div
                             key={index}
                             className="bg-primary/10 text-primary px-3 py-1 rounded-full flex items-center gap-2"
@@ -474,9 +480,11 @@ export const BecomeMentorForm = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                const newExpertise = [...form.watch('expertise')];
+                                const newExpertise = [
+                                  ...form.watch("expertise"),
+                                ];
                                 newExpertise.splice(index, 1);
-                                form.setValue('expertise', newExpertise);
+                                form.setValue("expertise", newExpertise);
                               }}
                               className="text-primary hover:text-primary/80"
                             >
@@ -649,11 +657,14 @@ export const BecomeMentorForm = () => {
                     value={languageInput}
                     onChange={(e) => setLanguageInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === "Enter") {
                         e.preventDefault();
                         if (languageInput.trim()) {
-                          form.setValue('languages', [...form.watch('languages'), languageInput.trim()]);
-                          setLanguageInput('');
+                          form.setValue("languages", [
+                            ...form.watch("languages"),
+                            languageInput.trim(),
+                          ]);
+                          setLanguageInput("");
                         }
                       }
                     }}
@@ -663,8 +674,11 @@ export const BecomeMentorForm = () => {
                     variant="outline"
                     onClick={() => {
                       if (languageInput.trim()) {
-                        form.setValue('languages', [...form.watch('languages'), languageInput.trim()]);
-                        setLanguageInput('');
+                        form.setValue("languages", [
+                          ...form.watch("languages"),
+                          languageInput.trim(),
+                        ]);
+                        setLanguageInput("");
                       }
                     }}
                   >
@@ -677,7 +691,7 @@ export const BecomeMentorForm = () => {
                   render={() => (
                     <FormItem>
                       <div className="flex flex-wrap gap-2">
-                        {form.watch('languages').map((item, index) => (
+                        {form.watch("languages").map((item, index) => (
                           <div
                             key={index}
                             className="bg-primary/10 text-primary px-3 py-1 rounded-full flex items-center gap-2"
@@ -686,9 +700,11 @@ export const BecomeMentorForm = () => {
                             <button
                               type="button"
                               onClick={() => {
-                                const newLanguages = [...form.watch('languages')];
+                                const newLanguages = [
+                                  ...form.watch("languages"),
+                                ];
                                 newLanguages.splice(index, 1);
-                                form.setValue('languages', newLanguages);
+                                form.setValue("languages", newLanguages);
                               }}
                               className="text-primary hover:text-primary/80"
                             >

@@ -1,4 +1,4 @@
-import { BecomeMentorForm } from "@/components/features/mentor";
+import { BecomeMentorForm } from "@/components/auth/role-application/become-mentor-form";
 
 export default function BecomeMentorPage() {
   return <BecomeMentorForm />;
