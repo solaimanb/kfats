@@ -1,27 +1,41 @@
-// server/controllers/roleApplication.controller.ts
 import { Request, Response } from "express";
 import { catchAsync } from "../utils/catch-async.util";
-import { RoleApplicationService } from "../services/role-application.service";
+import {
+  RoleApplicationService,
+  CreateApplicationData,
+} from "../services/role-application.service";
+import { CreateRoleApplicationInput } from "../validators/role-application.validator";
+import { AppError } from "../utils/app-error.util";
 
 export class RoleApplicationController {
   private roleApplicationService = new RoleApplicationService();
 
   createApplication = catchAsync(async (req: Request, res: Response) => {
-    const application = await this.roleApplicationService.createApplication({
-      ...req.body,
-      user: req.user!.id
-    });
-    res.status(201).json({
+    const applicationData = req.body as CreateRoleApplicationInput;
+
+    const data: CreateApplicationData = {
+      ...applicationData,
+      user: req.user!.id,
+    };
+
+    const application = await this.roleApplicationService.createApplication(
+      data,
+      req
+    );
+
+    return res.status(201).json({
       status: "success",
-      data: application
+      data: application,
     });
   });
 
   getMyApplications = catchAsync(async (req: Request, res: Response) => {
-    const applications = await this.roleApplicationService.getMyApplications(req.user!.id);
+    const applications = await this.roleApplicationService.getMyApplications(
+      req.user!.id
+    );
     res.status(200).json({
       status: "success",
-      data: applications
+      data: applications,
     });
   });
 
@@ -34,10 +48,12 @@ export class RoleApplicationController {
   });
 
   getApplication = catchAsync(async (req: Request, res: Response) => {
-    const application = await this.roleApplicationService.getApplication(req.params.id);
+    const application = await this.roleApplicationService.getApplication(
+      req.params.id
+    );
     res.status(200).json({
       status: "success",
-      data: application
+      data: application,
     });
   });
 
@@ -48,19 +64,54 @@ export class RoleApplicationController {
     );
     res.status(200).json({
       status: "success",
-      data: application
+      data: application,
     });
   });
 
   rejectApplication = catchAsync(async (req: Request, res: Response) => {
+    if (!req.body.reason) {
+      throw new AppError("Rejection reason is required", 400);
+    }
+
     const application = await this.roleApplicationService.rejectApplication(
       req.params.id,
       req.user!.id,
       req.body.reason
     );
-    res.status(200).json({
+
+    return res.status(200).json({
       status: "success",
-      data: application
+      data: application,
+    });
+  });
+
+  updateVerificationStep = catchAsync(async (req: Request, res: Response) => {
+    const { id, stepName } = req.params;
+    const { status, notes } = req.body;
+
+    if (!["completed", "failed"].includes(status)) {
+      throw new AppError("Status must be either 'completed' or 'failed'", 400);
+    }
+
+    const application = await RoleApplicationService.updateVerificationStep(
+      id,
+      req.user!.id,
+      stepName,
+      status,
+      notes
+    );
+
+    return res.status(200).json({
+      status: "success",
+      data: application,
+    });
+  });
+
+  getApplicationStats = catchAsync(async (_req: Request, res: Response) => {
+    const stats = await RoleApplicationService.getApplicationStats();
+    return res.status(200).json({
+      status: "success",
+      data: stats,
     });
   });
 }

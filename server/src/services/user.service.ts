@@ -1,37 +1,46 @@
-import { UserModel, IUser } from '../models/user.model';
-import { AppError } from '../utils/error.util';
-import { Document, FilterQuery } from 'mongoose';
-import { validateRoleConstraints, getRoleConstraintViolationMessage } from "../config/rbac.config";
+import { UserModel, IUser } from "../models/user.model";
+import { AppError } from "../utils/error.util";
+import { Document, FilterQuery } from "mongoose";
+import {
+  validateRoleConstraints,
+  getRoleConstraintViolationMessage,
+} from "../config/rbac.config";
 
 export class UserService {
   async getProfile(userId: string): Promise<IUser & Document> {
     const user = await UserModel.findById(userId);
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
     return user;
   }
 
-  async updateProfile(userId: string, updateData: Partial<IUser>): Promise<IUser & Document> {
+  async updateProfile(
+    userId: string,
+    updateData: Partial<IUser>
+  ): Promise<IUser & Document> {
     const user = await UserModel.findByIdAndUpdate(
       userId,
       { $set: updateData },
       { new: true, runValidators: true }
     );
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
     return user;
   }
 
-  async updatePassword(userId: string, passwordData: { currentPassword: string; newPassword: string }): Promise<void> {
-    const user = await UserModel.findById(userId).select('+password');
+  async updatePassword(
+    userId: string,
+    passwordData: { currentPassword: string; newPassword: string }
+  ): Promise<void> {
+    const user = await UserModel.findById(userId).select("+password");
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
 
     if (!(await user.comparePassword(passwordData.currentPassword))) {
-      throw new AppError('Current password is incorrect', 401);
+      throw new AppError("Current password is incorrect", 401);
     }
 
     user.password = passwordData.newPassword;
@@ -45,7 +54,7 @@ export class UserService {
   async getUser(userId: string): Promise<IUser & Document> {
     const user = await UserModel.findById(userId);
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
     return user;
   }
@@ -58,10 +67,7 @@ export class UserService {
     // If roles are being updated, validate role constraints
     if (data.roles) {
       if (!validateRoleConstraints(data.roles)) {
-        throw new AppError(
-          getRoleConstraintViolationMessage(data.roles),
-          400
-        );
+        throw new AppError(getRoleConstraintViolationMessage(data.roles), 400);
       }
     }
 
@@ -81,7 +87,7 @@ export class UserService {
   async deleteUser(userId: string): Promise<void> {
     const user = await UserModel.findByIdAndDelete(userId);
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
   }
-} 
+}

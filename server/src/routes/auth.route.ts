@@ -264,32 +264,4 @@ router.post("/logout-all", protect, AuthController.logoutAllDevices);
  */
 router.post("/refresh-token", AuthController.refreshToken);
 
-/**
- * @swagger
- * /api/v1/auth/me:
- *   get:
- *     tags:
- *       - Authentication
- *     summary: Get current user
- *     description: Get the currently authenticated user's details
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: User details retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 data:
- *                   $ref: '#/components/schemas/User'
- *       401:
- *         description: Not authenticated
- */
-router.get("/me", protect, AuthController.getMe);
-
 export default router;

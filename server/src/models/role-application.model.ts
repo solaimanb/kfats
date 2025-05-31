@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 import { ApplicationStatus, UserRole } from "../config/rbac.config";
 
 export interface IRoleApplication extends Document {
-  user: Schema.Types.ObjectId;
+  user: mongoose.Types.ObjectId;
   role: UserRole;
   status: ApplicationStatus;
   documents: {
@@ -17,10 +17,10 @@ export interface IRoleApplication extends Document {
     name: string;
     status: "pending" | "completed" | "failed";
     completedAt?: Date;
-    completedBy?: Schema.Types.ObjectId;
+    completedBy?: mongoose.Types.ObjectId;
     notes?: string;
   }[];
-  reviewedBy?: Schema.Types.ObjectId;
+  reviewedBy?: mongoose.Types.ObjectId;
   reviewedAt?: Date;
   rejectionReason?: string;
   createdAt: Date;

@@ -167,6 +167,52 @@ router.get("/", roleApplicationController.getAllApplications);
 
 /**
  * @swagger
+ * /api/v1/role-applications/stats:
+ *   get:
+ *     tags:
+ *       - Role Applications
+ *     summary: Get application statistics
+ *     description: Get statistics about role applications (Admin only)
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Application statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         description: Role name
+ *                       stats:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             status:
+ *                               type: string
+ *                               description: Application status
+ *                             count:
+ *                               type: number
+ *                               description: Number of applications in this status
+ *                       total:
+ *                         type: number
+ *                         description: Total number of applications for this role
+ */
+router.get("/stats", roleApplicationController.getApplicationStats);
+
+/**
+ * @swagger
  * /api/v1/role-applications/{id}:
  *   get:
  *     tags:
@@ -267,5 +313,51 @@ router.patch("/:id/approve", roleApplicationController.approveApplication);
  *         description: Application rejected successfully
  */
 router.patch("/:id/reject", roleApplicationController.rejectApplication);
+
+/**
+ * @swagger
+ * /api/v1/role-applications/{id}/verification-steps/{stepName}:
+ *   post:
+ *     tags:
+ *       - Role Applications
+ *     summary: Update verification step status
+ *     description: Update the status of a verification step for a role application (Admin only)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Application ID
+ *       - in: path
+ *         name: stepName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the verification step
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [completed, failed]
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Verification step updated successfully
+ */
+router.post(
+  "/:id/verification-steps/:stepName",
+  roleApplicationController.updateVerificationStep
+);
 
 export default router;

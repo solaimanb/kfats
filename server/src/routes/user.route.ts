@@ -15,8 +15,8 @@ router.use(protect);
  *   get:
  *     tags:
  *       - Users
- *     summary: Get user profile
- *     description: Get the current user's profile information
+ *     summary: Get current user profile
+ *     description: Get the current authenticated user's complete profile information, including roles, permissions, and role-specific data
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -33,8 +33,45 @@ router.use(protect);
  *                 data:
  *                   type: object
  *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
+ *                     _id:
+ *                       type: string
+ *                       description: User's unique identifier
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                       description: User's email address
+ *                     profile:
+ *                       type: object
+ *                       properties:
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
+ *                         avatar:
+ *                           type: string
+ *                           format: uri
+ *                     roles:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         enum: [student, mentor, admin]
+ *                     roleSpecificData:
+ *                       type: object
+ *                       description: Role-specific information (e.g., mentor qualifications, student progress)
+ *                     status:
+ *                       type: string
+ *                       enum: [active, inactive, suspended]
+ *                     preferences:
+ *                       type: object
+ *                       properties:
+ *                         language:
+ *                           type: string
+ *                         timezone:
+ *                           type: string
+ *                         theme:
+ *                           type: string
+ *       401:
+ *         description: Not authenticated
  */
 router.get("/profile", userController.getProfile);
 

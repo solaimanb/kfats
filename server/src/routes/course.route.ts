@@ -58,6 +58,73 @@ router.get("/", courseController.getAllCourses);
 
 /**
  * @swagger
+ * /api/v1/courses/enrolled:
+ *   get:
+ *     tags:
+ *       - Courses
+ *     summary: Get enrolled courses
+ *     description: Get list of courses the current user is enrolled in
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of enrolled courses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     courses:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Course'
+ */
+router.get("/enrolled", protect, courseController.getEnrolledCourses);
+
+/**
+ * @swagger
+ * /api/v1/courses/mentor/courses:
+ *   get:
+ *     tags:
+ *       - Courses
+ *     summary: Get mentor courses
+ *     description: Get list of courses created by the current mentor
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of mentor courses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     courses:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Course'
+ */
+router.get(
+  "/mentor/courses",
+  protect,
+  restrictTo(UserRole.MENTOR),
+  courseController.getMentorCourses
+);
+
+/**
+ * @swagger
  * /api/v1/courses/{id}:
  *   get:
  *     tags:
@@ -94,37 +161,6 @@ router.get("/:id", courseController.getCourse);
 
 // Protected routes
 router.use(protect);
-
-/**
- * @swagger
- * /api/v1/courses/enrolled:
- *   get:
- *     tags:
- *       - Courses
- *     summary: Get enrolled courses
- *     description: Get list of courses the current user is enrolled in
- *     security:
- *       - BearerAuth: []
- *     responses:
- *       200:
- *         description: List of enrolled courses
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 data:
- *                   type: object
- *                   properties:
- *                     courses:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Course'
- */
-router.get("/enrolled", courseController.getEnrolledCourses);
 
 /**
  * @swagger

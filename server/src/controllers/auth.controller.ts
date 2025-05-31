@@ -160,11 +160,4 @@ export class AuthController {
       message: "Password reset successful",
     });
   });
-
-  static getMe = catchAsync(async (req: Request, res: Response) => {
-    res.status(200).json({
-      status: "success",
-      data: req.user,
-    });
-  });
 }

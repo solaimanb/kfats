@@ -71,7 +71,8 @@ export class CourseService {
 
   async createCourse(data: Partial<ICourse>) {
     await this.validateCourseData(data);
-    return Course.create(data);
+    const course = new Course(data);
+    return course.save();
   }
 
   async updateCourse(

@@ -3,11 +3,10 @@ POST /api/v1/auth/register - Register new user
 POST /api/v1/auth/login - Login user
 POST /api/v1/auth/forgot-password - Request password reset
 POST /api/v1/auth/reset-password/{token} - Reset password
-GET /api/v1/auth/me - Get current user
 POST /api/v1/auth/logout - Logout user
 POST /api/v1/auth/refresh-token - Refresh access token
 User Routes (user.route.ts):
-GET /api/v1/users/profile - Get user profile
+GET /api/v1/users/profile - Get current user profile
 PATCH /api/v1/users/profile - Update profile
 PATCH /api/v1/users/password - Update password
 GET /api/v1/users - Get all users (Admin)
@@ -38,7 +37,6 @@ GET /api/v1/role-applications/my-applications - Get user's applications
 GET /api/v1/role-applications - Get all applications (Admin)
 GET /api/v1/role-applications/{id} - Get application by ID (Admin)
 PATCH /api/v1/role-applications/{id}/approve - Approve application (Admin)
-PATCH /api/v1/role-applications/{id}/reject - Reject application (Admin)
 Permission Routes (permission.route.ts):
 GET /api/v1/permissions - Get all permissions (Admin)
 GET /api/v1/permissions/roles - Get all role permissions (Admin)

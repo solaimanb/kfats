@@ -1,4 +1,4 @@
-import { Schema, Types, startSession } from "mongoose";
+import { Schema, startSession, Types } from "mongoose";
 import {
   RoleApplicationModel,
   IRoleApplication,
@@ -8,6 +8,8 @@ import { UserRole, ApplicationStatus } from "../config/rbac.config";
 import { AppError } from "../utils/error.util";
 import { permissionCache } from "../utils/permission-cache.util";
 import { AuditLogModel } from "../models/audit-log.model";
+import { CreateRoleApplicationInput } from "../validators/role-application.validator";
+import { Request } from "express";
 
 interface VerificationStep {
   name: string;
@@ -15,6 +17,10 @@ interface VerificationStep {
   completedAt?: Date;
   completedBy?: Schema.Types.ObjectId;
   notes?: string;
+}
+
+export interface CreateApplicationData extends CreateRoleApplicationInput {
+  user: string | Schema.Types.ObjectId;
 }
 
 export class RoleApplicationService {
@@ -50,7 +56,7 @@ export class RoleApplicationService {
     }));
   }
 
-  async createApplication(data: Partial<IRoleApplication>) {
+  async createApplication(data: CreateApplicationData, req: Request) {
     if (!data.role) {
       throw new AppError("Role is required", 400);
     }
@@ -59,9 +65,15 @@ export class RoleApplicationService {
     try {
       session.startTransaction();
 
+      // Convert user ID to ObjectId if it's a string
+      const userId =
+        typeof data.user === "string"
+          ? new Types.ObjectId(data.user)
+          : data.user;
+
       // Check for existing pending applications
       const existingApplication = await RoleApplicationModel.findOne({
-        user: data.user,
+        user: userId,
         role: data.role,
         status: {
           $in: [ApplicationStatus.PENDING, ApplicationStatus.IN_REVIEW],
@@ -77,30 +89,37 @@ export class RoleApplicationService {
 
       // Initialize verification steps based on role
       const verificationSteps =
-        RoleApplicationService.getRequiredVerificationSteps(data.role);
+        RoleApplicationService.getRequiredVerificationSteps(
+          data.role as UserRole
+        );
 
-      const application = await RoleApplicationModel.create(
-        [
-          {
-            ...data,
-            verificationSteps,
-            status: ApplicationStatus.PENDING,
-          },
-        ],
-        { session }
-      );
+      // Create application data
+      const applicationData = {
+        role: data.role,
+        fields: data.fields,
+        documents: data.documents,
+        user: userId,
+        verificationSteps,
+        status: ApplicationStatus.PENDING,
+      };
+
+      const application = await RoleApplicationModel.create([applicationData], {
+        session,
+      });
 
       await AuditLogModel.create(
         [
           {
-            userId: data.user,
-            action: "ROLE_APPLICATION_CREATED",
+            userId: userId,
+            action: "ROLE_APPLICATION",
             resource: `role-application/${application[0]._id}`,
             metadata: {
               role: data.role,
               status: ApplicationStatus.PENDING,
             },
             status: "success",
+            userAgent: req.headers["user-agent"] || "unknown",
+            ip: req.ip || "unknown",
           },
         ],
         { session }
@@ -117,9 +136,9 @@ export class RoleApplicationService {
   }
 
   async getMyApplications(userId: string) {
-    return RoleApplicationModel.find({ user: new Types.ObjectId(userId) }).sort(
-      { createdAt: -1 }
-    );
+    return RoleApplicationModel.find({
+      user: userId,
+    }).sort({ createdAt: -1 });
   }
 
   async getAllApplications() {
@@ -183,15 +202,15 @@ export class RoleApplicationService {
       // Update application status
       application.status = ApplicationStatus.APPROVED;
       application.reviewedAt = new Date();
-      application.reviewedBy = new Schema.Types.ObjectId(reviewerId);
+      application.reviewedBy = new Types.ObjectId(reviewerId);
       await application.save({ session });
 
       // Create audit log
       await AuditLogModel.create(
         [
           {
-            userId: new Schema.Types.ObjectId(reviewerId),
-            action: "ROLE_APPLICATION_APPROVED",
+            userId: new Types.ObjectId(reviewerId),
+            action: "ROLE_APPROVED",
             resource: `role-application/${id}`,
             metadata: {
               applicationId: id,
@@ -199,6 +218,8 @@ export class RoleApplicationService {
               userId: application.user,
             },
             status: "success",
+            userAgent: "system",
+            ip: "127.0.0.1",
           },
         ],
         { session }
@@ -231,15 +252,15 @@ export class RoleApplicationService {
 
       application.status = ApplicationStatus.REJECTED;
       application.reviewedAt = new Date();
-      application.reviewedBy = new Schema.Types.ObjectId(reviewerId);
+      application.reviewedBy = new Types.ObjectId(reviewerId);
       application.rejectionReason = reason;
       await application.save({ session });
 
       await AuditLogModel.create(
         [
           {
-            userId: new Schema.Types.ObjectId(reviewerId),
-            action: "ROLE_APPLICATION_REJECTED",
+            userId: new Types.ObjectId(reviewerId),
+            action: "ROLE_REJECTED",
             resource: `role-application/${id}`,
             metadata: {
               applicationId: id,
@@ -248,6 +269,8 @@ export class RoleApplicationService {
               reason,
             },
             status: "success",
+            userAgent: "system",
+            ip: "127.0.0.1",
           },
         ],
         { session }
@@ -274,29 +297,33 @@ export class RoleApplicationService {
     try {
       session.startTransaction();
 
-      const application = await RoleApplicationModel.findById(
-        new Types.ObjectId(applicationId)
-      ).session(session);
+      // Update the application and get the updated document
+      const application = await RoleApplicationModel.findOneAndUpdate(
+        {
+          _id: applicationId,
+          "verificationSteps.name": stepName,
+        },
+        {
+          $set: {
+            "verificationSteps.$.status": status,
+            "verificationSteps.$.completedAt": new Date(),
+            "verificationSteps.$.completedBy": reviewerId,
+            "verificationSteps.$.notes": notes,
+          },
+        },
+        {
+          new: true,
+          session,
+          runValidators: true,
+        }
+      );
 
       if (!application) {
         throw new AppError(
-          `Application with ID ${applicationId} not found`,
+          `Application with ID ${applicationId} not found or step ${stepName} not found`,
           404
         );
       }
-
-      const step = application.verificationSteps?.find(
-        (s) => s.name === stepName
-      );
-      if (!step) {
-        throw new AppError(`Verification step ${stepName} not found`, 404);
-      }
-
-      // Update step
-      step.status = status;
-      step.completedAt = new Date();
-      step.completedBy = new Schema.Types.ObjectId(reviewerId);
-      step.notes = notes;
 
       // Check if all steps are completed
       const allStepsCompleted = application.verificationSteps?.every(
@@ -345,8 +372,8 @@ export class RoleApplicationService {
       await AuditLogModel.create(
         [
           {
-            userId: new Schema.Types.ObjectId(reviewerId),
-            action: `VERIFICATION_STEP_${status.toUpperCase()}`,
+            userId: reviewerId,
+            action: status === "completed" ? "ROLE_APPROVED" : "ROLE_REJECTED",
             resource: `role-application/${applicationId}/verification/${stepName}`,
             metadata: {
               applicationId,
@@ -355,6 +382,8 @@ export class RoleApplicationService {
               notes,
             },
             status: "success",
+            userAgent: "system",
+            ip: "127.0.0.1",
           },
         ],
         { session }
@@ -376,7 +405,7 @@ export class RoleApplicationService {
         $group: {
           _id: {
             status: "$status",
-            role: "$requestedRole",
+            role: "$role",
           },
           count: { $sum: 1 },
         },

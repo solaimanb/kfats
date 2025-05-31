@@ -186,12 +186,6 @@ export const restrictTo = (...roles: UserRole[]) => {
           throw new AppError("Not authenticated", 401);
         }
 
-        // Bypass role checks in development mode
-        // TODO: Remove this before deploying to production
-        if (process.env.NODE_ENV === "development") {
-          return next();
-        }
-
         // Validate that all user roles are valid enum values
         const validRoles = Object.values(UserRole);
         const hasInvalidRole = req.user.roles.some(
@@ -199,10 +193,15 @@ export const restrictTo = (...roles: UserRole[]) => {
         );
 
         if (hasInvalidRole) {
-          throw new AppError("Invalid role detected", 403);
+          throw new AppError("Invalid user role", 403);
         }
 
-        if (!req.user.roles.some((role: UserRole) => roles.includes(role))) {
+        // Check if user has any of the required roles
+        const hasRequiredRole = req.user.roles.some((role) =>
+          roles.includes(role as UserRole)
+        );
+
+        if (!hasRequiredRole) {
           throw new AppError(
             "You do not have permission to perform this action",
             403

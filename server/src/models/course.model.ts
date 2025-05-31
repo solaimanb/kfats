@@ -70,7 +70,6 @@ const courseSchema = new Schema<ICourse>(
     },
     slug: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
     },
