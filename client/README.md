@@ -34,3 +34,83 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+client/src/
+├── app/                              # Next.js App Router
+│   ├── (auth)/                       # Auth routes group
+│   │   ├── login/
+│   │   ├── register/
+│   │   └── forgot-password/
+│   ├── (marketing)/                  # Public/Marketing routes
+│   │   ├── about/
+│   │   ├── contact/
+│   │   └── pricing/
+│   └── (protected)/                  # Protected routes
+│       ├── dashboard/
+│       ├── profile/
+│       └── settings/
+├── components/                       # React Components
+│   ├── auth/                        # Auth-related components
+│   │   ├── login-form.tsx
+│   │   └── register-form.tsx
+│   ├── common/                      # Shared components
+│   │   ├── layouts/
+│   │   │   ├── main-layout.tsx
+│   │   │   └── dashboard-layout.tsx
+│   │   └── navigation/
+│   │       ├── main-nav.tsx
+│   │       └── user-nav.tsx
+│   ├── features/                    # Feature-specific components
+│   │   ├── dashboard/
+│   │   ├── profile/
+│   │   └── settings/
+│   └── ui/                          # UI components (shadcn)
+│       ├── button.tsx
+│       └── ...
+├── lib/                             # Core utilities & services
+│   ├── api/                         # API related code
+│   │   ├── config/
+│   │   │   ├── axios-config.ts
+│   │   │   └── api-endpoints.ts
+│   │   └── services/
+│   │       ├── auth-service.ts
+│   │       └── user-service.ts
+│   └── utils/                       # Utility functions
+│       ├── cookies.ts
+│       └── validation.ts
+├── hooks/                           # Custom React hooks
+│   ├── api/                         # API related hooks
+│   │   ├── auth/
+│   │   │   ├── use-login.ts
+│   │   │   └── use-register.ts
+│   │   └── user/
+│   │       └── use-profile.ts
+│   └── common/                      # Common hooks
+│       ├── use-toast.ts
+│       └── use-media-query.ts
+├── contexts/                        # React Context providers
+│   ├── auth-context.tsx
+│   └── theme-context.tsx
+├── types/                          # TypeScript types
+│   ├── api/                        # API related types
+│   │   ├── requests/
+│   │   │   ├── auth-requests.ts
+│   │   │   └── user-requests.ts
+│   │   └── responses/
+│   │       ├── auth-responses.ts
+│   │       └── user-responses.ts
+│   ├── common/                     # Common types
+│   │   ├── user.types.ts
+│   │   └── shared.types.ts
+│   └── index.ts                    # Type exports
+├── styles/                         # Styling
+│   ├── globals.css
+│   └── themes/
+│       ├── dark.css
+│       └── light.css
+├── config/                         # App configuration
+│   ├── site-config.ts             # Site-wide constants
+│   └── feature-flags.ts           # Feature toggles
+└── constants/                      # Constants and enums
+    ├── routes.ts
+    └── api-endpoints.ts
