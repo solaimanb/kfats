@@ -1,83 +1,87 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateParams = exports.validateQuery = exports.validateBody = exports.validate = void 0;
+const zod_1 = require("zod");
 const error_util_1 = require("./error.util");
 const validate = (schema) => {
     return (req, _res, next) => {
-        const validationOptions = {
-            abortEarly: false,
-            allowUnknown: true,
-            stripUnknown: true,
-        };
-        const { error, value } = schema.validate({
-            body: req.body,
-            query: req.query,
-            params: req.params,
-        }, validationOptions);
-        if (error) {
-            const errorMessage = error.details
-                .map((detail) => detail.message)
-                .join(", ");
-            return next(new error_util_1.AppError(errorMessage, 400));
+        try {
+            const result = schema.parse({
+                body: req.body,
+                query: req.query,
+                params: req.params,
+            });
+            req.body = result.body;
+            req.query = result.query;
+            req.params = result.params;
+            return next();
         }
-        req.body = value.body;
-        req.query = value.query;
-        req.params = value.params;
-        return next();
+        catch (error) {
+            if (error instanceof zod_1.z.ZodError) {
+                const errorMessage = error.errors
+                    .map((e) => e.message)
+                    .join(", ");
+                return next(new error_util_1.AppError(errorMessage, 400));
+            }
+            return next(error);
+        }
     };
 };
 exports.validate = validate;
 const validateBody = (schema) => {
     return (req, _res, next) => {
-        const { error, value } = schema.validate(req.body, {
-            abortEarly: false,
-            allowUnknown: true,
-            stripUnknown: true,
-        });
-        if (error) {
-            const errorMessage = error.details
-                .map((detail) => detail.message)
-                .join(", ");
-            return next(new error_util_1.AppError(errorMessage, 400));
+        try {
+            const result = schema.parse(req.body);
+            req.body = result;
+            return next();
         }
-        req.body = value;
-        return next();
+        catch (error) {
+            if (error instanceof zod_1.z.ZodError) {
+                const errorMessage = error.errors
+                    .map((e) => e.message)
+                    .join(", ");
+                return next(new error_util_1.AppError(errorMessage, 400));
+            }
+            return next(error);
+        }
     };
 };
 exports.validateBody = validateBody;
 const validateQuery = (schema) => {
     return (req, _res, next) => {
-        const { error, value } = schema.validate(req.query, {
-            abortEarly: false,
-            allowUnknown: true,
-            stripUnknown: true,
-        });
-        if (error) {
-            const errorMessage = error.details
-                .map((detail) => detail.message)
-                .join(", ");
-            return next(new error_util_1.AppError(errorMessage, 400));
+        try {
+            const result = schema.parse(req.query);
+            req.query = result;
+            return next();
         }
-        req.query = value;
-        return next();
+        catch (error) {
+            if (error instanceof zod_1.z.ZodError) {
+                const errorMessage = error.errors
+                    .map((e) => e.message)
+                    .join(", ");
+                return next(new error_util_1.AppError(errorMessage, 400));
+            }
+            return next(error);
+        }
     };
 };
 exports.validateQuery = validateQuery;
 const validateParams = (schema) => {
     return (req, _res, next) => {
-        const { error, value } = schema.validate(req.params, {
-            abortEarly: false,
-            allowUnknown: true,
-            stripUnknown: true,
-        });
-        if (error) {
-            const errorMessage = error.details
-                .map((detail) => detail.message)
-                .join(", ");
-            return next(new error_util_1.AppError(errorMessage, 400));
+        try {
+            const result = schema.parse(req.params);
+            req.params = result;
+            return next();
         }
-        req.params = value;
-        return next();
+        catch (error) {
+            if (error instanceof zod_1.z.ZodError) {
+                const errorMessage = error.errors
+                    .map((e) => e.message)
+                    .join(", ");
+                return next(new error_util_1.AppError(errorMessage, 400));
+            }
+            return next(error);
+        }
     };
 };
 exports.validateParams = validateParams;

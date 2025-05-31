@@ -16,8 +16,10 @@ router.post("/", (0, validation_middleware_1.validateRequest)(role_application_v
 router.get("/my-applications", roleApplicationController.getMyApplications);
 router.use((0, auth_middleware_1.restrictTo)(rbac_config_1.UserRole.ADMIN));
 router.get("/", roleApplicationController.getAllApplications);
+router.get("/stats", roleApplicationController.getApplicationStats);
 router.get("/:id", roleApplicationController.getApplication);
 router.patch("/:id/approve", roleApplicationController.approveApplication);
 router.patch("/:id/reject", roleApplicationController.rejectApplication);
+router.post("/:id/verification-steps/:stepName", roleApplicationController.updateVerificationStep);
 exports.default = router;
 //# sourceMappingURL=role-application.route.js.map

@@ -1,4 +1,15 @@
 "use strict";
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -7,18 +18,44 @@ exports.AuthService = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const crypto_1 = __importDefault(require("crypto"));
 const user_model_1 = require("../models/user.model");
+const refresh_token_model_1 = require("../models/refresh-token.model");
 const role_application_model_1 = require("../models/role-application.model");
 const rbac_config_1 = require("../config/rbac.config");
 const error_util_1 = require("../utils/error.util");
 const email_util_1 = require("../utils/email.util");
 class AuthService {
-    static generateToken(userId) {
+    static generateAccessToken(userId) {
         const signOptions = {
-            expiresIn: 3600,
+            expiresIn: "15m",
         };
         return jsonwebtoken_1.default.sign({ id: userId }, process.env.JWT_SECRET || "default-secret", signOptions);
     }
-    static async register(userData) {
+    static async generateRefreshToken(userId, deviceInfo) {
+        const activeTokenCount = await refresh_token_model_1.RefreshTokenModel.countDocuments({
+            user: userId,
+            isRevoked: false,
+            expiresAt: { $gt: new Date() },
+        });
+        if (activeTokenCount >= 5) {
+            const oldestToken = await refresh_token_model_1.RefreshTokenModel.findOne({
+                user: userId,
+                isRevoked: false,
+            }).sort({ issuedAt: 1 });
+            if (oldestToken) {
+                oldestToken.isRevoked = true;
+                await oldestToken.save();
+            }
+        }
+        const token = crypto_1.default.randomBytes(40).toString("hex");
+        await refresh_token_model_1.RefreshTokenModel.create({
+            user: userId,
+            token,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            deviceInfo,
+        });
+        return token;
+    }
+    static async register(userData, deviceInfo) {
         const existingUser = await user_model_1.UserModel.findOne({ email: userData.email });
         if (existingUser) {
             throw new error_util_1.AppError("Email already registered", 400);
@@ -35,13 +72,14 @@ class AuthService {
                 ? rbac_config_1.UserStatus.ACTIVE
                 : rbac_config_1.UserStatus.PENDING_VERIFICATION,
         });
-        const token = this.generateToken(user._id.toString());
+        const accessToken = this.generateAccessToken(user._id.toString());
+        const refreshToken = await this.generateRefreshToken(user._id.toString(), deviceInfo);
         if (process.env.NODE_ENV !== "development") {
-            await this.sendVerificationEmail(user.email, token);
+            await this.sendVerificationEmail(user.email, accessToken);
         }
-        return { user, token };
+        return { user, accessToken, refreshToken };
     }
-    static async login(email, password) {
+    static async login(email, password, deviceInfo) {
         const user = await user_model_1.UserModel.findOne({ email }).select("+password");
         if (!user || !(await user.comparePassword(password))) {
             throw new error_util_1.AppError("Invalid credentials", 401);
@@ -49,10 +87,37 @@ class AuthService {
         if (user.status !== rbac_config_1.UserStatus.ACTIVE) {
             throw new error_util_1.AppError("Account not active", 403);
         }
-        const token = this.generateToken(user._id.toString());
+        const accessToken = this.generateAccessToken(user._id.toString());
+        const refreshToken = await this.generateRefreshToken(user._id.toString(), deviceInfo);
         const sanitizedUser = user.toObject();
-        delete sanitizedUser.password;
-        return { user: sanitizedUser, token };
+        const { password: pwd, security } = sanitizedUser, userWithoutSensitiveData = __rest(sanitizedUser, ["password", "security"]);
+        return { user: userWithoutSensitiveData, accessToken, refreshToken };
+    }
+    static async refreshToken(oldRefreshToken, deviceInfo) {
+        const existingToken = await refresh_token_model_1.RefreshTokenModel.findOne({
+            token: oldRefreshToken,
+            isRevoked: false,
+            expiresAt: { $gt: new Date() },
+        }).populate("user");
+        if (!existingToken) {
+            throw new error_util_1.AppError("Invalid or expired refresh token", 401);
+        }
+        existingToken.isRevoked = true;
+        await existingToken.save();
+        const accessToken = this.generateAccessToken(existingToken.user._id.toString());
+        const refreshToken = await this.generateRefreshToken(existingToken.user._id.toString(), deviceInfo);
+        return { accessToken, refreshToken };
+    }
+    static async logout(userId, refreshToken) {
+        if (refreshToken) {
+            await refresh_token_model_1.RefreshTokenModel.updateOne({ user: userId, token: refreshToken }, { isRevoked: true });
+        }
+        else {
+            await refresh_token_model_1.RefreshTokenModel.updateMany({ user: userId, isRevoked: false }, { isRevoked: true });
+        }
+    }
+    static async revokeAllUserSessions(userId) {
+        await refresh_token_model_1.RefreshTokenModel.updateMany({ user: userId }, { isRevoked: true });
     }
     static async forgotPassword(email) {
         var _a;
@@ -76,13 +141,6 @@ class AuthService {
         user.password = newPassword;
         user.security = Object.assign(Object.assign({}, user.security), { resetPasswordToken: undefined, resetPasswordExpires: undefined });
         await user.save();
-    }
-    static async refreshToken(userId) {
-        const user = await user_model_1.UserModel.findById(userId);
-        if (!user) {
-            throw new error_util_1.AppError("User not found", 404);
-        }
-        return this.generateToken(user._id.toString());
     }
     static async sendVerificationEmail(email, token) {
         const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;

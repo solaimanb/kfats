@@ -26,8 +26,8 @@ class PermissionController {
                 data: permissions,
             });
         });
-        this.updateRolePermissions = (0, catch_async_util_1.catchAsync)(async (req, res) => {
-            const permissions = await this.permissionService.updateRolePermissions(req.params.role, req.body.permissions);
+        this.updateRolePermissions = (0, catch_async_util_1.catchAsync)(async (req, res, _next) => {
+            const permissions = await this.permissionService.updateRolePermissions(req.params.role, req.body.permissions, req.user._id.toString());
             res.status(200).json({
                 status: "success",
                 data: permissions,

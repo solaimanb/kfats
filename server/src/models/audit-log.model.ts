@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 import { UserRole } from "../config/rbac.config";
 
 export interface IAuditLog extends Document {
-  userId: Schema.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   action: string;
   resource: string;
   roles: UserRole[];

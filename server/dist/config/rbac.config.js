@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ROLE_PERMISSIONS = exports.PERMISSIONS = exports.getAllPermissionsForRole = exports.getInheritedRoles = exports.ROLE_HIERARCHY = exports.ApplicationStatus = exports.UserStatus = exports.UserRole = void 0;
+exports.MUTUALLY_EXCLUSIVE_ROLES = exports.ROLE_TRANSITIONS = exports.ROLE_PERMISSIONS = exports.PERMISSIONS = exports.getAllPermissionsForRole = exports.getInheritedRoles = exports.ROLE_HIERARCHY = exports.ApplicationStatus = exports.UserStatus = exports.UserRole = void 0;
+exports.isValidRoleTransition = isValidRoleTransition;
+exports.validateRoleConstraints = validateRoleConstraints;
+exports.getRoleConstraintViolationMessage = getRoleConstraintViolationMessage;
 var UserRole;
 (function (UserRole) {
     UserRole["ADMIN"] = "admin";
@@ -154,4 +157,43 @@ exports.ROLE_PERMISSIONS = {
         ...Object.values(exports.PERMISSIONS.ADMIN),
     ],
 };
+exports.ROLE_TRANSITIONS = {
+    [UserRole.STUDENT]: [UserRole.MENTOR, UserRole.WRITER, UserRole.SELLER],
+    [UserRole.MENTOR]: [],
+    [UserRole.WRITER]: [],
+    [UserRole.SELLER]: [],
+    [UserRole.ADMIN]: [],
+};
+function isValidRoleTransition(currentRoles, targetRole) {
+    return (currentRoles.length === 1 &&
+        currentRoles[0] === UserRole.STUDENT &&
+        exports.ROLE_TRANSITIONS[UserRole.STUDENT].includes(targetRole));
+}
+exports.MUTUALLY_EXCLUSIVE_ROLES = [
+    [UserRole.MENTOR, UserRole.WRITER, UserRole.SELLER]
+];
+function validateRoleConstraints(roles) {
+    if (roles.includes(UserRole.ADMIN)) {
+        return true;
+    }
+    for (const exclusiveGroup of exports.MUTUALLY_EXCLUSIVE_ROLES) {
+        const matchingRoles = roles.filter(role => exclusiveGroup.includes(role));
+        if (matchingRoles.length > 1) {
+            return false;
+        }
+    }
+    return true;
+}
+function getRoleConstraintViolationMessage(roles) {
+    if (roles.includes(UserRole.ADMIN)) {
+        return '';
+    }
+    for (const exclusiveGroup of exports.MUTUALLY_EXCLUSIVE_ROLES) {
+        const matchingRoles = roles.filter(role => exclusiveGroup.includes(role));
+        if (matchingRoles.length > 1) {
+            return `The following roles cannot be assigned together: ${matchingRoles.join(', ')}`;
+        }
+    }
+    return '';
+}
 //# sourceMappingURL=rbac.config.js.map

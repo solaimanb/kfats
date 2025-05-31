@@ -61,7 +61,8 @@ class CourseService {
     }
     async createCourse(data) {
         await this.validateCourseData(data);
-        return course_model_1.CourseModel.create(data);
+        const course = new course_model_1.CourseModel(data);
+        return course.save();
     }
     async updateCourse(courseId, data, mentorId) {
         const course = await course_model_1.CourseModel.findById(courseId);

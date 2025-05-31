@@ -15,7 +15,7 @@ exports.cache = cache;
 setInterval(() => {
     const stats = cache.getStats();
     logger_util_1.logger.info({
-        message: 'Cache statistics',
+        message: "Cache statistics",
         hits: stats.hits,
         misses: stats.misses,
         keys: stats.keys,
@@ -23,12 +23,30 @@ setInterval(() => {
         vsize: stats.vsize,
     });
 }, 300000);
+const transformMongooseDoc = (doc) => {
+    if (Array.isArray(doc)) {
+        return doc.map(transformMongooseDoc);
+    }
+    if (doc === null || typeof doc !== "object") {
+        return doc;
+    }
+    if (typeof doc.toJSON === "function") {
+        return doc.toJSON();
+    }
+    const transformed = {};
+    for (const key in doc) {
+        if (Object.prototype.hasOwnProperty.call(doc, key)) {
+            transformed[key] = transformMongooseDoc(doc[key]);
+        }
+    }
+    return transformed;
+};
 const cacheMiddleware = (options = {}) => {
     return async (req, res, next) => {
-        if (req.method !== 'GET') {
+        if (req.method !== "GET") {
             return next();
         }
-        const key = typeof options.key === 'function'
+        const key = typeof options.key === "function"
             ? options.key(req)
             : options.key || `${req.originalUrl}`;
         try {
@@ -40,21 +58,23 @@ const cacheMiddleware = (options = {}) => {
             const originalJson = res.json.bind(res);
             res.json = ((body) => {
                 if (res.statusCode < 400) {
-                    cache.set(key, body, options.ttl || 300);
+                    const transformedBody = transformMongooseDoc(body);
+                    cache.set(key, transformedBody, options.ttl || 300);
                     logger_util_1.logger.debug(`Cached response for key: ${key}`);
+                    return originalJson(transformedBody);
                 }
                 return originalJson(body);
             });
             next();
         }
         catch (error) {
-            logger_util_1.logger.error('Cache error:', error);
+            logger_util_1.logger.error("Cache error:", error);
             next();
         }
     };
 };
 exports.cacheMiddleware = cacheMiddleware;
-process.on('SIGINT', () => {
+process.on("SIGINT", () => {
     cache.close();
     process.exit();
 });
@@ -62,7 +82,7 @@ const MAX_HEAP_SIZE = 500 * 1024 * 1024;
 setInterval(() => {
     const used = process.memoryUsage();
     if (used.heapUsed > MAX_HEAP_SIZE) {
-        logger_util_1.logger.warn('High memory usage detected, clearing cache');
+        logger_util_1.logger.warn("High memory usage detected, clearing cache");
         cache.flushAll();
         global.gc && global.gc();
     }

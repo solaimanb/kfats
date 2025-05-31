@@ -27,6 +27,13 @@ class CourseController {
                 data: courses,
             });
         });
+        this.getMentorCourses = (0, catch_async_util_1.catchAsync)(async (req, res) => {
+            const courses = await this.courseService.getMentorCourses(req.user.id, req.query);
+            res.status(200).json({
+                status: "success",
+                data: courses,
+            });
+        });
         this.enrollInCourse = (0, catch_async_util_1.catchAsync)(async (req, res) => {
             await this.courseService.enrollInCourse(req.params.id, req.user.id);
             res.status(200).json({

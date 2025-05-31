@@ -285,6 +285,8 @@ const userSchema = new mongoose_1.Schema({
             default: 0,
         },
         lockUntil: Date,
+        refreshToken: String,
+        refreshTokenExpires: Date,
     },
     preferences: {
         language: {

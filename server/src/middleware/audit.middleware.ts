@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { Document, Schema } from "mongoose";
+import mongoose, { Document } from "mongoose";
 import { AuditLogModel, IAuditLog } from "../models/audit-log.model";
 import { IUser } from "../models/user.model";
 
@@ -7,7 +7,7 @@ import { IUser } from "../models/user.model";
 declare global {
   namespace Express {
     interface User extends IUser {
-      _id: Schema.Types.ObjectId;
+      _id: mongoose.Types.ObjectId;
     }
     interface Request {
       user?: User;
@@ -54,7 +54,8 @@ export const auditLog = (options: AuditOptions) => {
               ...metadata,
               requestBody: req.body,
               responseStatus: res.statusCode,
-              responseBody: res.statusCode >= 400 ? JSON.parse(body) : undefined,
+              responseBody:
+                res.statusCode >= 400 ? JSON.parse(body) : undefined,
             },
             status: res.statusCode >= 400 ? "failure" : "success",
             errorMessage:

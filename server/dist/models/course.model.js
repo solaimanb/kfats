@@ -60,7 +60,6 @@ const courseSchema = new mongoose_1.Schema({
     },
     slug: {
         type: String,
-        required: true,
         unique: true,
         lowercase: true,
     },
