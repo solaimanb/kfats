@@ -1,9 +1,6 @@
-"use client";
-
-import CommonHomePage from '@/components/home/CommonHomePage';
-import UsersHomePage from '@/components/home/UsersHomePage'; // Adjust path as needed
-import Footer from '@/components/shared/footer/Footer';
-import React from 'react';
+import CommonHomePage from "@/components/features/home/common-home-page";
+import UsersHomePage from "@/components/features/home/users-home-page";
+import Footer from "@/components/common/footer/footer";
 
 const isUser = true;
 

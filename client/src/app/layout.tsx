@@ -13,9 +13,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kushtia Charukola",
-   icons: {
-    icon: "/favicon.ico",}
+  title: "Kushtia Fine Arts & Technology School",
+  icons: {
+    icon: "/favicon.ico",
+  },
+  description: "Kushtia Fine Arts & Technology School",
+  keywords: [
+    "Kushtia Fine Arts & Technology School",
+    "Kushtia",
+    "Fine Arts",
+    "Technology",
+    "School",
+  ],
 };
 
 export default function RootLayout({
@@ -24,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
