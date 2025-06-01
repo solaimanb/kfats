@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import courseData from "@/data/courses.json" assert { type: "json" };
 import { FaChalkboardTeacher } from "react-icons/fa";
 import { SectionTitle } from "@/components/common";
-import { fadeIn } from "@/utils/motion";
+import { fadeIn } from "@/lib/utils/common/motion";
 
 interface Mentor {
   name: string;

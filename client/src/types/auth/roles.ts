@@ -1,10 +1,11 @@
 // Core Enums
 export enum UserRole {
-  ADMIN = "admin",
-  MENTOR = "mentor",
+  USER = "user",
   STUDENT = "student",
+  MENTOR = "mentor",
   WRITER = "writer",
   SELLER = "seller",
+  ADMIN = "admin",
 }
 
 export enum UserStatus {
@@ -48,31 +49,93 @@ export interface RoleApplication {
   userId: string;
   role: UserRole;
   status: ApplicationStatus;
-  submittedAt: string;
-  reviewedAt?: string;
+  documents: {
+    type: string;
+    url: string;
+    name: string;
+    mimeType: string;
+    size: number;
+  }[];
+  fields: Record<string, string | number | boolean | object>;
+  verificationSteps: {
+    name: string;
+    status: "pending" | "completed" | "failed";
+    completedAt?: Date;
+    completedBy?: string;
+    notes?: string;
+  }[];
   reviewedBy?: string;
-  notes?: string;
-  data: {
-    [UserRole.WRITER]?: {
-      specializations: string[];
-      languages: string[];
-      experience: string;
-      portfolio: string;
-      bio: string;
-    };
-    [UserRole.MENTOR]?: {
-      specializations: string[];
-      experience: string;
-      qualifications: string[];
-      teachingStyle: string;
-      bio: string;
-    };
-    [UserRole.SELLER]?: {
-      businessName: string;
-      businessType: string;
-      productCategories: string[];
-      experience: string;
-      bio: string;
-    };
-  };
+  reviewedAt?: Date;
+  rejectionReason?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
+
+// Permission Interface
+export interface Permission {
+  id: string;
+  name: string;
+  description?: string;
+  resource: string;
+  action: string;
+  attributes?: string[];
+  conditions?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Role Interface
+export interface IRole {
+  id: string;
+  name: string;
+  description?: string;
+  parentId?: string;
+  permissions: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Role-specific Data Interfaces
+export interface StudentRoleData {
+  studentId: string;
+  batch: string;
+  department: string;
+  semester: number;
+  verified?: boolean;
+  verificationDate?: Date;
+}
+
+export interface TeacherRoleData {
+  employeeId: string;
+  department: string;
+  designation: string;
+  joiningDate: Date;
+  verified?: boolean;
+  verificationDate?: Date;
+}
+
+export interface WriterRoleData {
+  specializations: string[];
+  languages: string[];
+  experience: string;
+  portfolio: string;
+  verified?: boolean;
+  verificationDate?: Date;
+}
+
+export interface SellerRoleData {
+  businessName: string;
+  businessType: string;
+  productCategories: string[];
+  experience: string;
+  verified?: boolean;
+  verificationDate?: Date;
+}
+
+// Role-specific Data Type
+export type RoleSpecificData = {
+  [UserRole.STUDENT]?: StudentRoleData;
+  [UserRole.MENTOR]?: TeacherRoleData;
+  [UserRole.WRITER]?: WriterRoleData;
+  [UserRole.SELLER]?: SellerRoleData;
+};
