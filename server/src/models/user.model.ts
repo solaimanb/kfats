@@ -1,6 +1,11 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 import bcrypt from "bcryptjs";
-import { UserRole, UserStatus } from "../config/rbac.config";
+import {
+  UserRole,
+  UserStatus,
+  validateRoleConstraints,
+  getRoleConstraintViolationMessage,
+} from "../config/rbac.config";
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
@@ -30,6 +35,15 @@ export interface IUser extends Document {
     };
   };
   roleSpecificData: {
+    user?: {
+      lastActiveAt: Date;
+      interests: string[];
+      preferences: {
+        contentLanguages: string[];
+        contentTypes: string[];
+        notificationFrequency: "immediate" | "daily" | "weekly";
+      };
+    };
     mentor?: {
       expertise: string[];
       qualifications: Array<{
@@ -154,7 +168,7 @@ const userSchema = new Schema<IUser>(
     roles: {
       type: [String],
       enum: Object.values(UserRole),
-      default: [UserRole.STUDENT],
+      default: [UserRole.USER],
       validate: [
         {
           validator: function (roles: UserRole[]) {
@@ -167,24 +181,12 @@ const userSchema = new Schema<IUser>(
         },
         {
           validator: function (roles: UserRole[]) {
-            // Admin cannot have additional roles
-            if (roles.includes(UserRole.ADMIN) && roles.length > 1) {
-              return false;
-            }
-            // Student is a base role, can be combined with others except admin
-            if (!roles.includes(UserRole.STUDENT) && roles.length > 1) {
-              return false;
-            }
-            // Cannot be both mentor and seller
-            if (
-              roles.includes(UserRole.MENTOR) &&
-              roles.includes(UserRole.SELLER)
-            ) {
-              return false;
-            }
-            return true;
+            return validateRoleConstraints(roles);
           },
-          message: "Invalid role combination",
+          message: function (props: any) {
+            const message = getRoleConstraintViolationMessage(props.value);
+            return message || "Invalid role combination";
+          },
         },
       ],
     },
@@ -237,6 +239,19 @@ const userSchema = new Schema<IUser>(
       },
     },
     roleSpecificData: {
+      user: {
+        lastActiveAt: Date,
+        interests: [String],
+        preferences: {
+          contentLanguages: [String],
+          contentTypes: [String],
+          notificationFrequency: {
+            type: String,
+            enum: ["immediate", "daily", "weekly"],
+            default: "immediate",
+          },
+        },
+      },
       mentor: {
         expertise: [String],
         qualifications: [

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UserRole } from "../config/rbac.config";
+import { UserRole, ROLE_TRANSITIONS } from "../config/rbac.config";
 
 const documentSchema = z.object({
   type: z.string().min(1, "Document type is required"),
@@ -12,6 +12,28 @@ const documentSchema = z.object({
 const baseFieldsSchema = z.object({
   reason: z.string().min(1, "Reason is required"),
   additionalInfo: z.string().optional(),
+});
+
+const studentFieldsSchema = baseFieldsSchema.extend({
+  educationLevel: z.enum(
+    ["high_school", "undergraduate", "graduate", "other"],
+    {
+      errorMap: () => ({ message: "Invalid education level" }),
+    }
+  ),
+  institution: z.string().min(1, "Institution name is required"),
+  fieldOfStudy: z.string().min(1, "Field of study is required"),
+  expectedGraduation: z
+    .string()
+    .regex(/^\d{4}(-\d{2})?$/, "Invalid graduation date format"),
+  academicInterests: z
+    .array(z.string())
+    .min(1, "At least one academic interest is required")
+    .max(5, "Maximum 5 academic interests allowed"),
+  learningGoals: z
+    .string()
+    .min(100, "Learning goals must be at least 100 characters")
+    .max(1000, "Learning goals must not exceed 1000 characters"),
 });
 
 const mentorFieldsSchema = baseFieldsSchema.extend({
@@ -102,37 +124,120 @@ const sellerFieldsSchema = baseFieldsSchema.extend({
     .max(2000, "Business plan must not exceed 2000 characters"),
 });
 
-export const createRoleApplicationSchema = z.object({
-  role: z.enum(Object.values(UserRole) as [string, ...string[]], {
-    errorMap: () => ({ message: "Invalid role selected" }),
-  }),
-  fields: z
-    .union([
-      baseFieldsSchema,
-      mentorFieldsSchema,
-      writerFieldsSchema,
-      sellerFieldsSchema,
-    ])
-    .refine(
-      (data: any) => {
-        if (data.role === UserRole.MENTOR && !("expertise" in data)) {
-          return false;
+type DocumentRequirements = {
+  [K in Exclude<UserRole, UserRole.ADMIN | UserRole.USER>]: readonly string[];
+};
+
+const roleSpecificDocumentRequirements: DocumentRequirements = {
+  [UserRole.STUDENT]: ["student_id", "enrollment_proof"],
+  [UserRole.MENTOR]: [
+    "cv",
+    "certificates",
+    "identity_proof",
+    "teaching_certification",
+  ],
+  [UserRole.WRITER]: ["portfolio", "language_certificates", "identity_proof"],
+  [UserRole.SELLER]: [
+    "business_registration",
+    "tax_certificate",
+    "bank_statement",
+    "identity_proof",
+  ],
+} as const;
+
+export const createRoleApplicationSchema = z
+  .object({
+    role: z.enum(Object.values(UserRole) as [string, ...string[]], {
+      errorMap: () => ({ message: "Invalid role selected" }),
+    }),
+    fields: z
+      .union([
+        baseFieldsSchema,
+        studentFieldsSchema,
+        mentorFieldsSchema,
+        writerFieldsSchema,
+        sellerFieldsSchema,
+      ])
+      .refine(
+        (data: any) => {
+          if (data.role === UserRole.STUDENT && !("educationLevel" in data)) {
+            return false;
+          }
+          if (data.role === UserRole.MENTOR && !("expertise" in data)) {
+            return false;
+          }
+          if (data.role === UserRole.WRITER && !("specializations" in data)) {
+            return false;
+          }
+          if (data.role === UserRole.SELLER && !("businessDetails" in data)) {
+            return false;
+          }
+          return true;
+        },
+        {
+          message: "Missing required fields for the selected role",
         }
-        if (data.role === UserRole.WRITER && !("specializations" in data)) {
-          return false;
-        }
-        if (data.role === UserRole.SELLER && !("businessDetails" in data)) {
-          return false;
-        }
-        return true;
-      },
-      {
-        message: "Missing required fields for the selected role",
-      }
-    ),
-  documents: z.array(documentSchema),
-});
+      ),
+    documents: z.array(documentSchema).optional().default([]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === UserRole.ADMIN || data.role === UserRole.USER || data.role === UserRole.STUDENT) {
+      return;
+    }
+
+    if (!data.documents || data.documents.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one document is required for this role",
+      });
+      return;
+    }
+
+    const role = data.role as Exclude<UserRole, UserRole.ADMIN | UserRole.USER | UserRole.STUDENT>;
+    const requiredTypes = roleSpecificDocumentRequirements[role];
+    const providedTypes = data.documents.map((doc) => doc.type);
+
+    const missingTypes = requiredTypes.filter(
+      (type) => !providedTypes.includes(type)
+    );
+
+    if (missingTypes.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Missing required documents: ${missingTypes.join(", ")}`,
+      });
+    }
+  })
+  .refine(
+    (data) => {
+      return ROLE_TRANSITIONS[UserRole.USER].includes(data.role as UserRole);
+    },
+    {
+      message:
+        "Invalid role transition. This role cannot be applied for from your current role.",
+    }
+  );
 
 export type CreateRoleApplicationInput = z.infer<
   typeof createRoleApplicationSchema
 >;
+
+export const updateApplicationSchema = z
+  .object({
+    status: z.enum(["approved", "rejected"]),
+    notes: z.string().optional(),
+    rejectionReason: z.string().optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      if (data.status === "rejected" && !data.rejectionReason) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Rejection reason is required when rejecting an application",
+    }
+  );
+
+export type UpdateApplicationInput = z.infer<typeof updateApplicationSchema>;
