@@ -1,21 +1,16 @@
 import api from "../config/axios";
 import { ApiResponse } from "@/types/api/common";
 import { RegisterRequest, LoginRequest } from "@/types/api/requests";
-import { IUser } from "@/types/auth/roles";
-
-export interface AuthResponse {
-  user: IUser;
-  token: string;
-}
+import { LoginResponse } from "@/types/api/responses";
 
 class AuthService {
-  async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
+  async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
     return api.post("/auth/login", credentials);
   }
 
   async register(
     userData: RegisterRequest
-  ): Promise<ApiResponse<AuthResponse>> {
+  ): Promise<ApiResponse<LoginResponse>> {
     return api.post("/auth/register", userData);
   }
 
@@ -39,7 +34,7 @@ class AuthService {
     });
   }
 
-  async validateToken(token: string): Promise<ApiResponse<AuthResponse>> {
+  async validateToken(token: string): Promise<ApiResponse<LoginResponse>> {
     return api.get("/auth/validate", {
       headers: { Authorization: `Bearer ${token}` },
     });

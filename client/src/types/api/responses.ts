@@ -1,13 +1,18 @@
 // Auth Responses
 export interface LoginResponse {
-  token: string;
   user: {
-    id: string;
+    profile: {
+      firstName: string;
+      lastName: string;
+    };
     email: string;
-    firstName: string;
-    lastName: string;
     roles: string[];
+    status: string;
+    emailVerified: boolean;
+    createdAt: string;
+    updatedAt: string;
   };
+  accessToken: string;
 }
 
 export interface RegisterResponse {
