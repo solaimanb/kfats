@@ -127,6 +127,7 @@ export interface IUser extends Document {
     lockUntil?: Date;
     refreshToken?: string;
     refreshTokenExpires?: Date;
+    passwordResetAttempts: number;
   };
   preferences: {
     language: string;
@@ -398,6 +399,10 @@ const userSchema = new Schema<IUser>(
       lockUntil: Date,
       refreshToken: String,
       refreshTokenExpires: Date,
+      passwordResetAttempts: {
+        type: Number,
+        default: 0,
+      },
     },
     preferences: {
       language: {

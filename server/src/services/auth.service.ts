@@ -209,48 +209,120 @@ export class AuthService {
 
   static async forgotPassword(email: string): Promise<void> {
     const user = await UserModel.findOne({ email });
+
+    // Don't expose user existence (security measure)
     if (!user) {
-      throw new AppError("No user found with that email address", 404);
+      console.log(`Password reset requested for non-existent email: ${email}`);
+      return;
     }
 
-    // Generate reset token
+    // Check if user is locked out from password reset attempts
+    const MAX_RESET_ATTEMPTS = 5;
+    const LOCKOUT_DURATION = 60 * 60 * 1000; // 1 hour
+
+    if (
+      user.security?.passwordResetAttempts >= MAX_RESET_ATTEMPTS &&
+      user.security?.lockUntil &&
+      user.security.lockUntil > new Date()
+    ) {
+      throw new AppError(
+        "Too many reset attempts. Please try again after an hour.",
+        429
+      );
+    }
+
+    // Generate and hash reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    // Update security fields
     user.security = {
       ...user.security,
-      resetPasswordToken: resetToken,
-      resetPasswordExpires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      passwordResetAttempts: (user.security?.passwordResetAttempts || 0) + 1,
     };
+
+    // If max attempts reached, set lockout
+    if (user.security.passwordResetAttempts >= MAX_RESET_ATTEMPTS) {
+      user.security.lockUntil = new Date(Date.now() + LOCKOUT_DURATION);
+    }
 
     await user.save({ validateBeforeSave: false });
 
-    // Send password reset email
-    await emailService.sendPasswordResetEmail(
-      user.email,
-      user.profile?.firstName || user.email.split("@")[0],
-      `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`
-    );
+    try {
+      // Verify email service connection first
+      await emailService.verifyConnection();
+
+      const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+      await emailService.sendPasswordResetEmail(
+        user.email,
+        user.profile?.firstName || user.email.split("@")[0],
+        resetUrl
+      );
+    } catch (error) {
+      console.error("Failed to send password reset email:", error);
+      // Revert security changes on email failure
+      user.security = {
+        ...user.security,
+        resetPasswordToken: undefined,
+        resetPasswordExpires: undefined,
+        passwordResetAttempts: Math.max(0, (user.security?.passwordResetAttempts || 1) - 1),
+      };
+      await user.save({ validateBeforeSave: false });
+      throw new AppError(
+        "Failed to send password reset email. Please try again later.",
+        500
+      );
+    }
   }
 
-  static async resetPassword(
-    token: string,
-    newPassword: string
-  ): Promise<void> {
+  static async resetPassword(token: string, newPassword: string): Promise<void> {
+    // Hash the token for comparison
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
     const user = await UserModel.findOne({
-      "security.resetPasswordToken": token,
+      "security.resetPasswordToken": hashedToken,
       "security.resetPasswordExpires": { $gt: Date.now() },
-    });
+    }).select("+password");
 
     if (!user) {
-      throw new AppError("Token is invalid or has expired", 400);
+      throw new AppError("Invalid or expired password reset token", 400);
     }
 
+    // Prevent reuse of old passwords
+    if (await user.comparePassword(newPassword)) {
+      throw new AppError("New password must be different from the current one", 400);
+    }
+
+    // Update password and reset security fields
     user.password = newPassword;
     user.security = {
       ...user.security,
+      passwordChangedAt: new Date(),
       resetPasswordToken: undefined,
       resetPasswordExpires: undefined,
+      passwordResetAttempts: 0,
+      lockUntil: undefined,
     };
+
     await user.save();
+
+    // Revoke all existing sessions for security
+    await this.revokeAllUserSessions(user._id.toString());
+
+    // Send notification email
+    try {
+      await emailService.sendPasswordChangeNotification(
+        user.email,
+        user.profile?.firstName || user.email.split("@")[0]
+      );
+    } catch (error) {
+      console.error("Failed to send password change notification:", error);
+    }
   }
 
   private static async sendVerificationEmail(
