@@ -59,10 +59,7 @@ export class RoleApplicationService {
             "plagiarism_history_check",
           ];
         case UserRole.STUDENT:
-          return [
-            "identity_verification",
-            "academic_background_check",
-          ];
+          return [];
         default:
           return baseSteps;
       }
@@ -100,6 +97,38 @@ export class RoleApplicationService {
         throw new AppError("Base USER role is required", 400);
       }
 
+      // Check if user already has any specialized role or pending application
+      const hasSpecializedRole = user.roles.some((role) =>
+        [
+          UserRole.STUDENT,
+          UserRole.MENTOR,
+          UserRole.WRITER,
+          UserRole.SELLER,
+        ].includes(role as UserRole)
+      );
+
+      if (hasSpecializedRole) {
+        throw new AppError(
+          "You already have a specialized role. Cannot apply for additional roles.",
+          403
+        );
+      }
+
+      // Check for any existing applications regardless of status
+      const existingApplication = await RoleApplicationModel.findOne({
+        user: userId,
+        status: {
+          $in: [ApplicationStatus.PENDING, ApplicationStatus.IN_REVIEW],
+        },
+      }).session(session);
+
+      if (existingApplication) {
+        throw new AppError(
+          `You already have a pending application for ${existingApplication.role} role. Please wait for it to be processed.`,
+          400
+        );
+      }
+
       // Validate role transition
       if (!ROLE_TRANSITIONS[UserRole.USER].includes(data.role as UserRole)) {
         throw new AppError(
@@ -117,22 +146,6 @@ export class RoleApplicationService {
         );
       }
 
-      // Check for existing pending applications
-      const existingApplication = await RoleApplicationModel.findOne({
-        user: userId,
-        role: data.role,
-        status: {
-          $in: [ApplicationStatus.PENDING, ApplicationStatus.IN_REVIEW],
-        },
-      }).session(session);
-
-      if (existingApplication) {
-        throw new AppError(
-          `You already have a pending application for ${data.role} role`,
-          400
-        );
-      }
-
       // Initialize verification steps based on role
       const verificationSteps =
         RoleApplicationService.getRequiredVerificationSteps(
@@ -146,7 +159,10 @@ export class RoleApplicationService {
         documents: data.documents,
         user: userId,
         verificationSteps,
-        status: ApplicationStatus.PENDING,
+        status:
+          data.role === UserRole.STUDENT
+            ? ApplicationStatus.APPROVED // Auto-approve student applications
+            : ApplicationStatus.PENDING,
         currentRoles: user.roles,
       };
 
@@ -154,7 +170,36 @@ export class RoleApplicationService {
         session,
       });
 
-      // Create audit log
+      // If it's a student application, update user roles immediately
+      if (data.role === UserRole.STUDENT) {
+        await UserModel.findByIdAndUpdate(
+          userId,
+          { $addToSet: { roles: UserRole.STUDENT } },
+          { session }
+        );
+
+        // Create audit log for role update
+        await AuditLogModel.create(
+          [
+            {
+              userId: userId,
+              action: "ROLE_APPROVED",
+              resource: `user/${userId}`,
+              metadata: {
+                addedRole: UserRole.STUDENT,
+                automatic: true,
+              },
+              roles: user.roles,
+              status: "success",
+              userAgent: req.headers["user-agent"] || "unknown",
+              ip: req.ip || "unknown",
+            },
+          ],
+          { session }
+        );
+      }
+
+      // Create audit log for application
       await AuditLogModel.create(
         [
           {
@@ -163,9 +208,11 @@ export class RoleApplicationService {
             resource: `role-application/${application[0]._id}`,
             metadata: {
               role: data.role,
-              status: ApplicationStatus.PENDING,
+              status: applicationData.status,
               currentRoles: user.roles,
+              autoApproved: data.role === UserRole.STUDENT,
             },
+            roles: user.roles,
             status: "success",
             userAgent: req.headers["user-agent"] || "unknown",
             ip: req.ip || "unknown",
@@ -174,14 +221,16 @@ export class RoleApplicationService {
         { session }
       );
 
-      // Notify admins
-      try {
-        await emailService.sendAdminNotification(
-          "New Role Application",
-          `User ${user.email} has applied for ${data.role} role.`
-        );
-      } catch (error) {
-        console.error("Failed to send admin notification:", error);
+      // Notify admins (only for non-student applications)
+      if (data.role !== UserRole.STUDENT) {
+        try {
+          await emailService.sendAdminNotification(
+            "New Role Application",
+            `User ${user.email} has applied for ${data.role} role.`
+          );
+        } catch (error) {
+          console.error("Failed to send admin notification:", error);
+        }
       }
 
       await session.commitTransaction();
@@ -225,7 +274,7 @@ export class RoleApplicationService {
       const application = await RoleApplicationModel.findById(id)
         .populate("user", "email roles")
         .session(session);
-        
+
       if (!application) {
         throw new AppError(`Application with ID ${id} not found`, 404);
       }
@@ -302,10 +351,7 @@ export class RoleApplicationService {
 
       // Send notification to user
       try {
-        await emailService.sendRoleApprovalEmail(
-          user.email,
-          application.role
-        );
+        await emailService.sendRoleApprovalEmail(user.email, application.role);
       } catch (error) {
         console.error("Failed to send approval notification:", error);
       }

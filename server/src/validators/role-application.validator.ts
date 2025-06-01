@@ -178,32 +178,35 @@ export const createRoleApplicationSchema = z
           message: "Missing required fields for the selected role",
         }
       ),
-    documents: z
-      .array(documentSchema)
-      .min(1, "At least one document is required")
-      .superRefine((docs, ctx) => {
-        const role = ctx.path[0] as UserRole;
-        if (role === UserRole.ADMIN || role === UserRole.USER) {
-          return true;
-        }
+    documents: z.array(documentSchema).optional().default([]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === UserRole.ADMIN || data.role === UserRole.USER || data.role === UserRole.STUDENT) {
+      return;
+    }
 
-        const requiredTypes = roleSpecificDocumentRequirements[role];
-        const providedTypes = docs.map((doc) => doc.type);
+    if (!data.documents || data.documents.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one document is required for this role",
+      });
+      return;
+    }
 
-        const missingTypes = requiredTypes.filter(
-          (type) => !providedTypes.includes(type)
-        );
+    const role = data.role as Exclude<UserRole, UserRole.ADMIN | UserRole.USER | UserRole.STUDENT>;
+    const requiredTypes = roleSpecificDocumentRequirements[role];
+    const providedTypes = data.documents.map((doc) => doc.type);
 
-        if (missingTypes.length > 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Missing required documents: ${missingTypes.join(", ")}`,
-          });
-          return false;
-        }
+    const missingTypes = requiredTypes.filter(
+      (type) => !providedTypes.includes(type)
+    );
 
-        return true;
-      }),
+    if (missingTypes.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Missing required documents: ${missingTypes.join(", ")}`,
+      });
+    }
   })
   .refine(
     (data) => {
