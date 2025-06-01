@@ -6,7 +6,12 @@ import {
   RoleApplicationModel,
   IRoleApplication,
 } from "../models/role-application.model";
-import { UserRole, UserStatus } from "../config/rbac.config";
+import {
+  UserRole,
+  UserStatus,
+  ROLE_TRANSITIONS,
+  validateRoleConstraints,
+} from "../config/rbac.config";
 import { AppError } from "../utils/error.util";
 import { emailService } from "../utils/email.util";
 
@@ -40,7 +45,7 @@ export class AuthService {
         user: userId,
         isRevoked: false,
       }).sort({ issuedAt: 1 });
-      
+
       if (oldestToken) {
         oldestToken.isRevoked = true;
         await oldestToken.save();
@@ -64,6 +69,11 @@ export class AuthService {
       password: string;
       firstName: string;
       lastName: string;
+      interests?: string[];
+      contentPreferences?: {
+        languages?: string[];
+        types?: string[];
+      };
     },
     deviceInfo: { ip: string; userAgent: string; deviceId?: string }
   ): Promise<{ user: IUser; accessToken: string; refreshToken: string }> {
@@ -79,15 +89,29 @@ export class AuthService {
         firstName: userData.firstName,
         lastName: userData.lastName,
       },
-      roles: [UserRole.STUDENT],
+      roles: [UserRole.USER],
       status:
         process.env.NODE_ENV === "development"
           ? UserStatus.ACTIVE
           : UserStatus.PENDING_VERIFICATION,
+      roleSpecificData: {
+        user: {
+          lastActiveAt: new Date(),
+          interests: userData.interests || [],
+          preferences: {
+            contentLanguages: userData.contentPreferences?.languages || [],
+            contentTypes: userData.contentPreferences?.types || [],
+            notificationFrequency: "immediate",
+          },
+        },
+      },
     });
 
     const accessToken = this.generateAccessToken(user._id.toString());
-    const refreshToken = await this.generateRefreshToken(user._id.toString(), deviceInfo);
+    const refreshToken = await this.generateRefreshToken(
+      user._id.toString(),
+      deviceInfo
+    );
 
     // Skip email verification in development
     if (process.env.NODE_ENV !== "development") {
@@ -116,12 +140,19 @@ export class AuthService {
     }
 
     const accessToken = this.generateAccessToken(user._id.toString());
-    const refreshToken = await this.generateRefreshToken(user._id.toString(), deviceInfo);
+    const refreshToken = await this.generateRefreshToken(
+      user._id.toString(),
+      deviceInfo
+    );
 
     // Remove sensitive data before sending response
     const sanitizedUser = user.toObject();
-    const { password: pwd, security, ...userWithoutSensitiveData } = sanitizedUser;
-    
+    const {
+      password: pwd,
+      security,
+      ...userWithoutSensitiveData
+    } = sanitizedUser;
+
     return { user: userWithoutSensitiveData, accessToken, refreshToken };
   }
 
@@ -145,7 +176,9 @@ export class AuthService {
     await existingToken.save();
 
     // Generate new tokens
-    const accessToken = this.generateAccessToken(existingToken.user._id.toString());
+    const accessToken = this.generateAccessToken(
+      existingToken.user._id.toString()
+    );
     const refreshToken = await this.generateRefreshToken(
       existingToken.user._id.toString(),
       deviceInfo
@@ -171,10 +204,7 @@ export class AuthService {
   }
 
   static async revokeAllUserSessions(userId: string): Promise<void> {
-    await RefreshTokenModel.updateMany(
-      { user: userId },
-      { isRevoked: true }
-    );
+    await RefreshTokenModel.updateMany({ user: userId }, { isRevoked: true });
   }
 
   static async forgotPassword(email: string): Promise<void> {
@@ -243,6 +273,31 @@ export class AuthService {
       documents: Array<{ type: string; url: string; name: string }>;
     }
   ): Promise<IRoleApplication> {
+    // Get user's current roles
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    // Validate role transition
+    if (!user.roles.includes(UserRole.USER)) {
+      throw new AppError("Base USER role is required", 400);
+    }
+
+    if (!ROLE_TRANSITIONS[UserRole.USER].includes(roleData.requestedRole)) {
+      throw new AppError(
+        `Cannot apply for ${roleData.requestedRole} role from current roles`,
+        400
+      );
+    }
+
+    // Check if the resulting role combination would be valid
+    const potentialRoles = [...user.roles, roleData.requestedRole];
+    if (!validateRoleConstraints(potentialRoles)) {
+      throw new AppError("The requested role combination is not allowed", 400);
+    }
+
+    // Check for existing applications
     const existingApplication = await RoleApplicationModel.findOne({
       userId,
       requestedRole: roleData.requestedRole,
@@ -253,9 +308,24 @@ export class AuthService {
       throw new AppError("You already have a pending application", 400);
     }
 
-    return RoleApplicationModel.create({
+    // Create role application with required role-specific data validation
+    const application = await RoleApplicationModel.create({
       userId,
+      currentRoles: user.roles,
       ...roleData,
+      submittedAt: new Date(),
     });
+
+    // Send notification to admins about new role application
+    try {
+      await emailService.sendAdminNotification(
+        "New Role Application",
+        `User ${user.email} has applied for ${roleData.requestedRole} role.`
+      );
+    } catch (error) {
+      console.error("Failed to send admin notification:", error);
+    }
+
+    return application;
   }
 }

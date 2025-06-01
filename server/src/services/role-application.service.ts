@@ -4,11 +4,17 @@ import {
   IRoleApplication,
 } from "../models/role-application.model";
 import { UserModel } from "../models/user.model";
-import { UserRole, ApplicationStatus } from "../config/rbac.config";
+import {
+  UserRole,
+  ApplicationStatus,
+  ROLE_TRANSITIONS,
+  validateRoleConstraints,
+} from "../config/rbac.config";
 import { AppError } from "../utils/error.util";
 import { permissionCache } from "../utils/permission-cache.util";
 import { AuditLogModel } from "../models/audit-log.model";
 import { CreateRoleApplicationInput } from "../validators/role-application.validator";
+import { emailService } from "../utils/email.util";
 import { Request } from "express";
 
 interface VerificationStep {
@@ -36,14 +42,26 @@ export class RoleApplicationService {
             ...baseSteps,
             "qualification_verification",
             "expertise_validation",
+            "teaching_experience_check",
           ];
         case UserRole.SELLER:
-          return [...baseSteps, "business_verification", "tax_verification"];
+          return [
+            ...baseSteps,
+            "business_verification",
+            "tax_verification",
+            "bank_account_verification",
+          ];
         case UserRole.WRITER:
           return [
             ...baseSteps,
             "portfolio_review",
             "language_proficiency_check",
+            "plagiarism_history_check",
+          ];
+        case UserRole.STUDENT:
+          return [
+            "identity_verification",
+            "academic_background_check",
           ];
         default:
           return baseSteps;
@@ -70,6 +88,34 @@ export class RoleApplicationService {
         typeof data.user === "string"
           ? new Types.ObjectId(data.user)
           : data.user;
+
+      // Get user and validate role transition
+      const user = await UserModel.findById(userId).session(session);
+      if (!user) {
+        throw new AppError("User not found", 404);
+      }
+
+      // Validate base USER role
+      if (!user.roles.includes(UserRole.USER)) {
+        throw new AppError("Base USER role is required", 400);
+      }
+
+      // Validate role transition
+      if (!ROLE_TRANSITIONS[UserRole.USER].includes(data.role as UserRole)) {
+        throw new AppError(
+          `Cannot apply for ${data.role} role from current roles`,
+          400
+        );
+      }
+
+      // Validate role combination
+      const potentialRoles = [...user.roles, data.role as UserRole];
+      if (!validateRoleConstraints(potentialRoles)) {
+        throw new AppError(
+          "The requested role combination is not allowed",
+          400
+        );
+      }
 
       // Check for existing pending applications
       const existingApplication = await RoleApplicationModel.findOne({
@@ -101,12 +147,14 @@ export class RoleApplicationService {
         user: userId,
         verificationSteps,
         status: ApplicationStatus.PENDING,
+        currentRoles: user.roles,
       };
 
       const application = await RoleApplicationModel.create([applicationData], {
         session,
       });
 
+      // Create audit log
       await AuditLogModel.create(
         [
           {
@@ -116,6 +164,7 @@ export class RoleApplicationService {
             metadata: {
               role: data.role,
               status: ApplicationStatus.PENDING,
+              currentRoles: user.roles,
             },
             status: "success",
             userAgent: req.headers["user-agent"] || "unknown",
@@ -124,6 +173,16 @@ export class RoleApplicationService {
         ],
         { session }
       );
+
+      // Notify admins
+      try {
+        await emailService.sendAdminNotification(
+          "New Role Application",
+          `User ${user.email} has applied for ${data.role} role.`
+        );
+      } catch (error) {
+        console.error("Failed to send admin notification:", error);
+      }
 
       await session.commitTransaction();
       return application[0];
@@ -163,9 +222,10 @@ export class RoleApplicationService {
     try {
       session.startTransaction();
 
-      const application = await RoleApplicationModel.findById(id).session(
-        session
-      );
+      const application = await RoleApplicationModel.findById(id)
+        .populate("user", "email roles")
+        .session(session);
+        
       if (!application) {
         throw new AppError(`Application with ID ${id} not found`, 404);
       }
@@ -177,6 +237,16 @@ export class RoleApplicationService {
       if (pendingSteps?.length) {
         throw new AppError(
           `Cannot approve application: ${pendingSteps.length} verification steps are still pending`,
+          400
+        );
+      }
+
+      // Validate current roles and new role combination
+      const user = application.user as any; // Type assertion for populated user
+      const newRoles = [...user.roles, application.role];
+      if (!validateRoleConstraints(newRoles)) {
+        throw new AppError(
+          "The resulting role combination would not be valid",
           400
         );
       }
@@ -216,6 +286,8 @@ export class RoleApplicationService {
               applicationId: id,
               role: application.role,
               userId: application.user,
+              previousRoles: user.roles,
+              newRoles,
             },
             status: "success",
             userAgent: "system",
@@ -227,6 +299,16 @@ export class RoleApplicationService {
 
       // Clear permission cache
       permissionCache.clearUserPermissions(application.user.toString());
+
+      // Send notification to user
+      try {
+        await emailService.sendRoleApprovalEmail(
+          user.email,
+          application.role
+        );
+      } catch (error) {
+        console.error("Failed to send approval notification:", error);
+      }
 
       await session.commitTransaction();
       return application;

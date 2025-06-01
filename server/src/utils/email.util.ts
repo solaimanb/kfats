@@ -107,6 +107,22 @@ class Email {
     });
   }
 
+  async sendRoleApprovalEmail(
+    to: string,
+    role: string
+  ): Promise<void> {
+    await this.send({
+      to,
+      subject: `${role} Role Approved`,
+      template: "role-approval",
+      context: {
+        role,
+        appName: config.app.name,
+        dashboardUrl: `${config.app.clientUrl}/dashboard`,
+      },
+    });
+  }
+
   async sendRoleApplicationRejected(
     to: string,
     name: string,
@@ -125,6 +141,21 @@ class Email {
       },
     });
   }
+
+  async sendAdminNotification(subject: string, message: string): Promise<void> {
+    await this.send({
+      // ---------------------------------- 
+      // TODO: change to admin email config
+      // ----------------------------------
+      // to: config.email.admin,
+      to: "admnkfats@gmail.com",
+      subject,
+      template: "admin-notification",
+      context: {
+        message,
+      },
+    });
+  }
 }
 
-export const emailService = new Email(); 
+export const emailService = new Email();

@@ -4,6 +4,7 @@ export enum UserRole {
   STUDENT = "student",
   WRITER = "writer",
   SELLER = "seller",
+  USER = "user",
 }
 
 export enum UserStatus {
@@ -23,11 +24,12 @@ export enum ApplicationStatus {
 }
 
 export const ROLE_HIERARCHY = {
-  [UserRole.ADMIN]: [], // Admin is top level, inherits nothing
-  [UserRole.MENTOR]: [UserRole.STUDENT], // Mentor inherits Student permissions
-  [UserRole.WRITER]: [UserRole.STUDENT], // Writer inherits Student permissions
-  [UserRole.SELLER]: [UserRole.STUDENT], // Seller inherits Student permissions
-  [UserRole.STUDENT]: [], // Base role
+  [UserRole.ADMIN]: [], // Admin is top level
+  [UserRole.MENTOR]: [], // No inheritance
+  [UserRole.STUDENT]: [], // No inheritance
+  [UserRole.WRITER]: [], // No inheritance
+  [UserRole.SELLER]: [], // No inheritance
+  [UserRole.USER]: [], // Base role
 } as const;
 
 export const getInheritedRoles = (role: UserRole): UserRole[] => {
@@ -62,6 +64,13 @@ export const getAllPermissionsForRole = (role: UserRole): string[] => {
 };
 
 export const PERMISSIONS = {
+  USER: {
+    VIEW_PUBLIC_CONTENT: "user:view_public_content",
+    UPDATE_PROFILE: "user:update_profile",
+    SUBMIT_SUPPORT_TICKET: "user:submit_support_ticket",
+    VIEW_CATALOG: "user:view_catalog",
+    MANAGE_ACCOUNT: "user:manage_account",
+  },
   STUDENT: {
     VIEW_COURSES: "student:view_courses",
     ENROLL_COURSE: "student:enroll_course",
@@ -137,20 +146,25 @@ export const PERMISSIONS = {
 };
 
 export const ROLE_PERMISSIONS = {
-  [UserRole.STUDENT]: [...Object.values(PERMISSIONS.STUDENT)],
-  [UserRole.MENTOR]: [
+  [UserRole.USER]: [...Object.values(PERMISSIONS.USER)],
+  [UserRole.STUDENT]: [
+    ...Object.values(PERMISSIONS.USER),
     ...Object.values(PERMISSIONS.STUDENT),
+  ],
+  [UserRole.MENTOR]: [
+    ...Object.values(PERMISSIONS.USER),
     ...Object.values(PERMISSIONS.MENTOR),
   ],
   [UserRole.WRITER]: [
-    ...Object.values(PERMISSIONS.STUDENT),
+    ...Object.values(PERMISSIONS.USER),
     ...Object.values(PERMISSIONS.WRITER),
   ],
   [UserRole.SELLER]: [
-    ...Object.values(PERMISSIONS.STUDENT),
+    ...Object.values(PERMISSIONS.USER),
     ...Object.values(PERMISSIONS.SELLER),
   ],
   [UserRole.ADMIN]: [
+    ...Object.values(PERMISSIONS.USER),
     ...Object.values(PERMISSIONS.STUDENT),
     ...Object.values(PERMISSIONS.MENTOR),
     ...Object.values(PERMISSIONS.WRITER),
@@ -160,22 +174,28 @@ export const ROLE_PERMISSIONS = {
 };
 
 export const ROLE_TRANSITIONS: Record<UserRole, UserRole[]> = {
-  [UserRole.STUDENT]: [UserRole.MENTOR, UserRole.WRITER, UserRole.SELLER], // Student can transition to one specialized role
-  [UserRole.MENTOR]: [], // No further transitions allowed
-  [UserRole.WRITER]: [], // No further transitions allowed
-  [UserRole.SELLER]: [], // No further transitions allowed
-  [UserRole.ADMIN]: [], // Admin role is assigned directly, not through transitions
+  [UserRole.USER]: [
+    UserRole.STUDENT,
+    UserRole.MENTOR,
+    UserRole.WRITER,
+    UserRole.SELLER,
+  ], // User can apply for any role
+  [UserRole.STUDENT]: [], // No transitions
+  [UserRole.MENTOR]: [], // No transitions
+  [UserRole.WRITER]: [], // No transitions
+  [UserRole.SELLER]: [], // No transitions
+  [UserRole.ADMIN]: [], // Admin role is assigned directly
 };
 
 export function isValidRoleTransition(
   currentRoles: UserRole[],
   targetRole: UserRole
 ): boolean {
-  // Only allow transitions from STUDENT role to a specialized role
+  // Allow transitions from USER role to any specialized role
   return (
     currentRoles.length === 1 && // Must have exactly one role
-    currentRoles[0] === UserRole.STUDENT && // Must be a STUDENT
-    ROLE_TRANSITIONS[UserRole.STUDENT].includes(targetRole) // Can only transition to allowed specialized roles
+    currentRoles[0] === UserRole.USER && // Must be a USER
+    ROLE_TRANSITIONS[UserRole.USER].includes(targetRole) // Can only transition to allowed specialized roles
   );
 }
 
@@ -184,7 +204,7 @@ export function isValidRoleTransition(
  */
 export const MUTUALLY_EXCLUSIVE_ROLES: UserRole[][] = [
   // Specialized roles are mutually exclusive - a user can only have one of these
-  [UserRole.MENTOR, UserRole.WRITER, UserRole.SELLER]
+  [UserRole.MENTOR, UserRole.STUDENT, UserRole.WRITER, UserRole.SELLER],
 ];
 
 /**
@@ -198,9 +218,14 @@ export function validateRoleConstraints(roles: UserRole[]): boolean {
     return true;
   }
 
+  // Must have USER role
+  if (!roles.includes(UserRole.USER)) {
+    return false;
+  }
+
   // Check each mutually exclusive role group
   for (const exclusiveGroup of MUTUALLY_EXCLUSIVE_ROLES) {
-    const matchingRoles = roles.filter(role => exclusiveGroup.includes(role));
+    const matchingRoles = roles.filter((role) => exclusiveGroup.includes(role));
     if (matchingRoles.length > 1) {
       return false; // Found multiple roles from an exclusive group
     }
@@ -217,16 +242,18 @@ export function validateRoleConstraints(roles: UserRole[]): boolean {
 export function getRoleConstraintViolationMessage(roles: UserRole[]): string {
   // Skip validation for admin role
   if (roles.includes(UserRole.ADMIN)) {
-    return '';
+    return "";
   }
 
   // Check each mutually exclusive role group
   for (const exclusiveGroup of MUTUALLY_EXCLUSIVE_ROLES) {
-    const matchingRoles = roles.filter(role => exclusiveGroup.includes(role));
+    const matchingRoles = roles.filter((role) => exclusiveGroup.includes(role));
     if (matchingRoles.length > 1) {
-      return `The following roles cannot be assigned together: ${matchingRoles.join(', ')}`;
+      return `The following roles cannot be assigned together: ${matchingRoles.join(
+        ", "
+      )}`;
     }
   }
 
-  return '';
+  return "";
 }
