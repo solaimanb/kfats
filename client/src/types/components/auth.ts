@@ -1,4 +1,8 @@
-import { LoginRequest, RegisterRequest } from "../api/requests";
+/**
+ * Auth component types
+ */
+
+import type { LoginRequest, RegisterRequest } from '../api/auth/requests';
 
 export interface LoginFormProps {
   onSubmit: (data: LoginRequest) => Promise<void>;
@@ -20,4 +24,4 @@ export interface AuthCardProps {
 export interface ProtectedRouteProps {
   children: React.ReactNode;
   roles?: string[];
-}
+} 

@@ -1,163 +1,256 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { IUser, UserRole, UserStatus } from "@/types/auth/roles";
-import { authService } from "@/lib/services/auth.service";
-import { RegisterRequest } from "@/types/api/requests";
-import { ApiResponse } from "@/types/api/common";
+import React, { createContext, useContext, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-interface AuthResponse {
-  user: IUser;
-  token: string;
-}
+import { AuthContextType, AuthState } from "@/types";
+import {
+  LoginRequest,
+  RegisterRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+} from "@/types/api/auth/requests";
+import { RoleApplicationRequest } from "@/types";
+import { UserRole } from "@/types";
+import { UserStatus } from "@/types";
+import { ResourceType, PermissionAction } from "@/types";
 
-interface AuthError extends Error {
-  message: string;
-  code?: string;
-  status?: number;
-}
+import { ROLE_PERMISSIONS } from "@/config/rbac.config";
+import { DEFAULT_REDIRECTS } from "@/config/routes";
+import {
+  getAccessToken,
+  setAccessToken,
+  removeAccessToken,
+} from "@/lib/utils/token";
+import { authService } from "@/lib/api/services";
 
-interface AuthContextType {
-  user: IUser | null;
-  loading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: RegisterRequest) => Promise<void>;
-  logout: () => void;
-  hasRole: (role: UserRole) => boolean;
-  hasAnyRole: (roles: UserRole[]) => boolean;
-  hasAllRoles: (roles: UserRole[]) => boolean;
-  isActive: () => boolean;
-  isEmailVerified: () => boolean;
-}
+// Storage utilities
+const Storage = {
+  USER_KEY: "auth_user_cache",
 
+  getUser: () => {
+    try {
+      const cached = localStorage.getItem(Storage.USER_KEY);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  setUser: (user: AuthState["user"]) => {
+    try {
+      localStorage.setItem(Storage.USER_KEY, JSON.stringify(user));
+    } catch {
+      // Ignore storage errors
+    }
+  },
+
+  clearUser: () => {
+    try {
+      localStorage.removeItem(Storage.USER_KEY);
+    } catch {
+      // Ignore storage errors
+    }
+  },
+};
+
+// Role and permission utilities
+const RoleUtils = {
+  getRedirectPath: (roles: string[]): string => {
+    const userRoles = roles.map((role) => role as UserRole);
+    const priorityOrder = [
+      UserRole.ADMIN,
+      UserRole.MENTOR,
+      UserRole.WRITER,
+      UserRole.SELLER,
+      UserRole.STUDENT,
+      UserRole.USER,
+    ];
+
+    const highestRole = priorityOrder.find((role) => userRoles.includes(role));
+    return DEFAULT_REDIRECTS[highestRole || UserRole.USER];
+  },
+
+  checkPermission: (
+    user: AuthState["user"],
+    resource: ResourceType,
+    action: PermissionAction
+  ): boolean => {
+    if (!user) return false;
+    return user.roles.some((role) => {
+      const perms = ROLE_PERMISSIONS[role as UserRole]?.resources[resource];
+      return (
+        perms?.includes(action) || perms?.includes(PermissionAction.MANAGE)
+      );
+    });
+  },
+
+  checkRole: (user: AuthState["user"], role: UserRole): boolean =>
+    user?.roles.includes(role as string) || false,
+
+  checkAnyRole: (user: AuthState["user"], roles: UserRole[]): boolean =>
+    user?.roles.some((r) => roles.includes(r as UserRole)) || false,
+
+  checkAllRoles: (user: AuthState["user"], roles: UserRole[]): boolean =>
+    user?.roles.every((r) => roles.includes(r as UserRole)) || false,
+};
+
+// Initial state
+const initialState: AuthState = {
+  user: Storage.getUser(),
+  accessToken: getAccessToken(),
+  isLoading: false,
+  error: null,
+};
+
+// Context creation
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Provider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<IUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<AuthState>(initialState);
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      validateToken(token);
-    } else {
-      setLoading(false);
-    }
+  // Error handling utility
+  const handleError = (error: unknown, defaultMessage: string) => {
+    const errorMessage =
+      error instanceof Error ? error.message : defaultMessage;
+    setState((prev) => ({ ...prev, isLoading: false, error: errorMessage }));
+    toast.error(errorMessage);
+  };
+
+  // State management utilities
+  const startLoading = () =>
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  const stopLoading = () => setState((prev) => ({ ...prev, isLoading: false }));
+  const clearError = () => setState((prev) => ({ ...prev, error: null }));
+
+  // Auth state management
+  const updateAuthState = (user: AuthState["user"], accessToken: string) => {
+    setAccessToken(accessToken);
+    Storage.setUser(user);
+    setState({
+      user,
+      accessToken,
+      isLoading: false,
+      error: null,
+    });
+  };
+
+  const clearAuthState = useCallback(() => {
+    removeAccessToken();
+    Storage.clearUser();
+    setState(initialState);
   }, []);
 
-  const validateToken = async (token: string) => {
+  // Auth handlers
+  const handleLogout = useCallback(async () => {
     try {
-      const response = await authService.validateToken(token);
-      if (response.success && response.data) {
-        setUser(response.data.user);
-        localStorage.setItem("token", response.data.token);
-      } else {
-        localStorage.removeItem("token");
-      }
-    } catch (err) {
-      localStorage.removeItem("token");
-      console.error("Token validation failed:", err);
+      await authService.logout();
+    } catch (error) {
+      console.error("Logout error:", error);
     } finally {
-      setLoading(false);
+      clearAuthState();
+      router.push("/login");
     }
-  };
+  }, [router, clearAuthState]);
 
-  const login = async (email: string, password: string) => {
+  const handleLogin = async (credentials: LoginRequest) => {
     try {
-      setError(null);
-      const response: ApiResponse<AuthResponse> = await authService.login({
-        email,
-        password,
-      });
-      if (response.success && response.data) {
-        const { user, token } = response.data;
-        localStorage.setItem("token", token);
-        setUser(user);
-        router.push("/dashboard");
-        toast.success("Login successful!");
-      } else {
-        toast.error(response.error?.message || "Login failed");
+      startLoading();
+      const response = await authService.login(credentials);
+
+      if (!response.data?.accessToken || !response.data?.user) {
+        throw new Error("Invalid response from server");
       }
-    } catch (err) {
-      const apiError = err as AuthError;
-      setError(apiError.message || "An error occurred during login");
-      toast.error(apiError.message || "An error occurred during login");
+
+      updateAuthState(response.data.user, response.data.accessToken);
+      router.push(RoleUtils.getRedirectPath(response.data.user.roles));
+      router.refresh();
+    } catch (error) {
+      handleError(error, "Login failed");
     }
   };
 
-  const register = async (userData: RegisterRequest) => {
+  const handleRegister = async (data: RegisterRequest) => {
     try {
-      setError(null);
-      const response: ApiResponse<AuthResponse> = await authService.register(
-        userData
+      startLoading();
+      const response = await authService.register(data);
+
+      if (!response.data?.accessToken || !response.data?.user) {
+        throw new Error("Invalid response from server");
+      }
+
+      updateAuthState(response.data.user, response.data.accessToken);
+      router.push(RoleUtils.getRedirectPath(response.data.user.roles));
+      router.refresh();
+    } catch (error) {
+      handleError(error, "Registration failed");
+    }
+  };
+
+  const handleForgotPassword = async (data: ForgotPasswordRequest) => {
+    try {
+      startLoading();
+      await authService.forgotPassword(data.email);
+      stopLoading();
+      toast.success("Password reset instructions sent to your email");
+    } catch (error) {
+      handleError(error, "Password reset request failed");
+    }
+  };
+
+  const handleResetPassword = async (data: ResetPasswordRequest) => {
+    try {
+      startLoading();
+      await authService.resetPassword(
+        data.token,
+        data.password,
+        data.confirmPassword
       );
-      if (response.success && response.data) {
-        const { user, token } = response.data;
-        localStorage.setItem("token", token);
-        setUser(user);
-        router.push("/dashboard");
-        toast.success("Registration successful!");
-      } else {
-        toast.error(response.error?.message || "Registration failed");
-      }
-    } catch (err) {
-      const apiError = err as AuthError;
-      setError(apiError.message || "An error occurred during registration");
-      toast.error(apiError.message || "An error occurred during registration");
+      stopLoading();
+      toast.success("Password reset successful");
+      router.push("/login");
+    } catch (error) {
+      handleError(error, "Password reset failed");
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("token");
-    router.push("/login");
-    toast.success("Logged out successfully");
+  const handleRoleApplication = async (data: RoleApplicationRequest) => {
+    try {
+      startLoading();
+      await authService.applyForRole(data);
+      stopLoading();
+      toast.success("Role application submitted successfully");
+    } catch (error) {
+      handleError(error, "Role application failed");
+    }
   };
 
-  // Role checking methods
-  const hasRole = (role: UserRole): boolean => {
-    return user?.roles.includes(role) || false;
-  };
-
-  const hasAnyRole = (roles: UserRole[]): boolean => {
-    return user?.roles.some((role) => roles.includes(role)) || false;
-  };
-
-  const hasAllRoles = (roles: UserRole[]): boolean => {
-    return roles.every((role) => user?.roles.includes(role)) || false;
-  };
-
-  // Status checking methods
-  const isActive = (): boolean => {
-    return user?.status === UserStatus.ACTIVE;
-  };
-
-  const isEmailVerified = (): boolean => {
-    return user?.emailVerified || false;
-  };
-
-  const value = {
-    user,
-    loading,
-    error,
-    login,
-    register,
-    logout,
-    hasRole,
-    hasAnyRole,
-    hasAllRoles,
-    isActive,
-    isEmailVerified,
+  // Context value
+  const value: AuthContextType = {
+    ...state,
+    login: handleLogin,
+    register: handleRegister,
+    logout: handleLogout,
+    forgotPassword: handleForgotPassword,
+    resetPassword: handleResetPassword,
+    applyForRole: handleRoleApplication,
+    hasPermission: (resource, action) =>
+      RoleUtils.checkPermission(state.user, resource, action),
+    hasRole: (role) => RoleUtils.checkRole(state.user, role),
+    hasAnyRole: (roles) => RoleUtils.checkAnyRole(state.user, roles),
+    hasAllRoles: (roles) => RoleUtils.checkAllRoles(state.user, roles),
+    isActive: () => state.user?.status === UserStatus.ACTIVE,
+    isEmailVerified: () => state.user?.emailVerified || false,
+    clearError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// Hook
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

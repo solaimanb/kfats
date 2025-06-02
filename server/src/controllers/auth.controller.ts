@@ -5,7 +5,7 @@ import { AuthService } from "../services/auth.service";
 export class AuthController {
   static register = catchAsync(
     async (req: Request, res: Response, _next: NextFunction) => {
-      const { email, password, firstName, lastName } = req.body;
+      const { email, password, profile } = req.body;
 
       const deviceInfo = {
         ip: req.ip || req.socket.remoteAddress || "unknown",
@@ -17,8 +17,7 @@ export class AuthController {
         {
           email,
           password,
-          firstName,
-          lastName,
+          profile,
         },
         deviceInfo
       );
@@ -76,12 +75,7 @@ export class AuthController {
   );
 
   static logout = catchAsync(
-    async (req: Request, res: Response, _next: NextFunction) => {
-      const refreshToken = req.cookies.refreshToken;
-
-      // Clear refresh token from database
-      await AuthService.logout(req.user!._id.toString(), refreshToken);
-
+    async (_req: Request, res: Response, _next: NextFunction) => {
       // Clear refresh token cookie
       res.clearCookie("refreshToken");
 
@@ -95,13 +89,9 @@ export class AuthController {
   static logoutAllDevices = catchAsync(
     async (req: Request, res: Response, _next: NextFunction) => {
       await AuthService.revokeAllUserSessions(req.user!._id.toString());
-
-      // Clear refresh token cookie
       res.clearCookie("refreshToken");
-
       res.status(200).json({
         status: "success",
-        message: "Logged out from all devices",
         data: null,
       });
     }
@@ -110,31 +100,16 @@ export class AuthController {
   static refreshToken = catchAsync(
     async (req: Request, res: Response, _next: NextFunction) => {
       const refreshToken = req.cookies.refreshToken;
-
-      if (!refreshToken) {
-        res.status(401).json({
-          status: "fail",
-          message: "No refresh token provided",
-        });
-        return;
-      }
-
       const deviceInfo = {
         ip: req.ip || req.socket.remoteAddress || "unknown",
         userAgent: req.headers["user-agent"] || "",
         deviceId: req.body.deviceId,
       };
 
-      const { accessToken, refreshToken: newRefreshToken } =
-        await AuthService.refreshToken(refreshToken, deviceInfo);
-
-      // Set new refresh token in HTTP-only cookie
-      res.cookie("refreshToken", newRefreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      });
+      const { accessToken } = await AuthService.refreshToken(
+        refreshToken,
+        deviceInfo
+      );
 
       res.status(200).json({
         status: "success",

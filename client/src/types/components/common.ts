@@ -1,4 +1,8 @@
-import { ReactNode } from "react";
+/**
+ * Common component types
+ */
+
+import type { ReactNode } from "react";
 
 export interface SectionTitleProps {
   title: string;
@@ -21,4 +25,4 @@ export interface NavbarProps {
 export interface LayoutProps {
   children: ReactNode;
   className?: string;
-}
+} 

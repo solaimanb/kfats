@@ -2,12 +2,16 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-interface Config {
+/**
+ * Application configuration
+ */
+
+export interface Config {
   app: {
     name: string;
-    url: string;
-    port: number;
     env: string;
+    port: number;
+    url: string;
     clientUrl: string;
   };
   jwt: {
@@ -31,7 +35,7 @@ interface Config {
     secret: string;
   };
   cors: {
-    origin: string[];
+    origin: string;
     credentials: boolean;
   };
   mongodb: {
@@ -68,7 +72,9 @@ export const config: Config = {
   google: {
     clientId: process.env.GOOGLE_CLIENT_ID || "",
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    callbackUrl: process.env.GOOGLE_CALLBACK_URL || "http://localhost:5000/api/v1/auth/google/callback",
+    callbackUrl:
+      process.env.GOOGLE_CALLBACK_URL ||
+      "http://localhost:5000/api/v1/auth/google/callback",
   },
   email: {
     host: process.env.EMAIL_HOST || "smtp.gmail.com",
@@ -81,11 +87,12 @@ export const config: Config = {
     secret: process.env.SESSION_SECRET || "your-session-secret",
   },
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:3000"],
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
     credentials: true,
   },
   mongodb: {
-    uri: process.env.MONGODB_URI || "mongodb://localhost:27017/kushtia-charukola",
+    uri:
+      process.env.MONGODB_URI || "mongodb://localhost:27017/kushtia-charukola",
   },
   pagination: {
     defaultPage: 1,
@@ -100,4 +107,4 @@ export const config: Config = {
     apiKey: process.env.CLOUDINARY_API_KEY || "",
     apiSecret: process.env.CLOUDINARY_API_SECRET || "",
   },
-}; 
+};
