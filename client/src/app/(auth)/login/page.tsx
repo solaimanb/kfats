@@ -5,15 +5,14 @@ import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { authService } from "@/lib/api/services";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { AxiosError } from "axios";
-import type { LoginRequest } from "@/types/api/requests";
-import type { LoginResponse } from "@/types/api/responses";
-import type { ApiResponse } from "@/types/api/common";
+import { LoginRequest } from "@/types";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginForm() {
-  const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const { login, isLoading } = useAuth();
   const [formData, setFormData] = useState<LoginRequest>({
     email: "",
     password: "",
@@ -29,28 +28,7 @@ export default function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const response: ApiResponse<LoginResponse> = await authService.login(formData);
-      if (response.status === "success" && response.data?.user) {
-        // Store the token
-        authService.setToken(response.data.accessToken);
-        toast.success("Login successful!");
-        // Force a page refresh to update the auth state
-        window.location.href = "/dashboard";
-      } else {
-        toast.error("Invalid response from server");
-      }
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data?.message || "Login failed");
-      } else {
-        toast.error("An unexpected error occurred");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    await login(formData);
   };
 
   const handleGoogleLogin = () => {
@@ -122,7 +100,11 @@ export default function LoginForm() {
             <p className="text-sm text-center text-gray-500">
               Don&apos;t have an account?{" "}
               <Link
-                href="/register"
+                href={`/register${
+                  searchParams.get("from")
+                    ? `?from=${searchParams.get("from")}`
+                    : ""
+                }`}
                 className="text-orange-600 font-medium hover:underline"
               >
                 Sign up

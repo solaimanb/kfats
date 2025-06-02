@@ -1,6 +1,7 @@
-import api from "../config/axios";
-import { ApiResponse } from "@/types/api/common";
-import { Permission, IRole } from "@/types/auth/roles";
+import { api } from "../api-client";
+import type { ApiResponse } from "@/types";
+import type { Permission } from "@/types";
+import type { IRole } from "@/types";
 
 export interface PermissionFilters {
   role?: string;

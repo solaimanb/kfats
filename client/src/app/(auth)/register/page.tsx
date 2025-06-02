@@ -9,7 +9,9 @@ import { useRouter } from "next/navigation";
 import { authService } from "@/lib/api/services";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
-import type { RegisterRequest } from "@/types/api/requests";
+import { RegisterRequest } from "@/types";
+import { setAccessToken } from "@/lib/utils/token";
+import { DEFAULT_REDIRECTS } from "@/config/routes";
 
 export default function SignupForm() {
   const router = useRouter();
@@ -17,26 +19,59 @@ export default function SignupForm() {
   const [formData, setFormData] = useState<RegisterRequest>({
     email: "",
     password: "",
-    firstName: "",
-    lastName: "",
+    confirmPassword: "",
+    profile: {
+      firstName: "",
+      lastName: "",
+      phone: "",
+    },
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    // Handle nested profile fields
+    if (name.startsWith("profile.")) {
+      const field = name.split(".")[1];
+      setFormData((prev) => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          [field]: value,
+        },
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await authService.register(formData);
-      toast.success("Registration successful! Please log in.");
-      router.push("/login");
+      const response = await authService.register(formData);
+
+      if (response.status === "success" && response.data?.user) {
+        setAccessToken(response.data.accessToken);
+        toast.success("Registration successful!");
+
+        const userRole = response.data.user.roles[0] || "user";
+        const redirectPath =
+          DEFAULT_REDIRECTS[userRole as keyof typeof DEFAULT_REDIRECTS] ||
+          DEFAULT_REDIRECTS.user;
+
+        router.push(redirectPath);
+        router.refresh();
+      }
     } catch (error) {
       if (error instanceof AxiosError) {
         toast.error(error.response?.data?.message || "Registration failed");
@@ -77,8 +112,8 @@ export default function SignupForm() {
                   <label className="text-sm text-gray-600">First Name</label>
                   <input
                     type="text"
-                    name="firstName"
-                    value={formData.firstName}
+                    name="profile.firstName"
+                    value={formData.profile.firstName}
                     onChange={handleChange}
                     placeholder="John"
                     className="w-full px-4 py-2 border border-gray-300 rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange"
@@ -90,8 +125,8 @@ export default function SignupForm() {
                   <label className="text-sm text-gray-600">Last Name</label>
                   <input
                     type="text"
-                    name="lastName"
-                    value={formData.lastName}
+                    name="profile.lastName"
+                    value={formData.profile.lastName}
                     onChange={handleChange}
                     placeholder="Doe"
                     className="w-full px-4 py-2 border border-gray-300 rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange"
@@ -99,6 +134,20 @@ export default function SignupForm() {
                     disabled={isLoading}
                   />
                 </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">
+                  Phone (Optional)
+                </label>
+                <input
+                  type="tel"
+                  name="profile.phone"
+                  value={formData.profile.phone}
+                  onChange={handleChange}
+                  placeholder="+1234567890"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange"
+                  disabled={isLoading}
+                />
               </div>
               <div>
                 <label className="text-sm text-gray-600">Email</label>
@@ -119,6 +168,22 @@ export default function SignupForm() {
                   type="password"
                   name="password"
                   value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange"
+                  required
+                  disabled={isLoading}
+                  minLength={8}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="••••••••"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange"

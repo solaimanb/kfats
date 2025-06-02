@@ -1,12 +1,15 @@
-// Common API Response Type
+/**
+ * Common API types
+ */
+
 export interface ApiResponse<T = unknown> {
   status: "success" | "fail" | "error";
   message?: string;
   data?: T;
+  error?: ApiError;
   pagination?: PaginationInfo;
 }
 
-// Pagination Info
 export interface PaginationInfo {
   page: number;
   limit: number;
@@ -16,16 +19,13 @@ export interface PaginationInfo {
   hasPrev: boolean;
 }
 
-// Common Error Response
 export interface ApiError {
-  status: "fail" | "error";
   message: string;
   code?: string;
-  errors?: ValidationError[];
+  status?: number;
 }
 
-// Validation Error
 export interface ValidationError {
   field: string;
   message: string;
-}
+} 

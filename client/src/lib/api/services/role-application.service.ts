@@ -1,6 +1,7 @@
-import api from "../config/axios";
-import { ApiResponse } from "@/types/api/common";
-import { RoleApplication, ApplicationStatus } from "@/types/auth/roles";
+import { api } from "../api-client";
+import type { ApiResponse } from "@/types";
+import type { ApplicationStatus } from "@/types";
+import type { RoleApplication } from "@/types";
 
 export interface RoleApplicationFilters {
   status?: ApplicationStatus;

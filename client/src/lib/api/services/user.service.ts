@@ -1,6 +1,10 @@
-import api from "../config/axios";
-import { ApiResponse } from "@/types/api/common";
-import { IUser, UserRole } from "@/types/auth/roles";
+import { api } from "../api-client";
+import type { ApiResponse } from "@/types";
+import type { User, UserRole } from "@/types";
+import type {
+  UserPreferencesResponse,
+  RoleApplicationData,
+} from "@/types";
 
 export interface UpdateProfileRequest {
   firstName?: string;
@@ -10,25 +14,13 @@ export interface UpdateProfileRequest {
   bio?: string;
 }
 
-export interface UserPreferences {
-  language: string;
-  timezone: string;
-  emailNotifications: boolean;
-  pushNotifications: boolean;
-  theme: "light" | "dark";
-}
-
-export interface RoleSpecificData {
-  [key: string]: string | number | boolean | object;
-}
-
 class UserService {
   // Profile Management
-  async getProfile(): Promise<ApiResponse<IUser>> {
+  async getProfile(): Promise<ApiResponse<User>> {
     return api.get("/users/profile");
   }
 
-  async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<IUser>> {
+  async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<User>> {
     return api.patch("/users/profile", data);
   }
 
@@ -44,26 +36,26 @@ class UserService {
 
   // Preferences
   async updatePreferences(
-    preferences: Partial<UserPreferences>
-  ): Promise<ApiResponse<UserPreferences>> {
+    preferences: Partial<UserPreferencesResponse>
+  ): Promise<ApiResponse<UserPreferencesResponse>> {
     return api.patch("/users/preferences", preferences);
   }
 
-  async getPreferences(): Promise<ApiResponse<UserPreferences>> {
+  async getPreferences(): Promise<ApiResponse<UserPreferencesResponse>> {
     return api.get("/users/preferences");
   }
 
   // Role-specific data
   async getRoleSpecificData(
     role: UserRole
-  ): Promise<ApiResponse<RoleSpecificData>> {
+  ): Promise<ApiResponse<RoleApplicationData>> {
     return api.get(`/users/role-data/${role}`);
   }
 
   async updateRoleSpecificData(
     role: UserRole,
-    data: RoleSpecificData
-  ): Promise<ApiResponse<RoleSpecificData>> {
+    data: RoleApplicationData
+  ): Promise<ApiResponse<RoleApplicationData>> {
     return api.patch(`/users/role-data/${role}`, data);
   }
 

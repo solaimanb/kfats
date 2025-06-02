@@ -1,28 +1,34 @@
-import {
-  WriterApplicationRequest,
-  MentorApplicationRequest,
-  SellerApplicationRequest,
-} from "../api/requests";
+/**
+ * Feature component types
+ */
 
-export interface WriterFormProps {
-  onSubmit: (data: WriterApplicationRequest) => Promise<void>;
+import type { ReactNode } from "react";
+import type { RoleApplicationRequest } from "../api/role/requests";
+import type {
+  MentorRoleData,
+  WriterRoleData,
+  SellerRoleData,
+} from "../domain/role/data";
+import type { UserRole } from "../domain/role/types";
+
+export interface RoleFormProps<
+  T extends MentorRoleData | WriterRoleData | SellerRoleData
+> {
+  onSubmit: (
+    data: Omit<RoleApplicationRequest, "fields"> & { fields: T }
+  ) => Promise<void>;
+  role: UserRole;
   isLoading?: boolean;
 }
 
-export interface MentorFormProps {
-  onSubmit: (data: MentorApplicationRequest) => Promise<void>;
-  isLoading?: boolean;
-}
-
-export interface SellerFormProps {
-  onSubmit: (data: SellerApplicationRequest) => Promise<void>;
-  isLoading?: boolean;
-}
+export type MentorFormProps = RoleFormProps<MentorRoleData>;
+export type WriterFormProps = RoleFormProps<WriterRoleData>;
+export type SellerFormProps = RoleFormProps<SellerRoleData>;
 
 export interface DashboardCardProps {
   title: string;
   value: string | number;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   trend?: {
     value: number;
     isPositive: boolean;
@@ -36,8 +42,8 @@ export interface ProfileCardProps {
     role: string;
     bio?: string;
   };
-  stats?: {
+  stats?: Array<{
     label: string;
     value: string | number;
-  }[];
+  }>;
 }

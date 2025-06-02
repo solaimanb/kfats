@@ -1,6 +1,6 @@
-import api from "../config/axios";
-import { ApiResponse } from "@/types/api/common";
-import { IRole, UserRole } from "@/types/auth/roles";
+import { api } from "../api-client";
+import type { ApiResponse } from "@/types";
+import type { IRole, UserRole } from "@/types";
 
 export interface RoleFilters {
   name?: string;

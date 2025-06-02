@@ -1,7 +1,13 @@
-import api from "../config/axios";
-import { ApiResponse } from "@/types/api/common";
-import { RegisterRequest, LoginRequest } from "@/types/api/requests";
-import { LoginResponse } from "@/types/api/responses";
+import type { ApiResponse } from "@/types";
+import type { LoginRequest, RegisterRequest } from "@/types";
+import type {
+  LoginResponse,
+  RegisterResponse,
+  ValidateTokenResponse,
+  RefreshTokenResponse,
+} from "@/types";
+import type { RoleApplicationRequest } from "@/types";
+import { api } from "../api-client";
 
 class AuthService {
   async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
@@ -9,14 +15,17 @@ class AuthService {
   }
 
   async register(
-    userData: RegisterRequest
-  ): Promise<ApiResponse<LoginResponse>> {
-    return api.post("/auth/register", userData);
+    data: RegisterRequest
+  ): Promise<ApiResponse<RegisterResponse>> {
+    return api.post("/auth/register", data);
   }
 
   async logout(): Promise<ApiResponse<void>> {
-    localStorage.removeItem("token");
     return api.post("/auth/logout");
+  }
+
+  async validateToken(): Promise<ApiResponse<ValidateTokenResponse>> {
+    return api.get("/auth/validate");
   }
 
   async forgotPassword(email: string): Promise<ApiResponse<void>> {
@@ -26,34 +35,23 @@ class AuthService {
   async resetPassword(
     token: string,
     password: string,
-    passwordConfirm: string
+    confirmPassword: string
   ): Promise<ApiResponse<void>> {
-    return api.post(`/auth/reset-password/${token}`, {
+    return api.post("/auth/reset-password", {
+      token,
       password,
-      passwordConfirm,
+      confirmPassword,
     });
   }
 
-  async validateToken(token: string): Promise<ApiResponse<LoginResponse>> {
-    return api.get("/auth/validate", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async applyForRole(
+    application: RoleApplicationRequest
+  ): Promise<ApiResponse<void>> {
+    return api.post("/auth/role-application", application);
   }
 
-  async refreshToken(): Promise<ApiResponse<{ token: string }>> {
+  async refreshToken(): Promise<ApiResponse<RefreshTokenResponse>> {
     return api.post("/auth/refresh-token");
-  }
-
-  getStoredToken(): string | null {
-    return localStorage.getItem("token");
-  }
-
-  setToken(token: string): void {
-    localStorage.setItem("token", token);
-  }
-
-  removeToken(): void {
-    localStorage.removeItem("token");
   }
 }
 
