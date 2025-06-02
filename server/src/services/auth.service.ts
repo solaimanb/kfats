@@ -67,8 +67,11 @@ export class AuthService {
     userData: {
       email: string;
       password: string;
-      firstName: string;
-      lastName: string;
+      profile: {
+        firstName: string;
+        lastName: string;
+        phone?: string;
+      };
       interests?: string[];
       contentPreferences?: {
         languages?: string[];
@@ -86,8 +89,9 @@ export class AuthService {
       email: userData.email,
       password: userData.password,
       profile: {
-        firstName: userData.firstName,
-        lastName: userData.lastName,
+        firstName: userData.profile.firstName,
+        lastName: userData.profile.lastName,
+        phone: userData.profile.phone,
       },
       roles: [UserRole.USER],
       status:

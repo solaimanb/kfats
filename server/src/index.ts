@@ -9,6 +9,8 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import session from "express-session";
 import passport from "passport";
+import cookieParser from "cookie-parser";
+import { config } from "./config";
 
 // Load environment variables first
 dotenv.config();
@@ -40,7 +42,18 @@ const app: Express = express();
 // Basic middleware setup
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(cors());
+app.use(cookieParser());
+
+// Configure CORS
+app.use(
+  cors({
+    origin: config.cors.origin,
+    credentials: config.cors.credentials,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(compression());
 
 // Security middleware

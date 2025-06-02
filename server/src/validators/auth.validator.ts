@@ -3,8 +3,11 @@ import { z } from 'zod';
 export const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  firstName: z.string(),
-  lastName: z.string(),
+  profile: z.object({
+    firstName: z.string(),
+    lastName: z.string(),
+    phone: z.string().optional(),
+  }),
 });
 
 export const loginSchema = z.object({

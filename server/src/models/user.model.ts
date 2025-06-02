@@ -17,8 +17,8 @@ export interface IUser extends Document {
   profile: {
     firstName: string;
     lastName: string;
-    avatar?: string;
     phone?: string;
+    avatar?: string;
     address?: {
       street: string;
       city: string;
@@ -41,7 +41,7 @@ export interface IUser extends Document {
       preferences: {
         contentLanguages: string[];
         contentTypes: string[];
-        notificationFrequency: "immediate" | "daily" | "weekly";
+        notificationFrequency: "immediate" | "daily" | "weekly" | "never";
       };
     };
     mentor?: {
@@ -211,7 +211,6 @@ const userSchema = new Schema<IUser>(
         minlength: [2, "Last name must be at least 2 characters"],
         maxlength: [50, "Last name cannot exceed 50 characters"],
       },
-      avatar: String,
       phone: {
         type: String,
         validate: {
@@ -221,6 +220,7 @@ const userSchema = new Schema<IUser>(
           message: "Invalid phone number format",
         },
       },
+      avatar: String,
       address: {
         street: String,
         city: String,
@@ -248,7 +248,7 @@ const userSchema = new Schema<IUser>(
           contentTypes: [String],
           notificationFrequency: {
             type: String,
-            enum: ["immediate", "daily", "weekly"],
+            enum: ["immediate", "daily", "weekly", "never"],
             default: "immediate",
           },
         },
