@@ -197,8 +197,19 @@ const gracefulShutdown = async () => {
 const startServer = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI!, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000, // Increased timeout
       socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      retryWrites: true,
+      retryReads: true,
+      maxPoolSize: 10,
+      minPoolSize: 2,
+      maxIdleTimeMS: 30000,
+      compressors: ["zlib"],
+      writeConcern: { w: "majority" },
+      readPreference: "primaryPreferred",
+      authSource: "admin",
+      authMechanism: "SCRAM-SHA-1"
     });
     logger.info("Connected to MongoDB");
 

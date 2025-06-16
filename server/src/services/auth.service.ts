@@ -6,19 +6,18 @@ import {
   RoleApplicationModel,
   IRoleApplication,
 } from "../models/role-application.model";
+import { UserRole, UserStatus, RBAC_VERSION } from "../config/rbac/types";
 import {
-  UserRole,
-  UserStatus,
-  ROLE_TRANSITIONS,
   validateRoleConstraints,
-} from "../config/rbac.config";
+  validateRoleTransition,
+} from "../config/rbac/validators";
 import { AppError } from "../utils/error.util";
 import { emailService } from "../utils/email.util";
 
 export class AuthService {
   private static generateAccessToken(userId: string): string {
     const signOptions: SignOptions = {
-      expiresIn: "15m", // 15 minutes
+      expiresIn: "1h", // 1 hour
     };
 
     return jwt.sign(
@@ -79,7 +78,12 @@ export class AuthService {
       };
     },
     deviceInfo: { ip: string; userAgent: string; deviceId?: string }
-  ): Promise<{ user: IUser; accessToken: string; refreshToken: string }> {
+  ): Promise<{
+    user: IUser;
+    accessToken: string;
+    refreshToken: string;
+    rbacVersion: string;
+  }> {
     const existingUser = await UserModel.findOne({ email: userData.email });
     if (existingUser) {
       throw new AppError("Email already registered", 400);
@@ -122,7 +126,12 @@ export class AuthService {
       await this.sendVerificationEmail(user.email, accessToken);
     }
 
-    return { user, accessToken, refreshToken };
+    return {
+      user,
+      accessToken,
+      refreshToken,
+      rbacVersion: RBAC_VERSION.toString(),
+    };
   }
 
   static async login(
@@ -133,6 +142,7 @@ export class AuthService {
     user: Partial<IUser>;
     accessToken: string;
     refreshToken: string;
+    rbacVersion: string;
   }> {
     const user = await UserModel.findOne({ email }).select("+password");
     if (!user || !(await user.comparePassword(password))) {
@@ -157,13 +167,22 @@ export class AuthService {
       ...userWithoutSensitiveData
     } = sanitizedUser;
 
-    return { user: userWithoutSensitiveData, accessToken, refreshToken };
+    return {
+      user: userWithoutSensitiveData,
+      accessToken,
+      refreshToken,
+      rbacVersion: RBAC_VERSION.toString(),
+    };
   }
 
   static async refreshToken(
     oldRefreshToken: string,
     deviceInfo: { ip: string; userAgent: string; deviceId?: string }
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    rbacVersion: string;
+  }> {
     // Find and validate the old refresh token
     const existingToken = await RefreshTokenModel.findOne({
       token: oldRefreshToken,
@@ -188,7 +207,11 @@ export class AuthService {
       deviceInfo
     );
 
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      rbacVersion: RBAC_VERSION.toString(),
+    };
   }
 
   static async logout(userId: string, refreshToken?: string): Promise<void> {
@@ -274,7 +297,10 @@ export class AuthService {
         ...user.security,
         resetPasswordToken: undefined,
         resetPasswordExpires: undefined,
-        passwordResetAttempts: Math.max(0, (user.security?.passwordResetAttempts || 1) - 1),
+        passwordResetAttempts: Math.max(
+          0,
+          (user.security?.passwordResetAttempts || 1) - 1
+        ),
       };
       await user.save({ validateBeforeSave: false });
       throw new AppError(
@@ -284,7 +310,10 @@ export class AuthService {
     }
   }
 
-  static async resetPassword(token: string, newPassword: string): Promise<void> {
+  static async resetPassword(
+    token: string,
+    newPassword: string
+  ): Promise<void> {
     // Hash the token for comparison
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -299,7 +328,10 @@ export class AuthService {
 
     // Prevent reuse of old passwords
     if (await user.comparePassword(newPassword)) {
-      throw new AppError("New password must be different from the current one", 400);
+      throw new AppError(
+        "New password must be different from the current one",
+        400
+      );
     }
 
     // Update password and reset security fields
@@ -360,7 +392,7 @@ export class AuthService {
       throw new AppError("Base USER role is required", 400);
     }
 
-    if (!ROLE_TRANSITIONS[UserRole.USER].includes(roleData.requestedRole)) {
+    if (!validateRoleTransition(UserRole.USER, roleData.requestedRole)) {
       throw new AppError(
         `Cannot apply for ${roleData.requestedRole} role from current roles`,
         400

@@ -5,7 +5,7 @@ import {
   CreateApplicationData,
 } from "../services/role-application.service";
 import { CreateRoleApplicationInput } from "../validators/role-application.validator";
-import { AppError } from "../utils/app-error.util";
+import { AppError } from "../utils/error.util";
 
 export class RoleApplicationController {
   private roleApplicationService = new RoleApplicationService();

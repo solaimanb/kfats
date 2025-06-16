@@ -1,11 +1,12 @@
-import { ROLE_PERMISSIONS, UserRole } from "../config/rbac.config";
-import { AppError } from "../utils/app-error.util";
+import { UserRole, Permission } from "../config/rbac/types";
+import { ROLE_CONFIG } from "../config/rbac/roles";
+import { AppError } from "../utils/error.util";
 import { PermissionOverrideModel } from "../models/permission-override.model";
 import { permissionCache } from "../utils/permission-cache.util";
 
 export class PermissionService {
-  getAllPermissions(): string[] {
-    return Object.values(ROLE_PERMISSIONS).flat();
+  getAllPermissions(): Permission[] {
+    return Object.values(ROLE_CONFIG).flatMap(config => config.permissions || []);
   }
 
   /**
@@ -14,14 +15,14 @@ export class PermissionService {
    */
   private validateRolePermissions(
     role: UserRole,
-    permissions: string[]
-  ): string[] {
+    permissions: Permission[]
+  ): Permission[] {
     // Admin is handled separately
     if (role === UserRole.ADMIN) {
       return permissions;
     }
 
-    const basePermissions = ROLE_PERMISSIONS[role] || [];
+    const basePermissions = ROLE_CONFIG[role]?.permissions || [];
     const invalidPermissions = permissions.filter(
       (p) => !basePermissions.includes(p)
     );
@@ -52,7 +53,7 @@ export class PermissionService {
     }
 
     // Get base permissions
-    const basePermissions = ROLE_PERMISSIONS[role as UserRole] || [];
+    const basePermissions = ROLE_CONFIG[role as UserRole]?.permissions || [];
 
     // Check for overrides
     const override = await PermissionOverrideModel.findOne({ role });
@@ -74,7 +75,7 @@ export class PermissionService {
 
   async updateRolePermissions(
     role: string,
-    permissions: string[],
+    permissions: Permission[],
     userId: string
   ) {
     if (!Object.values(UserRole).includes(role as UserRole)) {
@@ -118,7 +119,7 @@ export class PermissionService {
     permissionCache.clearUserPermissions("system");
 
     // Return base permissions
-    return ROLE_PERMISSIONS[role as UserRole] || [];
+    return ROLE_CONFIG[role as UserRole]?.permissions || [];
   }
 }
 

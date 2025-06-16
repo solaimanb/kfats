@@ -5,17 +5,12 @@ import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { authService } from "@/lib/api/services";
 import { toast } from "sonner";
-import { AxiosError } from "axios";
 import { RegisterRequest } from "@/types";
-import { setAccessToken } from "@/lib/utils/token";
-import { DEFAULT_REDIRECTS } from "@/config/routes";
+import { useAuth } from "@/contexts/auth-context/auth-context";
 
 export default function SignupForm() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const { register, isLoading } = useAuth();
   const [formData, setFormData] = useState<RegisterRequest>({
     email: "",
     password: "",
@@ -49,38 +44,13 @@ export default function SignupForm() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");
-      setIsLoading(false);
       return;
     }
 
-    try {
-      const response = await authService.register(formData);
-
-      if (response.status === "success" && response.data?.user) {
-        setAccessToken(response.data.accessToken);
-        toast.success("Registration successful!");
-
-        const userRole = response.data.user.roles[0] || "user";
-        const redirectPath =
-          DEFAULT_REDIRECTS[userRole as keyof typeof DEFAULT_REDIRECTS] ||
-          DEFAULT_REDIRECTS.user;
-
-        router.push(redirectPath);
-        router.refresh();
-      }
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data?.message || "Registration failed");
-      } else {
-        toast.error("An unexpected error occurred");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    await register(formData);
   };
 
   const handleGoogleSignup = () => {

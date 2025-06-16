@@ -1,117 +1,94 @@
-import winston from "winston";
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from 'express';
+import { logger } from './logger.util';
+import { AppError } from './error.util';
 
-// Configure logger
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.File({ filename: "error.log", level: "error" }),
-    new winston.transports.File({ filename: "combined.log" }),
-  ],
-});
-
-if (process.env.NODE_ENV !== "production") {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
-    })
-  );
-}
-
-export class AppError extends Error {
-  statusCode: number;
+interface ErrorResponse {
   status: string;
-  isOperational: boolean;
-  errors: any[];
-
-  constructor(statusCode: number, message: string, errors: any[] = []) {
-    super(message);
-    this.statusCode = statusCode;
-    this.status = `${statusCode}`.startsWith("4") ? "fail" : "error";
-    this.isOperational = true;
-    this.errors = errors;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-export class ValidationError extends AppError {
-  constructor(errors: any[]) {
-    super(400, "Validation Error", errors);
-  }
-}
-
-export class AuthenticationError extends AppError {
-  constructor(message: string = "Authentication failed") {
-    super(401, message);
-  }
-}
-
-export class AuthorizationError extends AppError {
-  constructor(message: string = "Not authorized to perform this action") {
-    super(403, message);
-  }
-}
-
-export class NotFoundError extends AppError {
-  constructor(message: string = "Resource not found") {
-    super(404, message);
-  }
+  message: string;
+  requestId?: string;
+  errors?: Record<string, any>;
 }
 
 export const handleError = (
-  err: AppError,
+  err: Error | AppError,
   req: Request,
   res: Response,
   _next: NextFunction
 ) => {
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || "error";
+  let statusCode = 500;
+  const response: ErrorResponse = {
+    status: 'error',
+    message: 'Something went wrong!',
+    requestId: req.id
+  };
 
-  // Log error
-  logger.error({
-    message: err.message,
-    stack: err.stack,
-    statusCode: err.statusCode,
-    path: req.path,
-    method: req.method,
-    ip: req.ip,
-    user: req.user ? req.user.id : "anonymous",
-  });
+  // Handle known error types
+  if (err instanceof AppError) {
+    statusCode = err.statusCode;
+    response.status = err.status;
+    response.message = err.message;
+    if (err.errors) {
+      response.errors = err.errors;
+    }
+  } 
+  // Handle Mongoose validation errors
+  else if (err.name === 'ValidationError') {
+    statusCode = 400;
+    response.status = 'fail';
+    response.message = 'Invalid input data';
+    response.errors = Object.values((err as any).errors).reduce(
+      (acc: Record<string, string>, val: any) => {
+        acc[val.path] = val.message;
+        return acc;
+      },
+      {}
+    );
+  }
+  // Handle JWT errors
+  else if (err.name === 'JsonWebTokenError') {
+    statusCode = 401;
+    response.status = 'fail';
+    response.message = 'Invalid token. Please log in again!';
+  }
+  else if (err.name === 'TokenExpiredError') {
+    statusCode = 401;
+    response.status = 'fail';
+    response.message = 'Your token has expired! Please log in again.';
+  }
 
-  if (process.env.NODE_ENV === "development") {
-    res.status(err.statusCode).json({
-      status: err.status,
-      error: err,
-      message: err.message,
-      stack: err.stack,
-      errors: err.errors,
+  // Log error for debugging in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    logger.error({
+      message: 'Error details:',
+      error: {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        statusCode,
+        status: response.status
+      },
+      requestId: req.id,
+      path: req.path,
+      method: req.method,
+      query: req.query,
+      body: req.body,
+      user: req.user
     });
   } else {
-    if (err.isOperational) {
-      res.status(err.statusCode).json({
-        status: err.status,
+    // In production, log less verbose error details
+    logger.error({
+      message: 'Production error:',
+      error: {
+        name: err.name,
         message: err.message,
-        errors: err.errors,
-      });
-    } else {
-      // Programming or unknown errors: don't leak error details
-      logger.error("ERROR 💥", err);
-      res.status(500).json({
-        status: "error",
-        message: "Something went wrong",
-      });
-    }
+        status: response.status,
+        statusCode
+      },
+      requestId: req.id,
+      path: req.path,
+      method: req.method
+    });
   }
-};
 
-export const createError = (
-  statusCode: number,
-  message: string,
-  errors: any[] = []
-) => new AppError(statusCode, message, errors);
-
-export { logger };
+  res.status(statusCode).json(response);
+}; 

@@ -1,6 +1,6 @@
 import { FilterQuery, Types } from "mongoose";
 import { CourseModel as Course, ICourse } from "../models/course.model";
-import { AppError } from "../utils/app-error.util";
+import { AppError } from "../utils/error.util";
 
 const COURSE_LIMITS = {
   MIN_TITLE: 3,

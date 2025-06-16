@@ -2,14 +2,16 @@ import { Schema, startSession, Types } from "mongoose";
 import {
   RoleApplicationModel,
   IRoleApplication,
+  ApplicationStatus,
 } from "../models/role-application.model";
 import { UserModel } from "../models/user.model";
 import {
   UserRole,
-  ApplicationStatus,
-  ROLE_TRANSITIONS,
+} from "../config/rbac/types";
+import {
   validateRoleConstraints,
-} from "../config/rbac.config";
+} from "../config/rbac/validators";
+import { ROLE_TRANSITIONS } from "../config/rbac/roles";
 import { AppError } from "../utils/error.util";
 import { permissionCache } from "../utils/permission-cache.util";
 import { AuditLogModel } from "../models/audit-log.model";
@@ -130,7 +132,7 @@ export class RoleApplicationService {
       }
 
       // Validate role transition
-      if (!ROLE_TRANSITIONS[UserRole.USER].includes(data.role as UserRole)) {
+      if (!ROLE_TRANSITIONS[UserRole.USER].possible.includes(data.role as UserRole)) {
         throw new AppError(
           `Cannot apply for ${data.role} role from current roles`,
           400

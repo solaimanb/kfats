@@ -1,6 +1,6 @@
 import express from "express";
 import { protect, restrictTo } from "../middleware/auth.middleware";
-import { UserRole } from "../config/rbac.config";
+import { UserRole } from "../config/rbac/types";
 import { UserController } from "../controllers/user.controller";
 
 const router = express.Router();

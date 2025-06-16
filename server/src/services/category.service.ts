@@ -1,5 +1,5 @@
 import { CategoryModel as Category, ICategory } from '../models/category.model';
-import { AppError } from '../utils/app-error.util';
+import { AppError } from '../utils/error.util';
 
 export class CategoryService {
   async getAllCategories() {

@@ -1,17 +1,26 @@
 // server/controllers/permission.controller.ts
 import { Request, Response, NextFunction } from "express";
 import { UserModel } from "../models/user.model";
-import { ROLE_PERMISSIONS, UserRole, PERMISSIONS } from "../config/rbac.config";
+import { UserRole, Permission } from "../config/rbac/types";
+import { ROLE_CONFIG } from "../config/rbac/roles";
 import { catchAsync } from "../utils/catch-async.util";
 import { AppError } from "../utils/error.util";
 import { permissionCache } from "../utils/permission-cache.util";
 import { AuditLogModel } from "../models/audit-log.model";
 import { PermissionService } from "../services/permission.service";
+import {
+  USER_PERMISSIONS,
+  STUDENT_PERMISSIONS,
+  MENTOR_PERMISSIONS,
+  WRITER_PERMISSIONS,
+  SELLER_PERMISSIONS,
+  ADMIN_PERMISSIONS,
+} from "../config/rbac/permissions";
 
 // Extend IUser to include customPermissions
 declare module "../models/user.model" {
   interface IUser {
-    customPermissions?: string[];
+    customPermissions?: Permission[];
   }
 }
 
@@ -33,15 +42,18 @@ export class PermissionController {
       }
 
       // Get all valid permissions from RBAC config
-      const allValidPermissions = new Set(
-        Object.values(PERMISSIONS)
-          .flatMap((rolePerms) => Object.values(rolePerms))
-          .flat()
-      );
+      const allValidPermissions = new Set([
+        ...USER_PERMISSIONS,
+        ...STUDENT_PERMISSIONS,
+        ...MENTOR_PERMISSIONS,
+        ...WRITER_PERMISSIONS,
+        ...SELLER_PERMISSIONS,
+        ...ADMIN_PERMISSIONS,
+      ]);
 
       // Validate all permissions being assigned
       const invalidPermissions = permissions.filter(
-        (perm: string) => !allValidPermissions.has(perm)
+        (perm: Permission) => !allValidPermissions.has(perm)
       );
 
       if (invalidPermissions.length > 0) {
@@ -52,8 +64,8 @@ export class PermissionController {
       }
 
       // Check for privilege escalation
-      const adminPermissions = new Set(Object.values(PERMISSIONS.ADMIN));
-      const hasAdminPermissions = permissions.some((perm: string) =>
+      const adminPermissions = new Set(ADMIN_PERMISSIONS);
+      const hasAdminPermissions = permissions.some((perm: Permission) =>
         adminPermissions.has(perm)
       );
 
@@ -181,7 +193,7 @@ export class PermissionController {
       // If not in cache, calculate and cache
       if (!allPermissions) {
         const rolePermissions = user.roles.flatMap(
-          (role: UserRole) => ROLE_PERMISSIONS[role] || []
+          (role: UserRole) => ROLE_CONFIG[role]?.permissions || []
         );
         allPermissions = [
           ...new Set([...rolePermissions, ...(user.customPermissions || [])]),

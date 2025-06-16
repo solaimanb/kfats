@@ -1,17 +1,17 @@
-import mongoose, { Document, Schema } from "mongoose";
-import { UserRole } from "../config/rbac.config";
+import { Schema, model, Document, Types } from "mongoose";
+import { UserRole } from "../config/rbac/types";
 
-export interface IAuditLog extends Document {
-  userId: mongoose.Types.ObjectId;
+interface IAuditLog extends Document {
+  userId: Types.ObjectId;
   action: string;
-  resource: string;
-  roles: UserRole[];
-  ip: string;
-  userAgent: string;
-  metadata?: Record<string, any>;
-  status: "success" | "failure";
-  errorMessage?: string;
   timestamp: Date;
+  status: "success" | "failure";
+  details: Record<string, any>;
+  metadata: {
+    ip: string;
+    userAgent: string;
+    roles?: UserRole[];
+  };
 }
 
 const auditLogSchema = new Schema<IAuditLog>(
@@ -20,60 +20,37 @@ const auditLogSchema = new Schema<IAuditLog>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
     action: {
       type: String,
       required: true,
-      enum: [
-        "LOGIN",
-        "LOGOUT",
-        "REGISTER",
-        "PASSWORD_RESET",
-        "ROLE_APPLICATION",
-        "ROLE_APPROVED",
-        "ROLE_REJECTED",
-        "PERMISSION_GRANTED",
-        "PERMISSION_REVOKED",
-        "PROFILE_UPDATE",
-        "ACCOUNT_DEACTIVATED",
-        "ACCOUNT_REACTIVATED",
-        "DOCUMENT_UPLOADED",
-        "DOCUMENT_DELETED",
-        "COURSE_CREATED",
-        "COURSE_UPDATED",
-        "COURSE_DELETED",
-        "PAYMENT_PROCESSED",
-      ],
+      index: true,
     },
-    resource: {
-      type: String,
-      required: true,
-    },
-    roles: {
-      type: [String],
-      enum: Object.values(UserRole),
-      required: true,
-    },
-    ip: {
-      type: String,
-      required: true,
-    },
-    userAgent: {
-      type: String,
-      required: true,
-    },
-    metadata: {
-      type: Schema.Types.Mixed,
+    timestamp: {
+      type: Date,
+      default: Date.now,
+      index: true,
     },
     status: {
       type: String,
       enum: ["success", "failure"],
       required: true,
+      index: true,
     },
-    errorMessage: String,
-    timestamp: {
-      type: Date,
-      default: Date.now,
+    details: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
+    metadata: {
+      ip: String,
+      userAgent: String,
+      roles: [
+        {
+          type: String,
+          enum: Object.values(UserRole),
+        },
+      ],
     },
   },
   {
@@ -81,32 +58,15 @@ const auditLogSchema = new Schema<IAuditLog>(
   }
 );
 
-// Indexes for efficient querying
-auditLogSchema.index({ userId: 1, timestamp: -1 });
-auditLogSchema.index({ action: 1, timestamp: -1 });
-auditLogSchema.index({ resource: 1 });
-auditLogSchema.index({ status: 1 });
+// Create indexes for common queries
+auditLogSchema.index({ userId: 1, action: 1 });
 auditLogSchema.index({ timestamp: -1 });
+auditLogSchema.index({ status: 1, timestamp: -1 });
 
-// Static method to create audit log entry
-auditLogSchema.statics.logActivity = async function (
-  data: Omit<IAuditLog, keyof Document | "timestamp">
-) {
-  return this.create(data);
-};
-
-// Static method to get recent activity for a user
-auditLogSchema.statics.getRecentActivity = async function (
-  userId: string,
-  limit: number = 10
-) {
-  return this.find({ userId })
-    .sort({ timestamp: -1 })
-    .limit(limit)
-    .populate("userId", "email profile.firstName profile.lastName");
-};
-
-export const AuditLogModel = mongoose.model<IAuditLog>(
-  "AuditLog",
-  auditLogSchema
+// Add TTL index to automatically delete old logs (e.g., after 90 days)
+auditLogSchema.index(
+  { timestamp: 1 },
+  { expireAfterSeconds: 90 * 24 * 60 * 60 }
 );
+
+export const AuditLogModel = model<IAuditLog>("AuditLog", auditLogSchema);

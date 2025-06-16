@@ -1,19 +1,44 @@
 import passport from "passport";
-import { Strategy as GoogleStrategy, Profile } from "passport-google-oauth20";
 import {
-  Strategy as JwtStrategy,
-  ExtractJwt,
-  VerifiedCallback,
-} from "passport-jwt";
+  Strategy as GoogleStrategy,
+  Profile,
+  VerifyCallback,
+} from "passport-google-oauth20";
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import { config } from "./index";
-import { UserModel, IUser } from "../models/user.model";
-import { UserStatus } from "./rbac.config";
+import { UserModel } from "../models/user.model";
+import { UserStatus } from "./rbac/types";
+import { AuthUser, JWTPayload } from "../types/auth.types";
+import { AuthenticationError } from "../utils/error.util";
 
+// Extend Express User type to match our AuthUser
 declare global {
   namespace Express {
-    interface User extends IUser {}
+    interface User extends AuthUser {}
   }
 }
+
+// Common error handler for passport strategies
+const handlePassportError = (error: unknown, done: VerifyCallback) => {
+  console.error("Passport strategy error:", error);
+  if (error instanceof AuthenticationError) {
+    return done(error, false);
+  }
+  return done(new AuthenticationError("Authentication failed"), false);
+};
+
+// Common user processor for passport strategies
+const processUser = async (user: AuthUser | null, done: VerifyCallback) => {
+  if (!user) {
+    return done(new AuthenticationError("User not found"), false);
+  }
+
+  if (user.status !== UserStatus.ACTIVE) {
+    return done(new AuthenticationError("Account is not active"), false);
+  }
+
+  return done(null, user);
+};
 
 // JWT Strategy
 passport.use(
@@ -22,21 +47,32 @@ passport.use(
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: config.jwt.secret,
     },
-    async (payload: { id: string }, done: VerifiedCallback) => {
+    async (payload: JWTPayload, done: VerifyCallback) => {
       try {
-        const user = await UserModel.findById(payload.id);
-        if (!user) {
-          return done(null, false);
+        const user = await UserModel.findById(payload.id).select("+security");
+
+        if (user?.security.passwordChangedAt && payload.iat) {
+          const changedTimestamp =
+            user.security.passwordChangedAt.getTime() / 1000;
+          if (payload.iat < changedTimestamp) {
+            return done(
+              new AuthenticationError(
+                "Password recently changed, please log in again"
+              ),
+              false
+            );
+          }
         }
-        return done(null, user as unknown as Express.User);
+
+        return processUser(user, done);
       } catch (error) {
-        return done(error, false);
+        return handlePassportError(error, done);
       }
     }
   )
 );
 
-// Google OAuth Strategy (only if credentials are provided)
+// Google OAuth Strategy
 if (config.google.clientId && config.google.clientSecret) {
   passport.use(
     new GoogleStrategy(
@@ -51,13 +87,19 @@ if (config.google.clientId && config.google.clientSecret) {
         _accessToken: string,
         _refreshToken: string,
         profile: Profile,
-        done
+        done: VerifyCallback
       ) => {
         try {
+          const email = profile.emails?.[0].value;
+          if (!email) {
+            return done(
+              new AuthenticationError("No email provided from Google"),
+              false
+            );
+          }
+
           // Check if user already exists
-          let user = await UserModel.findOne({
-            email: profile.emails?.[0].value,
-          });
+          let user = await UserModel.findOne({ email });
 
           if (user) {
             // Update user's Google-specific information
@@ -66,12 +108,12 @@ if (config.google.clientId && config.google.clientSecret) {
               user.profile.avatar = profile.photos[0].value;
             }
             await user.save();
-            return done(null, user as unknown as Express.User);
+            return processUser(user, done);
           }
 
-          // Create new user if doesn't exist
+          // Create new user
           user = await UserModel.create({
-            email: profile.emails?.[0].value,
+            email,
             profile: {
               firstName: profile.name?.givenName || "",
               lastName: profile.name?.familyName || "",
@@ -90,9 +132,9 @@ if (config.google.clientId && config.google.clientSecret) {
             },
           });
 
-          return done(null, user as unknown as Express.User);
+          return processUser(user, done);
         } catch (error) {
-          return done(error, false);
+          return handlePassportError(error, done);
         }
       }
     )
@@ -102,16 +144,16 @@ if (config.google.clientId && config.google.clientSecret) {
 }
 
 // Serialization
-passport.serializeUser((user, done) => {
-  done(null, user._id.toString());
+passport.serializeUser((user: AuthUser, done) => {
+  done(null, user._id);
 });
 
 // Deserialization
 passport.deserializeUser(async (id: string, done) => {
   try {
     const user = await UserModel.findById(id);
-    done(null, user as unknown as Express.User);
+    return processUser(user, done);
   } catch (error) {
-    done(error, null);
+    return handlePassportError(error, done);
   }
 });

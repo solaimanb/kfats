@@ -1,6 +1,6 @@
 import express from "express";
 import { protect, restrictTo } from "../middleware/auth.middleware";
-import { UserRole } from "../config/rbac.config";
+import { UserRole } from "../config/rbac/types";
 import categoryController from "../controllers/category.controller";
 import { validateRequest } from "../middleware/validation.middleware";
 import {

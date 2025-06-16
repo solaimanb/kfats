@@ -1,5 +1,14 @@
 import mongoose, { Document, Schema } from "mongoose";
-import { ApplicationStatus, UserRole } from "../config/rbac.config";
+import { UserRole } from "../config/rbac/types";
+
+export enum ApplicationStatus {
+  PENDING = 'pending',
+  IN_REVIEW = 'in_review',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  CANCELLED = 'cancelled',
+  EXPIRED = 'expired'
+}
 
 export interface IRoleApplication extends Document {
   user: mongoose.Types.ObjectId;
