@@ -77,7 +77,7 @@ export default function UserHomeNavbar() {
               <DropdownMenuContent className="bg-white">
                 <DropdownMenuItem asChild>
                   <Link
-                    href="/become-mentor"
+                    href="/role-application/become-mentor"
                     className="flex items-center hover:text-kc-green"
                   >
                     ✅ Become a Mentor
@@ -85,7 +85,7 @@ export default function UserHomeNavbar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
-                    href="/become-seller"
+                    href="/role-application/become-seller"
                     className="flex items-center hover:text-kc-green"
                   >
                     🛍️ Become a Seller
@@ -93,7 +93,7 @@ export default function UserHomeNavbar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
-                    href="/become-writer"
+                    href="/role-application/become-writer"
                     className="flex items-center hover:text-kc-green"
                   >
                     ✍️ Become a Writer
