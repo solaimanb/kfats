@@ -1,33 +1,58 @@
-const TOKEN_KEY = "accessToken";
-
 export const getAccessToken = (): string | null => {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return document.cookie.split('; ').find(row => row.startsWith('accessToken='))?.split('=')[1] || null;
 };
 
 export const setAccessToken = (token: string): void => {
   if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
+
+  // Set access token cookie
+  const cookieValue = `accessToken=${token}; path=/; secure; samesite=lax; max-age=3600`;
+  document.cookie = cookieValue;
+
+  // Extract and set user role from token
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+
+    if (payload.roles && Array.isArray(payload.roles) && payload.roles.length > 0) {
+      const roleCookie = `user-role=${payload.roles[0]}; path=/; secure; samesite=lax; max-age=3600`;
+      document.cookie = roleCookie;
+    }
+  } catch {
+    // Silently handle error
+  }
 };
 
 export const removeAccessToken = (): void => {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
+  document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  document.cookie = "user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 };
 
 export const isTokenExpired = (): boolean => {
   if (typeof window === "undefined") return true;
 
-  const expiry = localStorage.getItem("tokenExpiry");
-  if (!expiry) return true;
+  const token = getAccessToken();
+  if (!token) return true;
 
-  const expiryTime = parseInt(expiry, 10) * 1000; // Convert to milliseconds
-  return Date.now() >= expiryTime;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
 };
 
 export const getTokenExpiryTime = (): number | null => {
   if (typeof window === "undefined") return null;
 
-  const expiry = localStorage.getItem("tokenExpiry");
-  return expiry ? parseInt(expiry, 10) * 1000 : null;
+  const token = getAccessToken();
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000;
+  } catch {
+    return null;
+  }
 };

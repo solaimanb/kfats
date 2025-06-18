@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { UserRole, ROLE_TRANSITIONS } from "../config/rbac.config";
+import { UserRole } from "../config/rbac/types";
+import { isValidRoleTransition } from "../config/rbac/roles";
 
 const documentSchema = z.object({
   type: z.string().min(1, "Document type is required"),
@@ -210,7 +211,7 @@ export const createRoleApplicationSchema = z
   })
   .refine(
     (data) => {
-      return ROLE_TRANSITIONS[UserRole.USER].includes(data.role as UserRole);
+      return isValidRoleTransition(UserRole.USER, data.role as UserRole);
     },
     {
       message:

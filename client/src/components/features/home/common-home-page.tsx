@@ -1,4 +1,4 @@
-import CmnNavbar from "@/components/common/navbars/cmn-navbar";
+import CmnNavbar from "@/components/common/navigation/cmn-navbar";
 import CmnHeroBanner from "./common-home-sections/cmn-hero-banner";
 import PurposeSection from "./common-home-sections/purpose-section";
 import CourseSection from "./common-home-sections/course-section";

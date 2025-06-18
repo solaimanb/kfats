@@ -64,6 +64,22 @@ export class AuthController {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
+      // Set access token in cookie
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 1000, // 1 hour
+      });
+
+      // Set user cache in cookie
+      res.cookie("auth_user_cache", JSON.stringify(user), {
+        httpOnly: false, // Allow JavaScript access
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 1000, // 1 hour
+      });
+
       res.status(200).json({
         status: "success",
         data: {
@@ -76,8 +92,18 @@ export class AuthController {
 
   static logout = catchAsync(
     async (_req: Request, res: Response, _next: NextFunction) => {
-      // Clear refresh token cookie
+      // Clear both refresh token and access token cookies
       res.clearCookie("refreshToken");
+      res.clearCookie("accessToken", {
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax"
+      });
+      res.clearCookie("auth_user_cache", {
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax"
+      });
 
       res.status(200).json({
         status: "success",
@@ -89,7 +115,18 @@ export class AuthController {
   static logoutAllDevices = catchAsync(
     async (req: Request, res: Response, _next: NextFunction) => {
       await AuthService.revokeAllUserSessions(req.user!._id.toString());
+      // Clear both refresh token and access token cookies
       res.clearCookie("refreshToken");
+      res.clearCookie("accessToken", {
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax"
+      });
+      res.clearCookie("auth_user_cache", {
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax"
+      });
       res.status(200).json({
         status: "success",
         data: null,

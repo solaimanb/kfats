@@ -1,4 +1,53 @@
-import { UserRole } from "./rbac.config";
+import { UserRole } from "./rbac/types";
+
+// Common document requirements
+const COMMON_DOCUMENTS = {
+  identityProof: {
+    type: "identityProof",
+    label: "Government Issued ID",
+    required: true,
+    formats: ["pdf", "jpg", "png"],
+    maxSize: 5 * 1024 * 1024, // 5MB
+    description: "A valid government-issued photo ID",
+  },
+};
+
+// Common field requirements
+const COMMON_FIELDS = {
+  languages: {
+    name: "languages",
+    type: "array",
+    label: "Languages",
+    required: true,
+    minItems: 1,
+  },
+  experience: {
+    name: "experience",
+    type: "number",
+    label: "Years of Experience",
+    required: true,
+    validation: {
+      min: 1,
+      message: "Must have at least 1 year of experience",
+    },
+  },
+};
+
+// Common verification steps
+const COMMON_VERIFICATION_STEPS = {
+  documentVerification: {
+    name: "documentVerification",
+    label: "Document Verification",
+    type: "automatic" as const,
+    required: true,
+  },
+  interview: {
+    name: "interview",
+    label: "Interview",
+    type: "manual" as const,
+    required: true,
+  },
+};
 
 export interface DocumentRequirement {
   type: string;
@@ -46,6 +95,11 @@ export interface RoleRequirement {
 }
 
 export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
+  [UserRole.USER]: {
+    documents: [],
+    fields: [],
+    verificationSteps: [],
+  },
   [UserRole.STUDENT]: {
     documents: [],
     fields: [],
@@ -53,14 +107,7 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
   },
   [UserRole.MENTOR]: {
     documents: [
-      {
-        type: "identityProof",
-        label: "Government Issued ID",
-        required: true,
-        formats: ["pdf", "jpg", "png"],
-        maxSize: 5 * 1024 * 1024, // 5MB
-        description: "A valid government-issued photo ID",
-      },
+      COMMON_DOCUMENTS.identityProof,
       {
         type: "qualificationCertificate",
         label: "Educational Qualification Certificate",
@@ -88,6 +135,18 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
     ],
     fields: [
       {
+        ...COMMON_FIELDS.languages,
+        label: "Teaching Languages",
+      },
+      {
+        ...COMMON_FIELDS.experience,
+        label: "Years of Teaching Experience",
+        validation: {
+          min: 1,
+          message: "Must have at least 1 year of teaching experience",
+        },
+      },
+      {
         name: "expertise",
         type: "array",
         label: "Areas of Expertise",
@@ -97,16 +156,6 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
         validation: {
           pattern: "^[a-zA-Z0-9\\s]{3,50}$",
           message: "Each expertise must be 3-50 characters long",
-        },
-      },
-      {
-        name: "experience",
-        type: "number",
-        label: "Years of Teaching Experience",
-        required: true,
-        validation: {
-          min: 1,
-          message: "Must have at least 1 year of teaching experience",
         },
       },
       {
@@ -146,21 +195,9 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
             "Teaching methodology must be between 100 and 1000 characters",
         },
       },
-      {
-        name: "languages",
-        type: "array",
-        label: "Teaching Languages",
-        required: true,
-        minItems: 1,
-      },
     ],
     verificationSteps: [
-      {
-        name: "documentVerification",
-        label: "Document Verification",
-        type: "automatic",
-        required: true,
-      },
+      COMMON_VERIFICATION_STEPS.documentVerification,
       {
         name: "backgroundCheck",
         label: "Background Check",
@@ -183,14 +220,7 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
   },
   [UserRole.WRITER]: {
     documents: [
-      {
-        type: "identityProof",
-        label: "Government Issued ID",
-        required: true,
-        formats: ["pdf", "jpg", "png"],
-        maxSize: 5 * 1024 * 1024, // 5MB
-        description: "A valid government-issued photo ID",
-      },
+      COMMON_DOCUMENTS.identityProof,
       {
         type: "writingSamples",
         label: "Writing Samples",
@@ -218,23 +248,8 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
     ],
     fields: [
       {
-        name: "specializations",
-        type: "array",
-        label: "Writing Specializations",
-        required: true,
-        minItems: 1,
-        maxItems: 5,
-        validation: {
-          pattern: "^[a-zA-Z0-9\\s]{3,50}$",
-          message: "Each specialization must be 3-50 characters long",
-        },
-      },
-      {
-        name: "languages",
-        type: "array",
+        ...COMMON_FIELDS.languages,
         label: "Writing Languages",
-        required: true,
-        minItems: 1,
         schema: {
           language: {
             type: "string",
@@ -244,6 +259,18 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
             type: "string",
             required: true,
           },
+        },
+      },
+      {
+        name: "specializations",
+        type: "array",
+        label: "Writing Specializations",
+        required: true,
+        minItems: 1,
+        maxItems: 5,
+        validation: {
+          pattern: "^[a-zA-Z0-9\\s]{3,50}$",
+          message: "Each specialization must be 3-50 characters long",
         },
       },
       {
@@ -290,12 +317,7 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
       },
     ],
     verificationSteps: [
-      {
-        name: "documentVerification",
-        label: "Document Verification",
-        type: "automatic",
-        required: true,
-      },
+      COMMON_VERIFICATION_STEPS.documentVerification,
       {
         name: "writingSampleReview",
         label: "Writing Sample Review",
@@ -308,24 +330,12 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
         type: "manual",
         required: true,
       },
-      {
-        name: "interview",
-        label: "Editorial Interview",
-        type: "manual",
-        required: true,
-      },
+      COMMON_VERIFICATION_STEPS.interview,
     ],
   },
   [UserRole.SELLER]: {
     documents: [
-      {
-        type: "identityProof",
-        label: "Government Issued ID",
-        required: true,
-        formats: ["pdf", "jpg", "png"],
-        maxSize: 5 * 1024 * 1024, // 5MB
-        description: "A valid government-issued photo ID",
-      },
+      COMMON_DOCUMENTS.identityProof,
       {
         type: "businessRegistration",
         label: "Business Registration Certificate",
@@ -461,12 +471,7 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
       },
     ],
     verificationSteps: [
-      {
-        name: "documentVerification",
-        label: "Document Verification",
-        type: "automatic",
-        required: true,
-      },
+      COMMON_VERIFICATION_STEPS.documentVerification,
       {
         name: "businessVerification",
         label: "Business Verification",
@@ -485,12 +490,7 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
         type: "manual",
         required: true,
       },
-      {
-        name: "interview",
-        label: "Business Interview",
-        type: "manual",
-        required: true,
-      },
+      COMMON_VERIFICATION_STEPS.interview,
     ],
   },
   [UserRole.ADMIN]: {

@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { LoginRequest } from "@/types";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/contexts/auth-context/auth-context";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();

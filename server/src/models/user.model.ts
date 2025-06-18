@@ -3,9 +3,12 @@ import bcrypt from "bcryptjs";
 import {
   UserRole,
   UserStatus,
+  Permission
+} from "../config/rbac/types";
+import {
   validateRoleConstraints,
-  getRoleConstraintViolationMessage,
-} from "../config/rbac.config";
+  getRoleConstraintViolationMessage
+} from "../config/rbac/validators";
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
@@ -13,7 +16,7 @@ export interface IUser extends Document {
   password?: string;
   roles: UserRole[];
   status: UserStatus;
-  customPermissions?: string[];
+  customPermissions?: Permission[];
   profile: {
     firstName: string;
     lastName: string;

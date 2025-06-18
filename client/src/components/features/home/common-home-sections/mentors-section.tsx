@@ -38,11 +38,10 @@ const MentorsSection = () => {
           subtitle="Learn from experienced professionals"
           Icon={FaChalkboardTeacher}
         />
-
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-12">
           {allMentors.map((mentor, index) => (
             <motion.div
-              variants={fadeIn("up", "spring", index * 0.2, 0.75)}
+              variants={fadeIn("up", "tween", index * 0.2, 0.75)}
               initial="hidden"
               whileInView="show"
               viewport={{ once: true, amount: 0.25 }}

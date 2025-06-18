@@ -2,6 +2,8 @@
  * Core user domain types
  */
 
+import { Permission, UserRole } from '../../../config/rbac/types';
+
 export enum UserStatus {
   ACTIVE = "active",
   INACTIVE = "inactive",
@@ -21,7 +23,8 @@ export interface UserProfile {
 export interface User {
   _id: string;
   email: string;
-  roles: string[]; // Will be typed as UserRole[] when imported
+  roles: UserRole[];
+  permissions: Permission[];
   status: UserStatus;
   profile: UserProfile;
   emailVerified: boolean;

@@ -3,8 +3,8 @@ import { AppError } from "../utils/error.util";
 import { Document, FilterQuery } from "mongoose";
 import {
   validateRoleConstraints,
-  getRoleConstraintViolationMessage,
-} from "../config/rbac.config";
+  getRoleConstraintViolationMessage
+} from "../config/rbac/validators";
 
 export class UserService {
   async getProfile(userId: string): Promise<IUser & Document> {

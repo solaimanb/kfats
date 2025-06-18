@@ -1,9 +1,9 @@
 import { Schema, model, Document } from "mongoose";
-import { UserRole } from "../config/rbac.config";
+import { UserRole, Permission } from "../config/rbac/types";
 
 export interface IPermissionOverride extends Document {
   role: UserRole;
-  permissions: string[];
+  permissions: Permission[];
   createdBy: Schema.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -19,7 +19,7 @@ const permissionOverrideSchema = new Schema<IPermissionOverride>(
     },
     permissions: [
       {
-        type: String,
+        type: Schema.Types.Mixed,
         required: true,
       },
     ],

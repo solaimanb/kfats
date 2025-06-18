@@ -15,9 +15,7 @@ export const requestTracker = (req: Request, res: Response, next: NextFunction) 
       method: req.method,
       url: req.url,
       status: res.statusCode,
-      duration: `${duration}ms`,
-      userAgent: req.get('user-agent'),
-      ip: req.ip,
+      duration: `${duration}ms`
     });
   });
 
@@ -34,7 +32,7 @@ export const requestTimeout = (timeout: number = 30000) => {
         url: req.url,
         method: req.method,
       });
-      
+
       res.status(408).json({
         status: 'error',
         code: 'REQUEST_TIMEOUT',

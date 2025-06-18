@@ -6,8 +6,8 @@ import type { User } from "./types";
 import type {
   ResourceType,
   PermissionAction,
-} from "../../domain/permission/types";
-import type { UserRole } from "../../domain/role/types";
+} from "../permission/types";
+import type { UserRole } from "../role/types";
 import type {
   LoginRequest,
   RegisterRequest,
