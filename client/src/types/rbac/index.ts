@@ -33,7 +33,7 @@ export interface Permission {
   action: PermissionAction;
   conditions?: {
     fields?: string[];
-    filters?: Record<string, any>;
+    filters?: Record<string, unknown>;
   };
 }
 

@@ -11,24 +11,35 @@ import { api } from "../api-client";
 
 class AuthService {
   async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
-    return api.post("/auth/login", credentials);
+    console.log("[AuthService] Making login request");
+    const response = await api.post<LoginResponse>("/auth/login", credentials);
+    console.log("[AuthService] Login response:", {
+      status: response.status,
+      hasData: !!response.data,
+      hasAccessToken: !!response.data?.accessToken
+    });
+    return response;
   }
 
   async register(
     data: RegisterRequest
   ): Promise<ApiResponse<RegisterResponse>> {
+    console.log("[AuthService] Making register request");
     return api.post("/auth/register", data);
   }
 
   async logout(): Promise<ApiResponse<void>> {
+    console.log("[AuthService] Making logout request");
     return api.post("/auth/logout");
   }
 
   async validateToken(): Promise<ApiResponse<ValidateTokenResponse>> {
+    console.log("[AuthService] Validating token");
     return api.get("/auth/validate");
   }
 
   async forgotPassword(email: string): Promise<ApiResponse<void>> {
+    console.log("[AuthService] Making forgot password request");
     return api.post("/auth/forgot-password", { email });
   }
 
@@ -37,6 +48,7 @@ class AuthService {
     password: string,
     confirmPassword: string
   ): Promise<ApiResponse<void>> {
+    console.log("[AuthService] Making reset password request");
     return api.post("/auth/reset-password", {
       token,
       password,
@@ -47,10 +59,12 @@ class AuthService {
   async applyForRole(
     application: RoleApplicationRequest
   ): Promise<ApiResponse<void>> {
+    console.log("[AuthService] Making role application request");
     return api.post("/auth/role-application", application);
   }
 
   async refreshToken(): Promise<ApiResponse<RefreshTokenResponse>> {
+    console.log("[AuthService] Making refresh token request");
     return api.post("/auth/refresh-token");
   }
 }

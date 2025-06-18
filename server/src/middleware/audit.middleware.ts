@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import mongoose, { Document } from "mongoose";
 import { AuditLogModel, IAuditLog } from "../models/audit-log.model";
 import { IUser } from "../models/user.model";
+import { AuditOptions } from "../types/auth.types";
 
 // Extend Express Request type to include user
 declare global {
@@ -13,11 +14,6 @@ declare global {
       user?: User;
     }
   }
-}
-
-interface AuditOptions {
-  action: string;
-  getMetadata?: (req: Request) => Record<string, any>;
 }
 
 export const auditLog = (options: AuditOptions) => {
@@ -48,26 +44,27 @@ export const auditLog = (options: AuditOptions) => {
             action: options.action,
             resource: req.originalUrl ?? "",
             roles: req.user.roles,
-            ip: req.ip ?? "unknown",
-            userAgent: req.get("user-agent") ?? "unknown",
+            details: {},
             metadata: {
               ...metadata,
+              ip: req.ip ?? "unknown",
+              userAgent: req.get("user-agent") ?? "unknown",
+              roles: req.user.roles,
               requestBody: req.body,
               responseStatus: res.statusCode,
-              responseBody:
-                res.statusCode >= 400 ? JSON.parse(body) : undefined,
+              responseBody: res.statusCode >= 400 ? JSON.parse(body) : undefined,
             },
             status: res.statusCode >= 400 ? "failure" : "success",
             errorMessage:
               res.statusCode >= 400 ? JSON.parse(body).message : undefined,
           };
 
-          AuditLogModel.create(logData).catch((error: Error) => {
-            console.error("Error creating audit log:", error);
+          AuditLogModel.create(logData).catch(() => {
+            // Silently handle audit log creation errors
           });
         }
       } catch (error: unknown) {
-        console.error("Error in audit middleware:", error);
+        // Silently handle audit errors to not affect the main request flow
       }
 
       // Call original end function

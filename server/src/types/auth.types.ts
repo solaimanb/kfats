@@ -53,3 +53,9 @@ export interface RateLimitRequest extends Request {
     reset: Date;
   };
 }
+
+// =================== Audit Options ===================
+export interface AuditOptions {
+  action: string;
+  getMetadata?: (req: Request) => Record<string, any>;
+}

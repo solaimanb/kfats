@@ -1,15 +1,5 @@
 import { ResourceType, PermissionAction, Permission } from './types';
 
-// Define available resources
-export const RESOURCES = {
-  USER: 'user',
-  COURSE: 'course',
-  ARTICLE: 'article',
-  PRODUCT: 'product',
-  CATEGORY: 'category',
-  ROLE: 'role'
-} as const;
-
 /**
  * Base permissions for each resource type
  */
@@ -62,9 +52,9 @@ export const BASE_PERMISSIONS_BY_RESOURCE: Record<ResourceType, Permission[]> = 
  * Flattened base permissions array that can be spread
  */
 export const BASE_PERMISSIONS: Permission[] = [
-  { resource: RESOURCES.USER, action: PermissionAction.READ },
-  { resource: RESOURCES.PRODUCT, action: PermissionAction.READ },
-  { resource: RESOURCES.CATEGORY, action: PermissionAction.READ }
+  { resource: ResourceType.USER, action: PermissionAction.READ },
+  { resource: ResourceType.PRODUCT, action: PermissionAction.READ },
+  { resource: ResourceType.CATEGORY, action: PermissionAction.READ }
 ];
 
 /**
@@ -107,41 +97,41 @@ export function hasAnyPermission(
 
 // Define base permissions
 export const BASE_PERMISSIONS_NEW: Permission[] = [
-  { resource: RESOURCES.USER, action: PermissionAction.READ },
-  { resource: RESOURCES.PRODUCT, action: PermissionAction.READ },
-  { resource: RESOURCES.CATEGORY, action: PermissionAction.READ }
+  { resource: ResourceType.USER, action: PermissionAction.READ },
+  { resource: ResourceType.PRODUCT, action: PermissionAction.READ },
+  { resource: ResourceType.CATEGORY, action: PermissionAction.READ }
 ];
 
 // Define content management permissions
 export const CONTENT_PERMISSIONS: Permission[] = [
-  { resource: RESOURCES.ARTICLE, action: PermissionAction.CREATE },
-  { resource: RESOURCES.ARTICLE, action: PermissionAction.READ },
-  { resource: RESOURCES.ARTICLE, action: PermissionAction.UPDATE },
-  { resource: RESOURCES.ARTICLE, action: PermissionAction.DELETE }
+  { resource: ResourceType.ARTICLE, action: PermissionAction.CREATE },
+  { resource: ResourceType.ARTICLE, action: PermissionAction.READ },
+  { resource: ResourceType.ARTICLE, action: PermissionAction.UPDATE },
+  { resource: ResourceType.ARTICLE, action: PermissionAction.DELETE }
 ];
 
 // Define course management permissions
 export const COURSE_PERMISSIONS: Permission[] = [
-  { resource: RESOURCES.COURSE, action: PermissionAction.CREATE },
-  { resource: RESOURCES.COURSE, action: PermissionAction.READ },
-  { resource: RESOURCES.COURSE, action: PermissionAction.UPDATE },
-  { resource: RESOURCES.COURSE, action: PermissionAction.DELETE }
+  { resource: ResourceType.COURSE, action: PermissionAction.CREATE },
+  { resource: ResourceType.COURSE, action: PermissionAction.READ },
+  { resource: ResourceType.COURSE, action: PermissionAction.UPDATE },
+  { resource: ResourceType.COURSE, action: PermissionAction.DELETE }
 ];
 
 // Define product management permissions
 export const PRODUCT_PERMISSIONS: Permission[] = [
-  { resource: RESOURCES.PRODUCT, action: PermissionAction.CREATE },
-  { resource: RESOURCES.PRODUCT, action: PermissionAction.READ },
-  { resource: RESOURCES.PRODUCT, action: PermissionAction.UPDATE },
-  { resource: RESOURCES.PRODUCT, action: PermissionAction.DELETE }
+  { resource: ResourceType.PRODUCT, action: PermissionAction.CREATE },
+  { resource: ResourceType.PRODUCT, action: PermissionAction.READ },
+  { resource: ResourceType.PRODUCT, action: PermissionAction.UPDATE },
+  { resource: ResourceType.PRODUCT, action: PermissionAction.DELETE }
 ];
 
 // Define admin permissions
 export const ADMIN_PERMISSIONS: Permission[] = [
-  { resource: RESOURCES.USER, action: PermissionAction.MANAGE },
-  { resource: RESOURCES.COURSE, action: PermissionAction.MANAGE },
-  { resource: RESOURCES.ARTICLE, action: PermissionAction.MANAGE },
-  { resource: RESOURCES.PRODUCT, action: PermissionAction.MANAGE },
-  { resource: RESOURCES.CATEGORY, action: PermissionAction.MANAGE },
-  { resource: RESOURCES.ROLE, action: PermissionAction.MANAGE }
+  { resource: ResourceType.USER, action: PermissionAction.MANAGE },
+  { resource: ResourceType.COURSE, action: PermissionAction.MANAGE },
+  { resource: ResourceType.ARTICLE, action: PermissionAction.MANAGE },
+  { resource: ResourceType.PRODUCT, action: PermissionAction.MANAGE },
+  { resource: ResourceType.CATEGORY, action: PermissionAction.MANAGE },
+  { resource: ResourceType.ROLE, action: PermissionAction.MANAGE }
 ]; 

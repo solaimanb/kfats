@@ -31,8 +31,12 @@ const Storage = {
 
   getUser: () => {
     try {
-      const cached = localStorage.getItem(Storage.USER_KEY);
-      return cached ? JSON.parse(cached) : null;
+      const userCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(Storage.USER_KEY + '='));
+      if (!userCookie) return null;
+      const value = decodeURIComponent(userCookie.split('=')[1]);
+      return JSON.parse(value);
     } catch {
       return null;
     }
@@ -40,7 +44,8 @@ const Storage = {
 
   setUser: (user: AuthState["user"]) => {
     try {
-      localStorage.setItem(Storage.USER_KEY, JSON.stringify(user));
+      const value = encodeURIComponent(JSON.stringify(user));
+      document.cookie = `${Storage.USER_KEY}=${value}; path=/; secure; samesite=lax; max-age=3600`;
     } catch {
       // Ignore storage errors
     }
@@ -48,7 +53,7 @@ const Storage = {
 
   clearUser: () => {
     try {
-      localStorage.removeItem(Storage.USER_KEY);
+      document.cookie = `${Storage.USER_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
     } catch {
       // Ignore storage errors
     }
@@ -57,8 +62,7 @@ const Storage = {
 
 // Role and permission utilities
 const RoleUtils = {
-  getRedirectPath: (roles: string[]): string => {
-    const userRoles = roles.map((role) => role as UserRole);
+  getRedirectPath: (roles: UserRole[]): string => {
     const priorityOrder = [
       UserRole.ADMIN,
       UserRole.MENTOR,
@@ -68,7 +72,7 @@ const RoleUtils = {
       UserRole.USER,
     ];
 
-    const highestRole = priorityOrder.find((role) => userRoles.includes(role));
+    const highestRole = priorityOrder.find((role) => roles.includes(role));
     return DEFAULT_REDIRECTS[highestRole || UserRole.USER];
   },
 
@@ -78,19 +82,19 @@ const RoleUtils = {
     action: PermissionAction
   ): boolean => {
     if (!user) return false;
-    return user.roles.some((role) => 
-      roleHasPermission(role as UserRole, resource, action)
+    return user.roles.some((role) =>
+      roleHasPermission(role, resource, action)
     );
   },
 
   checkRole: (user: AuthState["user"], role: UserRole): boolean =>
-    user?.roles.includes(role as string) || false,
+    user?.roles?.includes(role) || false,
 
   checkAnyRole: (user: AuthState["user"], roles: UserRole[]): boolean =>
-    user?.roles.some((r) => roles.includes(r as UserRole)) || false,
+    user?.roles?.some((r) => roles.includes(r)) || false,
 
   checkAllRoles: (user: AuthState["user"], roles: UserRole[]): boolean =>
-    user?.roles.every((r) => roles.includes(r as UserRole)) || false,
+    user?.roles?.every((r) => roles.includes(r)) || false,
 };
 
 // Initial state
@@ -102,7 +106,7 @@ const initialState: AuthState = {
 };
 
 // Context creation
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider component
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -140,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateAuthState = (user: AuthState["user"], accessToken: string) => {
     setAccessToken(accessToken);
     Storage.setUser(user);
+
     setState({
       user,
       accessToken,
@@ -158,8 +163,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleLogout = useCallback(async () => {
     try {
       await authService.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
+    } catch {
+      // Ignore logout errors
     } finally {
       clearAuthState();
       router.push("/login");
@@ -175,8 +180,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Invalid response from server");
       }
 
-      updateAuthState(response.data.user, response.data.accessToken);
-      router.push(RoleUtils.getRedirectPath(response.data.user.roles));
+      const user = {
+        ...response.data.user,
+        roles: response.data.user.roles as UserRole[]
+      };
+
+      updateAuthState(user, response.data.accessToken);
+      
+      const redirectPath = RoleUtils.getRedirectPath(user.roles);
+      router.push(redirectPath);
       router.refresh();
     } catch (error) {
       handleError(error, "Login failed");
@@ -192,8 +204,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Invalid response from server");
       }
 
-      updateAuthState(response.data.user, response.data.accessToken);
-      router.push(RoleUtils.getRedirectPath(response.data.user.roles));
+      const user = {
+        ...response.data.user,
+        roles: response.data.user.roles as UserRole[]
+      };
+
+      updateAuthState(user, response.data.accessToken);
+      router.push(RoleUtils.getRedirectPath(user.roles));
       router.refresh();
     } catch (error) {
       handleError(error, "Registration failed");

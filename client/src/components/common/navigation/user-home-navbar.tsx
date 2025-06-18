@@ -169,13 +169,14 @@ export default function UserHomeNavbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
+            <Link href="/login">
             <Button
-              asChild
               variant="default"
               className="bg-kc-orange hover:bg-kc-orange/90 text-white border-none"
             >
-              <Link href="/login">Log in</Link>
+                Login
             </Button>
+            </Link>
           )}
         </nav>
 
@@ -250,13 +251,14 @@ export default function UserHomeNavbar() {
                     </Button>
                   </>
                 ) : (
+                  <Link href="/login">
                   <Button
-                    asChild
                     variant="default"
                     className="bg-kc-orange hover:bg-kc-orange/90 text-white border-none"
                   >
-                    <Link href="/login">Login</Link>
+                      Login
                   </Button>
+                  </Link>
                 ))}
 
               {user && (

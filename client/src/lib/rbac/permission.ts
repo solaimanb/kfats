@@ -1,5 +1,4 @@
 import { Permission, PermissionAction } from '../../config/rbac/types';
-import { ROLE_CONFIG } from '../../config/rbac/roles';
 
 /**
  * Check if a list of permissions includes a specific permission

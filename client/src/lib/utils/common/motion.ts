@@ -1,9 +1,11 @@
+import { Variants } from "framer-motion";
+
 export const fadeIn = (
   direction: "left" | "right" | "up" | "down",
-  type: string,
+  type: "spring" | "tween",
   delay: number,
   duration: number
-) => {
+): Variants => {
   return {
     hidden: {
       x: direction === "left" ? 100 : direction === "right" ? -100 : 0,
@@ -27,7 +29,7 @@ export const fadeIn = (
 export const staggerContainer = (
   staggerChildren?: number,
   delayChildren?: number
-) => {
+): Variants => {
   return {
     hidden: {},
     show: {
@@ -39,7 +41,7 @@ export const staggerContainer = (
   };
 };
 
-export const textVariant = (delay: number) => {
+export const textVariant = (delay: number): Variants => {
   return {
     hidden: {
       y: 50,
@@ -59,10 +61,10 @@ export const textVariant = (delay: number) => {
 
 export const slideIn = (
   direction: "left" | "right" | "up" | "down",
-  type: string,
+  type: "spring" | "tween",
   delay: number,
   duration: number
-) => {
+): Variants => {
   return {
     hidden: {
       x: direction === "left" ? "-100%" : direction === "right" ? "100%" : 0,
@@ -81,7 +83,7 @@ export const slideIn = (
   };
 };
 
-export const zoomIn = (delay: number, duration: number) => {
+export const zoomIn = (delay: number, duration: number): Variants => {
   return {
     hidden: {
       scale: 0,
@@ -100,7 +102,7 @@ export const zoomIn = (delay: number, duration: number) => {
   };
 };
 
-export const container = {
+export const container: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -110,7 +112,7 @@ export const container = {
   },
 };
 
-export const item = {
+export const item: Variants = {
   hidden: { opacity: 0, y: 20 },
   show: {
     opacity: 1,

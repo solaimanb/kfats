@@ -1,16 +1,22 @@
 import { Schema, model, Document, Types } from "mongoose";
 import { UserRole } from "../config/rbac/types";
 
-interface IAuditLog extends Document {
+export interface IAuditLog extends Document {
   userId: Types.ObjectId;
   action: string;
   timestamp: Date;
   status: "success" | "failure";
   details: Record<string, any>;
+  resource: string;
+  roles: UserRole[];
+  errorMessage?: string;
   metadata: {
     ip: string;
     userAgent: string;
     roles?: UserRole[];
+    requestBody?: any;
+    responseStatus?: number;
+    responseBody?: any;
   };
 }
 
@@ -42,6 +48,14 @@ const auditLogSchema = new Schema<IAuditLog>(
       type: Schema.Types.Mixed,
       default: {},
     },
+    resource: String,
+    roles: [
+      {
+        type: String,
+        enum: Object.values(UserRole),
+      },
+    ],
+    errorMessage: String,
     metadata: {
       ip: String,
       userAgent: String,
@@ -51,6 +65,9 @@ const auditLogSchema = new Schema<IAuditLog>(
           enum: Object.values(UserRole),
         },
       ],
+      requestBody: Schema.Types.Mixed,
+      responseStatus: Number,
+      responseBody: Schema.Types.Mixed,
     },
   },
   {

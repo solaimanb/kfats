@@ -1,10 +1,13 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { ROUTES, DEFAULT_REDIRECTS } from "@/config/routes";
-import { ResourceType, PermissionAction, UserRole } from '@/types/rbac';
+import { NextRequest, NextResponse } from "next/server";
+import { ResourceType, PermissionAction, UserRole } from "./config/rbac/types";
+import { ROUTES, DEFAULT_REDIRECTS } from "./config/routes";
 
 // Define protected routes and their required permissions
 const PROTECTED_ROUTES = {
+  '/profile': {
+    resource: ResourceType.USER,
+    action: PermissionAction.READ
+  },
   '/dashboard/courses': {
     resource: ResourceType.COURSE,
     action: PermissionAction.READ
@@ -38,7 +41,7 @@ export async function middleware(request: NextRequest) {
   const userRole = request.cookies.get("user-role")?.value;
 
   // Helper function to check if path matches any routes
-  const matchesPath = (paths: readonly string[]) => 
+  const matchesPath = (paths: readonly string[] | string[]) =>
     paths.some(path => pathname.startsWith(path));
 
   // Set up response with no-cache headers
@@ -88,10 +91,17 @@ export async function middleware(request: NextRequest) {
   // If has token, verify and check permissions
   if (token && protectedRoute) {
     try {
-      // Here you would typically verify the token and get user data
-      // For now, we'll assume the token contains the necessary info
       const user = await verifyToken(token);
 
+      // For profile route, only check if user is authenticated
+      if (pathname === '/profile') {
+        if (!user) {
+          return NextResponse.redirect(new URL('/login', request.url));
+        }
+        return response;
+      }
+
+      // For other protected routes, check specific permissions
       if (!user) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
@@ -108,16 +118,15 @@ export async function middleware(request: NextRequest) {
       }
 
       // Check role-specific routes
-      const isRoleRoute = Object.entries(ROLE_ROUTES).some(
+      const isRoleRoute = (Object.entries(ROLE_ROUTES) as [string, readonly string[]][]).some(
         ([role, routes]) =>
           routes.includes(pathname) && user.roles.includes(role as UserRole)
       );
 
-      if (!isRoleRoute) {
+      if (!isRoleRoute && pathname !== '/profile') {
         return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
-    } catch (error) {
-      // Token verification failed
+    } catch {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
@@ -130,17 +139,81 @@ export const config = {
   matcher: ["/((?!api|_next|images|public|favicon.ico).*)"],
 };
 
-// These functions would be implemented elsewhere
-async function verifyToken(token: string): Promise<any> {
-  // Implement token verification
-  return null;
+// Implement token verification
+async function verifyToken(token: string): Promise<{
+  id: string;
+  roles: UserRole[];
+  permissions: string[];
+} | null> {
+  try {
+    // Basic JWT structure validation
+    const [header, payload, signature] = token.split('.');
+    if (!header || !payload || !signature) {
+      return null;
+    }
+
+    // Decode the payload
+    const decodedPayload = JSON.parse(atob(payload));
+
+    // Check if token is expired
+    if (decodedPayload.exp && Date.now() >= decodedPayload.exp * 1000) {
+      return null;
+    }
+
+    // Check if token has required fields
+    if (!decodedPayload.id || !decodedPayload.roles) {
+      return null;
+    }
+
+    return {
+      id: decodedPayload.id,
+      roles: decodedPayload.roles,
+      permissions: decodedPayload.permissions || []
+    };
+  } catch {
+    return null;
+  }
 }
 
+// Implement permission checking
 function checkUserPermission(
-  user: any,
+  user: {
+    id: string;
+    roles: UserRole[];
+    permissions?: string[];
+  },
   resource: ResourceType,
   action: PermissionAction
 ): boolean {
-  // Implement permission checking
-  return false;
+  // Basic permission check
+  if (!user || !user.roles || !Array.isArray(user.roles)) {
+    return false;
+  }
+
+  // Admin has all permissions
+  if (user.roles.includes(UserRole.ADMIN)) {
+    return true;
+  }
+
+  // Check user permissions if they exist
+  if (user.permissions && Array.isArray(user.permissions)) {
+    return user.permissions.some(
+      (permission: string) => permission === `${resource}:${action}`
+    );
+  }
+
+  // Default role-based permissions
+  const rolePermissions: Record<UserRole, ResourceType[]> = {
+    [UserRole.ADMIN]: [ResourceType.USER, ResourceType.COURSE, ResourceType.ARTICLE, ResourceType.PRODUCT],
+    [UserRole.MENTOR]: [ResourceType.COURSE],
+    [UserRole.STUDENT]: [ResourceType.COURSE],
+    [UserRole.WRITER]: [ResourceType.ARTICLE],
+    [UserRole.SELLER]: [ResourceType.PRODUCT],
+    [UserRole.USER]: [ResourceType.USER]
+  };
+
+  // Check if any of the user's roles have permission for the resource
+  return user.roles.some((role: UserRole) =>
+    rolePermissions[role]?.includes(resource)
+  );
 }

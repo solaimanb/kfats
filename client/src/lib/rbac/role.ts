@@ -22,7 +22,7 @@ export function inheritsRole(role: UserRole, inheritedRole: UserRole): boolean {
  */
 export function getInheritingRoles(role: UserRole): UserRole[] {
   return Object.entries(ROLE_CONFIG)
-    .filter(([_, config]) => config.inherits?.includes(role))
+    .filter(([, config]) => config.inherits?.includes(role))
     .map(([r]) => r as UserRole);
 }
 

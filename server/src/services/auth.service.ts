@@ -15,13 +15,16 @@ import { AppError } from "../utils/error.util";
 import { emailService } from "../utils/email.util";
 
 export class AuthService {
-  private static generateAccessToken(userId: string): string {
+  private static generateAccessToken(userId: string, roles: string[]): string {
     const signOptions: SignOptions = {
       expiresIn: "1h", // 1 hour
     };
 
     return jwt.sign(
-      { id: userId },
+      { 
+        id: userId,
+        roles: roles 
+      },
       process.env.JWT_SECRET || "default-secret",
       signOptions
     );
@@ -115,7 +118,7 @@ export class AuthService {
       },
     });
 
-    const accessToken = this.generateAccessToken(user._id.toString());
+    const accessToken = this.generateAccessToken(user._id.toString(), user.roles);
     const refreshToken = await this.generateRefreshToken(
       user._id.toString(),
       deviceInfo
@@ -153,7 +156,7 @@ export class AuthService {
       throw new AppError("Account not active", 403);
     }
 
-    const accessToken = this.generateAccessToken(user._id.toString());
+    const accessToken = this.generateAccessToken(user._id.toString(), user.roles);
     const refreshToken = await this.generateRefreshToken(
       user._id.toString(),
       deviceInfo
@@ -200,7 +203,8 @@ export class AuthService {
 
     // Generate new tokens
     const accessToken = this.generateAccessToken(
-      existingToken.user._id.toString()
+      existingToken.user._id.toString(),
+      existingToken.user.roles
     );
     const refreshToken = await this.generateRefreshToken(
       existingToken.user._id.toString(),

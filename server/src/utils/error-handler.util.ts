@@ -59,34 +59,25 @@ export const handleError = (
   // Log error for debugging in non-production environments
   if (process.env.NODE_ENV !== 'production') {
     logger.error({
-      message: 'Error details:',
       error: {
         name: err.name,
         message: err.message,
         stack: err.stack,
-        statusCode,
-        status: response.status
-      },
-      requestId: req.id,
-      path: req.path,
-      method: req.method,
-      query: req.query,
-      body: req.body,
-      user: req.user
-    });
-  } else {
-    // In production, log less verbose error details
-    logger.error({
-      message: 'Production error:',
-      error: {
-        name: err.name,
-        message: err.message,
-        status: response.status,
         statusCode
       },
       requestId: req.id,
       path: req.path,
       method: req.method
+    });
+  } else {
+    // In production, log minimal error details
+    logger.error({
+      error: {
+        name: err.name,
+        statusCode
+      },
+      requestId: req.id,
+      path: req.path
     });
   }
 
