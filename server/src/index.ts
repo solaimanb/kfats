@@ -47,10 +47,8 @@ app.use(cookieParser());
 // Configure CORS
 app.use(
   cors({
-    origin: process.env.NODE_ENV === 'production'
-      ? config.cors.origin
-      : ['http://localhost:3000', 'http://127.0.0.1:3000'],
-    credentials: true,
+    origin: config.cors.origin,
+    credentials: config.cors.credentials,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     exposedHeaders: ['set-cookie'],
@@ -69,7 +67,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         imgSrc: ["'self'", "data:", "blob:"],
         fontSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", config.cors.origin],
         frameAncestors: ["'none'"],
         formAction: ["'self'"],
       },
