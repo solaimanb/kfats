@@ -1,0 +1,27 @@
+{{#> layouts/base}}
+  {{#*inline "content"}}
+    <h2>Verify Your Email Address</h2>
+    <p>Dear {{name}},</p>
+    <p>Thank you for registering with {{appName}}. To complete your registration and activate your account,
+        please verify your email address by clicking the button below:</p>
+
+    <div style="text-align: center;">
+        <a href="{{verificationUrl}}" class="button">Verify Email Address</a>
+    </div>
+
+    <p>If the button above doesn't work, you can also click on the link below or copy and paste it into your
+        browser:</p>
+
+    <div class="verification-link">
+        <a href="{{verificationUrl}}">{{verificationUrl}}</a>
+    </div>
+
+    <div class="warning">
+        <strong>Note:</strong> This verification link will expire in 24 hours for security reasons.
+    </div>
+
+    <p>If you did not create an account with {{appName}}, please ignore this email or contact our support team.</p>
+
+    <p>Best regards,<br>The {{appName}} Team</p>
+  {{/inline}}
+{{/layouts/base}}

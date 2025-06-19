@@ -1,0 +1,28 @@
+{{#> layouts/base}}
+{{#*inline "content"}}
+<div class="status-message">
+    Application Status Update
+</div>
+<p>Dear {{name}},</p>
+<p>Thank you for your interest in the role of <strong>{{role}}</strong>. After careful consideration, we regret to inform you that your application has not been approved at this time.</p>
+
+<div class="reason-box">
+    <h3>Reason for Decision:</h3>
+    <p>{{reason}}</p>
+</div>
+
+<div class="next-steps">
+    <h3>What's Next?</h3>
+    <ul>
+        <li>Review the role requirements and qualifications</li>
+        <li>Gather any missing documentation or credentials</li>
+        <li>Consider applying for other suitable roles</li>
+        <li>You can reapply after 3 months with updated qualifications</li>
+    </ul>
+</div>
+
+<p>If you have any questions or would like to discuss this decision further, please contact our support team at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.</p>
+
+<p>Best regards,<br>The {{appName}} Team</p>
+{{/inline}}
+{{/layouts/base}}

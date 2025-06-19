@@ -1,0 +1,20 @@
+{{#> layouts/base}}
+{{#*inline "content"}}
+<div class="success-message">
+    Congratulations! 🎉
+</div>
+<p>Dear {{name}},</p>
+<p>We are pleased to inform you that your application for the role of <strong>{{role}}</strong> has been approved!</p>
+<div class="next-steps">
+    <h3>Next Steps:</h3>
+    <ol>
+        <li>Log in to your account</li>
+        <li>Complete your profile information</li>
+        <li>Review the role guidelines and responsibilities</li>
+        <li>Start exploring your new features and capabilities</li>
+    </ol>
+</div>
+<p>If you have any questions or need assistance, please don't hesitate to contact our support team at <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.</p>
+<p>Best regards,<br>The {{appName}} Team</p>
+{{/inline}}
+{{/layouts/base}}

@@ -1,16 +1,20 @@
 "use client";
 
-import CommonHomePage from '@/components/home/CommonHomePage';
-import UsersHomePage from '@/components/home/UsersHomePage'; // Adjust path as needed
-import Footer from '@/components/shared/footer/Footer';
-import React from 'react';
-
-const isUser = true;
+import { useAuth } from "@/contexts/auth-context/auth-context";
+import CommonHomePage from "@/components/features/home/common-home-page";
+import UsersHomePage from "@/components/features/home/users-home-page";
+import Footer from "@/components/common/footer/footer";
 
 export default function HomePage() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
   return (
     <>
-      {isUser ? <UsersHomePage /> : <CommonHomePage />}
+      {user ? <UsersHomePage /> : <CommonHomePage />}
       <Footer />
     </>
   );
