@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon",
-    "build": "rimraf dist && tsc",
+    "build": "tsc --skipLibCheck --noEmitOnError",
     "watch": "tsc -w",
     "lint": "eslint .",
     "format": "prettier --write ."
