@@ -2,8 +2,11 @@ services:
   - type: web
     name: kfats-server
     env: node
-    buildCommand: cd server && npm install && npm run build
-    startCommand: cd server && npm start
+    region: singapore
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    nodeVersion: 18
     envVars:
       - key: NODE_ENV
         value: production 
