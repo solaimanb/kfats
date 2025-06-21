@@ -5,13 +5,10 @@ services:
     region: singapore
     plan: free
     rootDir: server
-    runtime: node
     buildCommand: |
       npm ci --legacy-peer-deps
       npm run build
-      cp package*.json dist/
-      cd dist && npm ci --legacy-peer-deps --production
-    startCommand: cd dist && node index.js
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
