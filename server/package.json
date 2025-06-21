@@ -4,7 +4,7 @@
   "description": "Server for Kushtia Charukola",
   "main": "src/index.ts",
   "engines": {
-    "node": "18.18.2"
+    "node": "20.x"
   },
   "scripts": {
     "start": "node index.js",
