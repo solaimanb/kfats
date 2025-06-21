@@ -10,7 +10,7 @@ services:
       npm run build
       cp package*.json dist/
       cd dist && npm ci --production
-    startCommand: node index.js
+    startCommand: cd dist && node index.js
     nodeVersion: 18.x
     envVars:
       - key: NODE_ENV
