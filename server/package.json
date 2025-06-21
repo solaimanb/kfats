@@ -4,7 +4,7 @@
   "description": "Server for Kushtia Charukola",
   "main": "src/index.ts",
   "scripts": {
-    "start": "NODE_ENV=production node dist/index.js",
+    "start": "node index.js",
     "dev": "NODE_ENV=development nodemon",
     "build": "rimraf dist && tsc",
     "postbuild": "cp package.json dist/ && cd dist && npm install --production",

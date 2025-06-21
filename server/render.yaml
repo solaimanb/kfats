@@ -5,8 +5,12 @@ services:
     region: singapore
     plan: free
     rootDir: server
-    buildCommand: npm install && npm run build
-    startCommand: cd dist && npm start
+    buildCommand: |
+      npm ci
+      npm run build
+      cp package*.json dist/
+      cd dist && npm ci --production
+    startCommand: node index.js
     nodeVersion: 18.x
     envVars:
       - key: NODE_ENV
