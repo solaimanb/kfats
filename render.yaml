@@ -5,14 +5,13 @@ services:
     region: singapore
     plan: free
     rootDir: server
+    runtime: node
     buildCommand: |
-      export NODE_VERSION=18.18.2
       npm ci --legacy-peer-deps
       npm run build
       cp package*.json dist/
       cd dist && npm ci --legacy-peer-deps --production
-    startCommand: cd /opt/render/project/src/server/dist && node index.js
-    nodeVersion: 18.18.2
+    startCommand: cd dist && node index.js
     envVars:
       - key: NODE_ENV
         value: production
