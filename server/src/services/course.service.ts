@@ -90,16 +90,11 @@ export class CourseService {
     }
 
     // Remove protected fields from the update data
-    const updateData: Partial<ICourse> = {};
-    Object.entries(data).forEach(([key, value]) => {
-      if (
-        !["mentor", "enrolledStudents", "ratings", "averageRating"].includes(
-          key
-        )
-      ) {
-        updateData[key as keyof ICourse] = value;
-      }
-    });
+    const updateData = Object.fromEntries(
+      Object.entries(data).filter(([key]) =>
+        !["mentor", "enrolledStudents", "ratings", "averageRating"].includes(key)
+      )
+    ) as Partial<ICourse>;
 
     await this.validateCourseData(updateData);
     Object.assign(course, updateData);
@@ -265,8 +260,7 @@ export class CourseService {
           section.title.length > COURSE_LIMITS.CONTENT.TITLE
         ) {
           throw new AppError(
-            `Section ${index + 1} title cannot exceed ${
-              COURSE_LIMITS.CONTENT.TITLE
+            `Section ${index + 1} title cannot exceed ${COURSE_LIMITS.CONTENT.TITLE
             } characters`,
             400
           );
@@ -276,8 +270,7 @@ export class CourseService {
           section.description.length > COURSE_LIMITS.CONTENT.DESCRIPTION
         ) {
           throw new AppError(
-            `Section ${index + 1} description cannot exceed ${
-              COURSE_LIMITS.CONTENT.DESCRIPTION
+            `Section ${index + 1} description cannot exceed ${COURSE_LIMITS.CONTENT.DESCRIPTION
             } characters`,
             400
           );
