@@ -20,7 +20,7 @@ import "./config/passport.config";
 import { swaggerSpec } from "./config/swagger.config";
 import { swaggerConfig } from "./config/api.config";
 import { httpLogger, logger } from "./utils/logger.util";
-import { handleError } from "./utils/error-handler.util";
+import { handleError } from "./utils/error.util";
 import {
   requestTracker,
   requestTimeout,
