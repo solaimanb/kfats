@@ -6,11 +6,12 @@ services:
     plan: free
     rootDir: server
     buildCommand: |
-      npm ci
+      export NODE_VERSION=18.18.2
+      npm ci --legacy-peer-deps
       npm run build
       cp package*.json dist/
-      cd dist && npm ci --production
-    startCommand: cd dist && node index.js
+      cd dist && npm ci --legacy-peer-deps --production
+    startCommand: cd /opt/render/project/src/server/dist && node index.js
     nodeVersion: 18.18.2
     envVars:
       - key: NODE_ENV
