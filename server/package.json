@@ -4,13 +4,13 @@
   "description": "Server for Kushtia Charukola",
   "main": "src/index.ts",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "18.18.2"
   },
   "scripts": {
-    "start": "node index.js",
+    "start": "node dist/index.js",
     "dev": "NODE_ENV=development nodemon",
-    "build": "rimraf dist && tsc",
-    "postbuild": "cp package.json dist/ && cd dist && npm install --production --legacy-peer-deps",
+    "build": "rimraf dist && tsc && cp package*.json dist/",
+    "postbuild": "cd dist && npm ci --legacy-peer-deps --production",
     "watch": "tsc -w",
     "lint": "eslint .",
     "format": "prettier --write ."
