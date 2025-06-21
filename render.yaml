@@ -11,7 +11,7 @@ services:
       cp package*.json dist/
       cd dist && npm ci --production
     startCommand: cd dist && node index.js
-    nodeVersion: 18.x
+    nodeVersion: 18.18.2
     envVars:
       - key: NODE_ENV
         value: production
