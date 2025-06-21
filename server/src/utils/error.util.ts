@@ -3,6 +3,7 @@ import { MongooseError } from "mongoose";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 import { ZodError } from "zod";
 import { MulterError } from "multer";
+import { logger } from './logger.util';
 
 export class AppError extends Error {
   statusCode: number;
@@ -63,94 +64,86 @@ export class FileUploadError extends AppError {
   }
 }
 
-export const errorHandler = (
-  err: Error,
-  _req: Request,
+interface ErrorResponse {
+  status: string;
+  message: string;
+  requestId?: string;
+  errors?: Record<string, any>;
+}
+
+export const handleError = (
+  err: Error | AppError,
+  req: Request,
   res: Response,
   _next: NextFunction
 ) => {
-  if (process.env.NODE_ENV === "development") {
-    console.error("ERROR 💥", {
-      name: err.name,
-      message: err.message,
-      stack: err.stack,
-      ...(err instanceof AppError && { errors: err.errors }),
-    });
-  }
+  let statusCode = 500;
+  const response: ErrorResponse = {
+    status: 'error',
+    message: 'Something went wrong!',
+    requestId: req.id
+  };
 
+  // Handle known error types
   if (err instanceof AppError) {
-    return res.status(err.statusCode).json({
-      status: err.status,
-      message: err.message,
-      ...(err.errors && { errors: err.errors }),
-      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-    });
-  }
-
-  if (err instanceof MongooseError && err.name === "ValidationError") {
-    const errors = Object.values(err as any).reduce(
+    statusCode = err.statusCode;
+    response.status = err.status;
+    response.message = err.message;
+    if (err.errors) {
+      response.errors = err.errors;
+    }
+  } 
+  // Handle Mongoose validation errors
+  else if (err.name === 'ValidationError') {
+    statusCode = 400;
+    response.status = 'fail';
+    response.message = 'Invalid input data';
+    response.errors = Object.values((err as any).errors).reduce(
       (acc: Record<string, string>, val: any) => {
         acc[val.path] = val.message;
         return acc;
       },
       {}
     );
-    return res.status(400).json({
-      status: "fail",
-      message: "Validation Error",
-      errors,
-    });
+  }
+  // Handle JWT errors
+  else if (err.name === 'JsonWebTokenError') {
+    statusCode = 401;
+    response.status = 'fail';
+    response.message = 'Invalid token. Please log in again!';
+  }
+  else if (err.name === 'TokenExpiredError') {
+    statusCode = 401;
+    response.status = 'fail';
+    response.message = 'Your token has expired! Please log in again.';
   }
 
-  if ((err as any).code === 11000) {
-    const field = Object.keys((err as any).keyValue)[0];
-    return res.status(409).json({
-      status: "fail",
-      message: `Duplicate ${field}`,
-    });
-  }
-
-  if (err instanceof JsonWebTokenError) {
-    return res.status(401).json({
-      status: "fail",
-      message: "Invalid token",
-    });
-  }
-
-  if (err instanceof TokenExpiredError) {
-    return res.status(401).json({
-      status: "fail",
-      message: "Token expired",
-    });
-  }
-
-  if (err instanceof ZodError) {
-    const errors = err.errors.reduce(
-      (acc: Record<string, string>, curr) => {
-        acc[curr.path.join(".")] = curr.message;
-        return acc;
+  // Log error for debugging in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    logger.error({
+      error: {
+        name: err.name,
+        message: err.message,
+        stack: err.stack,
+        statusCode
       },
-      {}
-    );
-    return res.status(400).json({
-      status: "fail",
-      message: "Validation Error",
-      errors,
+      requestId: req.id,
+      path: req.path,
+      method: req.method
+    });
+  } else {
+    // In production, log minimal error details
+    logger.error({
+      error: {
+        name: err.name,
+        statusCode
+      },
+      requestId: req.id,
+      path: req.path
     });
   }
 
-  if (err instanceof MulterError) {
-    return res.status(400).json({
-      status: "fail",
-      message: "File Upload Error",
-      error: err.message,
-    });
-  }
-
-  return res.status(500).json({
-    status: process.env.NODE_ENV === "development" ? err.message : "Something went wrong",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-  });
+  res.status(statusCode).json(response);
 };
 
 export const catchAsync = (fn: Function) => {

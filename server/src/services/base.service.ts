@@ -1,5 +1,5 @@
 import { Model, FilterQuery, QueryOptions } from 'mongoose';
-import { createError } from '../utils/error-handler.util';
+import { createError } from '../utils/error.util';
 import { config } from '../config';
 
 export interface PaginationOptions {
