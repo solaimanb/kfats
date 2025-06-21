@@ -4,9 +4,10 @@
   "description": "Server for Kushtia Charukola",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "nodemon",
-    "build": "tsc --skipLibCheck --noEmitOnError",
+    "start": "NODE_ENV=production node dist/index.js",
+    "dev": "NODE_ENV=development nodemon",
+    "build": "rimraf dist && tsc",
+    "postbuild": "cp package.json dist/ && cd dist && npm install --production",
     "watch": "tsc -w",
     "lint": "eslint .",
     "format": "prettier --write ."
@@ -71,6 +72,7 @@
     "eslint": "^8.40.0",
     "nodemon": "^3.0.3",
     "prettier": "^2.8.8",
+    "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
