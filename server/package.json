@@ -9,8 +9,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "NODE_ENV=development nodemon",
-    "build": "rimraf index.js && rimraf config && rimraf constants && rimraf controllers && rimraf middleware && rimraf models && rimraf routes && rimraf services && rimraf types && rimraf utils && rimraf validators && tsc",
-    "postbuild": "npm ci --legacy-peer-deps --production",
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "postbuild": "mkdir -p dist && cp package*.json dist/ && cd dist && npm ci --legacy-peer-deps --production",
     "watch": "tsc -w",
     "lint": "eslint .",
     "format": "prettier --write ."

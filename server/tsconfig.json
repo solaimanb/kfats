@@ -8,7 +8,7 @@
     ],
     "skipLibCheck": true,
     "sourceMap": true,
-    "outDir": ".",
+    "outDir": "./dist",
     "rootDir": "./src",
     "moduleResolution": "node",
     "removeComments": true,
@@ -37,5 +37,6 @@
   ],
   "exclude": [
     "node_modules",
+    "dist"
   ]
 }
