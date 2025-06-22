@@ -2,15 +2,15 @@
   "name": "kushtia-charukola-server",
   "version": "1.0.0",
   "description": "Server for Kushtia Charukola",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "engines": {
-    "node": "20.x"
+    "node": ">=20.0.0 <21.0.0"
   },
   "scripts": {
-    "start": "node index.js",
+    "start": "node dist/index.js",
     "dev": "NODE_ENV=development nodemon",
     "build": "rimraf dist && tsc -p tsconfig.build.json",
-    "postbuild": "mkdir -p dist && cp package*.json dist/ && cd dist && npm ci --legacy-peer-deps --production",
+    "postbuild": "cp -r src/templates dist/ && cp package*.json dist/ && cd dist && npm ci --omit=dev && cd ..",
     "watch": "tsc -w",
     "lint": "eslint .",
     "format": "prettier --write ."
