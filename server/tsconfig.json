@@ -4,8 +4,7 @@
     "module": "commonjs",
     "lib": [
       "es2017",
-      "esnext.asynciterable",
-      "dom"
+      "esnext.asynciterable"
     ],
     "skipLibCheck": true,
     "sourceMap": true,
@@ -32,9 +31,7 @@
       "./src/types"
     ],
     "types": [
-      "node",
-      "express",
-      "multer"
+      "node"
     ],
     "paths": {
       "*": [

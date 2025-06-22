@@ -127,7 +127,7 @@ export const handleMultipleImageUpload = (
           return next(error);
         }
 
-        if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
+        if (!Array.isArray(req.files) || req.files.length === 0) {
           return next(new AppError("No files uploaded", 400));
         }
 
