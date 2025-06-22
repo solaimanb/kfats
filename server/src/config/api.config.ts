@@ -28,8 +28,10 @@ export const swaggerDefinition = {
   },
   servers: [
     {
-      url: `http://localhost:${process.env.PORT || 5000}${API_PREFIX}`,
-      description: "Development server",
+      url: process.env.NODE_ENV === 'production'
+        ? process.env.APP_URL + API_PREFIX
+        : `http://localhost:${process.env.PORT || 5000}${API_PREFIX}`,
+      description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
   components: {
