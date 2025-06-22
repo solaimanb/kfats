@@ -19,7 +19,7 @@ export const signToken = (payload: Omit<JWTPayload, "iat" | "exp">) => {
 export const verifyToken = async (token: string): Promise<JWTPayload> => {
   try {
     const decoded = await new Promise<JWTPayload>((resolve, reject) => {
-      jwt.verify(token, config.jwt.secret as Secret, (err, decoded) => {
+      jwt.verify(token, config.jwt.secret as Secret, (err: jwt.VerifyErrors | null, decoded: any) => {
         if (err) reject(err);
         else resolve(decoded as JWTPayload);
       });
