@@ -6,6 +6,10 @@ export const API_PREFIX = `/api/${API_VERSION}`;
 export const swaggerConfig: SwaggerOptions = {
   swaggerOptions: {
     persistAuthorization: true,
+    displayRequestDuration: true,
+    docExpansion: 'list',
+    filter: true,
+    showCommonExtensions: true
   },
   customCss: ".swagger-ui .topbar { display: none }",
   customSiteTitle: "Kushtia Charukola API Documentation",
@@ -29,9 +33,14 @@ export const swaggerDefinition = {
   servers: [
     {
       url: process.env.NODE_ENV === 'production'
-        ? process.env.APP_URL || ''
+        ? process.env.APP_URL || 'https://kfats-49p7.onrender.com'
         : `http://localhost:${process.env.PORT || 5000}`,
       description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+    },
+  ],
+  security: [
+    {
+      BearerAuth: [],
     },
   ],
   components: {
@@ -100,6 +109,7 @@ export const swaggerDefinition = {
         type: "http",
         scheme: "bearer",
         bearerFormat: "JWT",
+        description: "Enter your JWT token in the format: Bearer <token>"
       },
       GoogleOAuth: {
         type: "oauth2",
