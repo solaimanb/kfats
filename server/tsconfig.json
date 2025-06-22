@@ -1,49 +1,28 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "ES2020",
     "module": "commonjs",
-    "lib": [
-      "es2017",
-      "esnext.asynciterable"
-    ],
-    "skipLibCheck": true,
-    "sourceMap": true,
+    "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "./src",
+    "strict": true,
     "moduleResolution": "node",
-    "removeComments": true,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "removeComments": false,
+    "sourceMap": true,
+    "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
-    ],
-    "types": [
-      "node"
-    ],
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "./src",
     "paths": {
-      "*": [
-        "node_modules/*"
-      ]
-    }
+      "@/*": ["*"]
+    },
+    "incremental": true
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

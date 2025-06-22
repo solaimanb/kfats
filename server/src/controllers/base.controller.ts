@@ -1,14 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { BaseService } from '../services/base.service';
+import { Document } from 'mongoose';
 
-export class BaseController {
-  protected service: BaseService;
+export abstract class BaseController<T extends Document> {
+  constructor(protected service: BaseService<T>) {}
 
-  constructor(service: BaseService) {
-    this.service = service;
-  }
-
-  create = async (req: Request, res: Response, next: NextFunction) => {
+  create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data = await this.service.create(req.body);
       res.status(201).json({
@@ -20,7 +17,7 @@ export class BaseController {
     }
   };
 
-  getAll = async (req: Request, res: Response, next: NextFunction) => {
+  getAll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data = await this.service.findWithPagination(req.query);
       res.status(200).json({
@@ -32,7 +29,7 @@ export class BaseController {
     }
   };
 
-  getById = async (req: Request, res: Response, next: NextFunction) => {
+  getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data = await this.service.findById(req.params.id);
       res.status(200).json({
@@ -44,7 +41,7 @@ export class BaseController {
     }
   };
 
-  update = async (req: Request, res: Response, next: NextFunction) => {
+  update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const data = await this.service.update(req.params.id, req.body);
       res.status(200).json({
@@ -56,7 +53,7 @@ export class BaseController {
     }
   };
 
-  delete = async (req: Request, res: Response, next: NextFunction) => {
+  delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.service.delete(req.params.id);
       res.status(204).json({

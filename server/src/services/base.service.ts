@@ -1,6 +1,7 @@
-import { Model, FilterQuery, QueryOptions } from 'mongoose';
+import { Model, FilterQuery, QueryOptions, Document, UpdateQuery } from 'mongoose';
 import { createError } from '../utils/error.util';
 import { config } from '../config';
+import { MongoError } from 'mongodb';
 
 export interface PaginationOptions {
   page?: number;
@@ -10,10 +11,10 @@ export interface PaginationOptions {
   select?: string;
 }
 
-export class BaseService {
-  protected model: Model<any>;
+export class BaseService<T extends Document> {
+  protected model: Model<T>;
 
-  constructor(model: Model<any>) {
+  constructor(model: Model<T>) {
     this.model = model;
   }
 
@@ -68,33 +69,28 @@ export class BaseService {
     }
   }
 
-  async create(data: any) {
+  async create(data: Partial<T>): Promise<T> {
     try {
       const doc = await this.model.create(data);
       return doc;
     } catch (err) {
-      if (err.code === 11000) {
+      if (err instanceof MongoError && err.code === 11000) {
         throw createError(400, `${this.model.modelName} with this data already exists`);
       }
       throw createError(500, `Error creating ${this.model.modelName}`);
     }
   }
 
-  async update(id: string, data: any, options: QueryOptions = {}) {
+  async update(
+    id: string,
+    data: UpdateQuery<T>,
+    options: QueryOptions = { new: true, runValidators: true }
+  ): Promise<T | null> {
     try {
-      const doc = await this.model.findByIdAndUpdate(
-        id,
-        data,
-        { new: true, runValidators: true, ...options }
-      );
-
-      if (!doc) {
-        throw createError(404, `${this.model.modelName} not found`);
-      }
-
+      const doc = await this.model.findByIdAndUpdate(id, data, options);
       return doc;
     } catch (err) {
-      if (err.code === 11000) {
+      if (err instanceof MongoError && err.code === 11000) {
         throw createError(400, `${this.model.modelName} with this data already exists`);
       }
       throw createError(500, `Error updating ${this.model.modelName}`);

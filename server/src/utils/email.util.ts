@@ -3,6 +3,8 @@ import { readFile, readdir } from "fs/promises";
 import { join } from "path";
 import handlebars from "handlebars";
 import { config } from "../config";
+import hbs from "nodemailer-express-handlebars";
+import path from "path";
 
 interface EmailOptions {
   to: string;
@@ -17,51 +19,37 @@ interface BaseEmailContext {
   supportEmail: string;
 }
 
-class Email {
+export class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor() {
-    this.initializeTransporter().catch((err) => {
-      console.error("Failed to initialize email transporter:", err);
+    this.transporter = nodemailer.createTransport({
+      host: config.email.host,
+      port: config.email.port,
+      auth: {
+        user: config.email.user,
+        pass: config.email.password,
+      },
     });
+
+    // Configure Handlebars
+    const handlebarOptions: hbs.NodemailerExpressHandlebarsOptions = {
+      viewEngine: {
+        partialsDir: path.resolve("./src/templates/email/layouts"),
+        layoutsDir: path.resolve("./src/templates/email/layouts"),
+        defaultLayout: "base",
+        extname: ".hbs",
+      },
+      viewPath: path.resolve("./src/templates/email"),
+      extName: ".hbs",
+    };
+
+    this.transporter.use("compile", hbs(handlebarOptions));
 
     // Register handlebars partials
     this.registerPartials().catch((err) => {
       console.error("Failed to register partials:", err);
     });
-  }
-
-  private async initializeTransporter(): Promise<void> {
-    if (process.env.NODE_ENV === "development") {
-      // Create a test account for development
-      const testAccount = await nodemailer.createTestAccount();
-      console.log("Ethereal Email credentials:", {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      });
-
-      this.transporter = nodemailer.createTransport({
-        host: testAccount.smtp.host,
-        port: testAccount.smtp.port,
-        secure: testAccount.smtp.secure,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-        logger: true,
-        debug: true,
-      });
-    } else {
-      this.transporter = nodemailer.createTransport({
-        host: config.email.host,
-        port: config.email.port,
-        secure: false,
-        auth: {
-          user: config.email.user,
-          pass: config.email.password,
-        },
-      });
-    }
   }
 
   private async registerPartials(): Promise<void> {
@@ -269,4 +257,4 @@ class Email {
   }
 }
 
-export const emailService = new Email();
+export const emailService = new EmailService();
