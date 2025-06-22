@@ -88,6 +88,10 @@ export const handleSingleImageUpload = (fieldName: string) => {
           return next(new AppError("No file uploaded", 400));
         }
 
+        if (!req.file.buffer) {
+          return next(new AppError("No file buffer found", 400));
+        }
+
         try {
           // Upload to Cloudinary
           const result = await uploadToCloudinary(req.file.buffer, {
@@ -133,11 +137,14 @@ export const handleMultipleImageUpload = (
 
         try {
           // Upload all files to Cloudinary
-          const uploadPromises = req.files.map((file) =>
-            uploadToCloudinary(file.buffer, {
+          const uploadPromises = req.files.map((file) => {
+            if (!file.buffer) {
+              throw new AppError("No file buffer found", 400);
+            }
+            return uploadToCloudinary(file.buffer, {
               folder: fieldName,
-            })
-          );
+            });
+          });
 
           const results = await Promise.all(uploadPromises);
 
@@ -175,6 +182,10 @@ export const handleSingleDocumentUpload = (fieldName: string) => {
           return next(new AppError("No file uploaded", 400));
         }
 
+        if (!req.file.buffer) {
+          return next(new AppError("No file buffer found", 400));
+        }
+
         try {
           // Upload to Cloudinary
           const result = await uploadToCloudinary(req.file.buffer, {
@@ -198,3 +209,5 @@ export const handleSingleDocumentUpload = (fieldName: string) => {
     }
   };
 };
+
+

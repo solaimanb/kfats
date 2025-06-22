@@ -1,15 +1,13 @@
 import passport from "passport";
-import {
-  Strategy as GoogleStrategy,
-  Profile,
-  VerifyCallback,
-} from "passport-google-oauth20";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 import { config } from "./index";
 import { UserModel } from "../models/user.model";
 import { UserStatus } from "./rbac/types";
 import { AuthUser, JWTPayload } from "../types/auth.types";
 import { AuthenticationError } from "../utils/error.util";
+import { Request } from "express";
+import { VerifyCallback } from "passport-oauth2";
 
 // Extend Express User type to match our AuthUser
 declare global {
@@ -44,32 +42,19 @@ const processUser = async (user: AuthUser | null, done: VerifyCallback) => {
 passport.use(
   new JwtStrategy(
     {
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
-        (req) => req.cookies?.accessToken || null,
-      ]),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: config.jwt.secret,
+      passReqToCallback: true,
     },
-    async (payload: JWTPayload, done: VerifyCallback) => {
+    async (req: Request, payload: any, done: VerifyCallback) => {
       try {
-        const user = await UserModel.findById(payload.id).select("+security");
-
-        if (user?.security.passwordChangedAt && payload.iat) {
-          const changedTimestamp =
-            user.security.passwordChangedAt.getTime() / 1000;
-          if (payload.iat < changedTimestamp) {
-            return done(
-              new AuthenticationError(
-                "Password recently changed, please log in again"
-              ),
-              false
-            );
-          }
+        const user = await UserModel.findById(payload.id);
+        if (!user) {
+          return done(null, false);
         }
-
-        return processUser(user, done);
-      } catch (error) {
-        return handlePassportError(error, done);
+        return done(null, user);
+      } catch (err) {
+        return done(err, false);
       }
     }
   )
@@ -85,59 +70,33 @@ if (config.google.clientId && config.google.clientSecret) {
         callbackURL: config.google.callbackUrl,
         passReqToCallback: true,
       },
-      async (
-        _req,
-        _accessToken: string,
-        _refreshToken: string,
-        profile: Profile,
-        done: VerifyCallback
-      ) => {
+      async (_req: Request, accessToken: string, refreshToken: string, profile: any, done: VerifyCallback) => {
         try {
-          const email = profile.emails?.[0].value;
-          if (!email) {
-            return done(
-              new AuthenticationError("No email provided from Google"),
-              false
-            );
-          }
-
-          // Check if user already exists
-          let user = await UserModel.findOne({ email });
+          // Check if user exists
+          let user = await UserModel.findOne({ email: profile.emails[0].value });
 
           if (user) {
-            // Update user's Google-specific information
-            user.googleId = profile.id;
-            if (profile.photos?.[0]?.value) {
-              user.profile.avatar = profile.photos[0].value;
+            // Update Google ID if not set
+            if (!user.googleId) {
+              user.googleId = profile.id;
+              await user.save();
             }
-            await user.save();
-            return processUser(user, done);
+            return done(null, user);
           }
 
           // Create new user
           user = await UserModel.create({
-            email,
-            profile: {
-              firstName: profile.name?.givenName || "",
-              lastName: profile.name?.familyName || "",
-              avatar: profile.photos?.[0]?.value,
-            },
+            email: profile.emails[0].value,
+            firstName: profile.name.givenName,
+            lastName: profile.name.familyName,
             googleId: profile.id,
-            emailVerified: true,
-            status: UserStatus.ACTIVE,
-            roles: ["student"],
-            preferences: {
-              language: "en",
-              timezone: "UTC",
-              emailNotifications: true,
-              pushNotifications: true,
-              theme: "light",
-            },
+            isEmailVerified: true,
+            avatar: profile.photos[0]?.value,
           });
 
-          return processUser(user, done);
-        } catch (error) {
-          return handlePassportError(error, done);
+          return done(null, user);
+        } catch (err) {
+          return done(err, false);
         }
       }
     )
@@ -147,16 +106,19 @@ if (config.google.clientId && config.google.clientSecret) {
 }
 
 // Serialization
-passport.serializeUser((user: AuthUser, done) => {
-  done(null, user._id);
+passport.serializeUser((user: any, done: VerifyCallback) => {
+  done(null, user.id);
 });
 
 // Deserialization
-passport.deserializeUser(async (id: string, done) => {
+passport.deserializeUser(async (id: string, done: VerifyCallback) => {
   try {
     const user = await UserModel.findById(id);
-    return processUser(user, done);
-  } catch (error) {
-    return handlePassportError(error, done);
+    if (!user) {
+      return done(null, false);
+    }
+    return done(null, user);
+  } catch (err) {
+    return done(err, false);
   }
 });
