@@ -8,6 +8,7 @@ import path from "path";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 import passport from "passport";
 import cookieParser from "cookie-parser";
 import { config } from "./config";
@@ -83,13 +84,21 @@ app.use(requestTimeout(30000)); // 30 seconds timeout
 // Session setup for OAuth
 app.use(
   session({
-    secret: process.env.JWT_SECRET || "kushtia_charukola_fallback_secret",
+    secret: config.session.secret,
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: config.mongodb.uri,
+      collectionName: 'sessions',
+      ttl: 24 * 60 * 60, // 1 day
+      autoRemove: 'native',
+      touchAfter: 24 * 3600 // 24 hours
+    }),
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 1 day
+      sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax'
     },
   })
 );

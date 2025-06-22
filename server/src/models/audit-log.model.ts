@@ -36,7 +36,6 @@ const auditLogSchema = new Schema<IAuditLog>(
     timestamp: {
       type: Date,
       default: Date.now,
-      index: true,
     },
     status: {
       type: String,
@@ -77,7 +76,6 @@ const auditLogSchema = new Schema<IAuditLog>(
 
 // Create indexes for common queries
 auditLogSchema.index({ userId: 1, action: 1 });
-auditLogSchema.index({ timestamp: -1 });
 auditLogSchema.index({ status: 1, timestamp: -1 });
 
 // Add TTL index to automatically delete old logs (e.g., after 90 days)

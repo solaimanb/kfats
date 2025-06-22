@@ -1,52 +1,60 @@
 services:
   - type: web
-    name: kfats-server
+    name: kushtia-charukola-api
     env: node
     region: singapore
     plan: free
-    rootDir: server
-    buildCommand: |
-      npm ci --include=dev
-      npm run build
-    startCommand: npm start
+    buildCommand: cd server && npm ci --include=dev && npm run build
+    startCommand: cd server/dist && node index.js
+    healthCheckPath: /health
     envVars:
-      - key: NODE_VERSION
-        value: 20.11.0
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: "10000"
       - key: APP_NAME
-        value: "Kushtia Charukola"
+        value: Kushtia Charukola API
       - key: APP_URL
-        value: "https://kfats-49p7.onrender.com"
+        value: https://kfats-api.onrender.com
       - key: CLIENT_URL
-        value: "https://kfats.onrender.com"
+        value: https://kfats.vercel.app
+      - key: PORT
+        value: 10000
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_COOKIE_EXPIRES_IN
+        value: 7
+      - key: JWT_SECRET
+        sync: false
       - key: SESSION_SECRET
         sync: false
       - key: MONGO_URI
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: JWT_EXPIRES_IN
-        value: "7d"
-      - key: JWT_COOKIE_EXPIRES_IN
-        value: "7"
-      - key: CORS_ORIGIN
         sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_CALLBACK_URL
+        value: https://kfats-api.onrender.com/api/v1/gAuth/callback
+      - key: EMAIL_HOST
         sync: false
-      - key: SMTP_HOST
+      - key: EMAIL_PORT
         sync: false
-      - key: SMTP_PORT
+      - key: EMAIL_USER
         sync: false
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
+      - key: EMAIL_PASSWORD
         sync: false
       - key: EMAIL_FROM
-        sync: false 
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: DEFAULT_PAGE
+        value: 1
+      - key: DEFAULT_LIMIT
+        value: 10
+      - key: RATE_LIMIT_WINDOW
+        value: 900000
+      - key: RATE_LIMIT_MAX
+        value: 100 
