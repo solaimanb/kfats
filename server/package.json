@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "NODE_ENV=development nodemon",
+    "prebuild": "npm i --save-dev @types/swagger-ui-express @types/passport @types/passport-google-oauth20 @types/passport-jwt @types/passport-oauth2 @types/swagger-jsdoc @types/cors @types/compression @types/express-session @types/uuid @types/multer @types/jsonwebtoken @types/nodemailer @types/nodemailer-express-handlebars @types/morgan",
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "postbuild": "cp -r src/templates dist/ && mkdir -p dist/routes dist/models && cp src/routes/* dist/routes/ && cp src/models/* dist/models/ && cp package.json dist/",
     "watch": "tsc -w",
