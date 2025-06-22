@@ -29,8 +29,8 @@ export const swaggerDefinition = {
   servers: [
     {
       url: process.env.NODE_ENV === 'production'
-        ? process.env.APP_URL + API_PREFIX
-        : `http://localhost:${process.env.PORT || 5000}${API_PREFIX}`,
+        ? process.env.APP_URL || ''
+        : `http://localhost:${process.env.PORT || 5000}`,
       description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
     },
   ],
@@ -45,8 +45,8 @@ export const swaggerDefinition = {
         type: "oauth2",
         flows: {
           authorizationCode: {
-            authorizationUrl: "/api/v1/gAuth/google",
-            tokenUrl: "/api/v1/gAuth/tokens",
+            authorizationUrl: `${API_PREFIX}/gAuth/google`,
+            tokenUrl: `${API_PREFIX}/gAuth/tokens`,
             scopes: {
               "profile email": "Read user profile and email",
             },

@@ -5,11 +5,9 @@ import path from "path";
 const options = {
   swaggerDefinition,
   apis: [
-    path.join(__dirname, "../routes/*.js"),
-    path.join(__dirname, "../models/*.js"),
-    path.join(__dirname, "../routes/*.ts"),
-    path.join(__dirname, "../models/*.ts")
-  ],
+    path.join(process.cwd(), process.env.NODE_ENV === 'production' ? 'dist' : 'src', 'routes', '*.{js,ts}'),
+    path.join(process.cwd(), process.env.NODE_ENV === 'production' ? 'dist' : 'src', 'models', '*.{js,ts}')
+  ]
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
