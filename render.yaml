@@ -6,7 +6,7 @@ services:
     plan: free
     rootDir: server
     buildCommand: |
-      npm ci
+      npm ci --include=dev
       npm run build
     startCommand: npm start
     envVars:
@@ -16,6 +16,14 @@ services:
         value: production
       - key: PORT
         value: "10000"
+      - key: APP_NAME
+        value: "Kushtia Charukola"
+      - key: APP_URL
+        value: "https://kfats-49p7.onrender.com"
+      - key: CLIENT_URL
+        value: "https://kfats.onrender.com"
+      - key: SESSION_SECRET
+        sync: false
       - key: MONGO_URI
         sync: false
       - key: JWT_SECRET
