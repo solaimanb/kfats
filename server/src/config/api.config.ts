@@ -35,6 +35,66 @@ export const swaggerDefinition = {
     },
   ],
   components: {
+    schemas: {
+      User: {
+        type: "object",
+        properties: {
+          _id: {
+            type: "string",
+            format: "uuid",
+            description: "User ID"
+          },
+          email: {
+            type: "string",
+            format: "email",
+            description: "User's email address"
+          },
+          roles: {
+            type: "array",
+            items: {
+              type: "string",
+              enum: ["user", "admin", "mentor", "seller", "writer"]
+            },
+            description: "User roles"
+          },
+          status: {
+            type: "string",
+            enum: ["active", "inactive", "pending_verification", "suspended"],
+            description: "User account status"
+          },
+          profile: {
+            type: "object",
+            properties: {
+              firstName: { type: "string" },
+              lastName: { type: "string" },
+              phone: { type: "string" },
+              avatar: { type: "string" },
+              bio: { type: "string" }
+            }
+          },
+          emailVerified: { type: "boolean" },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" }
+        }
+      },
+      Error: {
+        type: "object",
+        properties: {
+          status: { type: "string", example: "error" },
+          message: { type: "string" },
+          errors: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                field: { type: "string" },
+                message: { type: "string" }
+              }
+            }
+          }
+        }
+      }
+    },
     securitySchemes: {
       BearerAuth: {
         type: "http",
