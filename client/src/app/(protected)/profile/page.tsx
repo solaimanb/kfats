@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/auth/use-auth';
 import { useEffect } from "react";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     console.log("[Profile] Component mounted");
@@ -14,6 +14,10 @@ export default function ProfilePage() {
       hasProfile: !!user.profile
     } : "No user");
   }, [user]);
+
+  if (isLoading) {
+    return null;
+  }
 
   if (!user) {
     console.log("[Profile] No user data, returning null");

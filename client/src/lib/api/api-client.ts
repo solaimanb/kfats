@@ -79,6 +79,21 @@ class ApiClient {
   }
 
   private setupInterceptors(): void {
+    // Request interceptor to add token
+    this.axiosInstance.interceptors.request.use(
+      (config) => {
+        const token = document.cookie.split('; ').find(row => row.startsWith('accessToken='))?.split('=')[1];
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
+
+    // Response interceptor
     this.axiosInstance.interceptors.response.use(
       (response) => {
         // Check RBAC version compatibility

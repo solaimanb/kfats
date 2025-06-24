@@ -23,6 +23,7 @@ import { authService } from "@/lib/api/services";
 // Storage utilities
 const Storage = {
   USER_KEY: "auth_user_cache",
+  TOKEN_KEY: "accessToken",
 
   getUser: () => {
     try {
@@ -37,10 +38,13 @@ const Storage = {
     }
   },
 
-  setUser: (user: AuthState["user"]) => {
+  setUser: (user: AuthState["user"], token?: string) => {
     try {
       const value = encodeURIComponent(JSON.stringify(user));
       document.cookie = `${Storage.USER_KEY}=${value}; path=/; secure; samesite=lax; max-age=3600`;
+      if (token) {
+        document.cookie = `${Storage.TOKEN_KEY}=${token}; path=/; secure; samesite=lax; max-age=3600`;
+      }
     } catch {
       // Ignore storage errors
     }
@@ -49,6 +53,7 @@ const Storage = {
   clearUser: () => {
     try {
       document.cookie = `${Storage.USER_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      document.cookie = `${Storage.TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
     } catch {
       // Ignore storage errors
     }
@@ -100,15 +105,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(initialState);
   const router = useRouter();
 
+  // State management utilities
+  const clearAuthState = useCallback(() => {
+    Storage.clearUser();
+    setState(initialState);
+  }, []);
+
   // Initialize auth state from storage
   useEffect(() => {
-    const user = Storage.getUser();
-    setState({
-      user,
-      isLoading: false,
-      error: null,
-    });
-  }, []);
+    const initializeAuth = async () => {
+      try {
+        const user = Storage.getUser();
+        if (user) {
+          // Verify the token is still valid and get latest user data
+          const response = await authService.validateToken();
+          
+          if (!response.data?.user) {
+            console.error('No user data in validation response');
+            clearAuthState();
+            return;
+          }
+
+          // Update user data from verification response
+          const updatedUser = response.data.user;
+          Storage.setUser(updatedUser);
+          setState({
+            user: updatedUser,
+            isLoading: false,
+            error: null,
+          });
+          return;
+        }
+        
+        setState({
+          user: null,
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        clearAuthState();
+      }
+    };
+
+    initializeAuth();
+  }, [clearAuthState]);
+
+  // Add a periodic token check
+  useEffect(() => {
+    if (!state.user) return;
+
+    const checkToken = async () => {
+      try {
+        const response = await authService.validateToken();
+        
+        if (!response.data?.user) {
+          clearAuthState();
+          router.push('/login');
+          return;
+        }
+
+        // Update user data from verification response
+        Storage.setUser(response.data.user);
+        setState({
+          user: response.data.user,
+          isLoading: false,
+          error: null,
+        });
+      } catch {
+        clearAuthState();
+        router.push('/login');
+      }
+    };
+
+    const interval = setInterval(checkToken, 5 * 60 * 1000); // Check every 5 minutes
+    return () => clearInterval(interval);
+  }, [state.user, clearAuthState, router]);
 
   // Error handling utility
   const handleError = (error: unknown, defaultMessage: string) => {
@@ -134,11 +206,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const clearAuthState = useCallback(() => {
-    Storage.clearUser();
-    setState(initialState);
-  }, []);
-
   // Auth handlers
   const handleLogout = useCallback(async () => {
     try {
@@ -156,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       startLoading();
       const response = await authService.login(credentials);
 
-      if (!response.data?.user) {
+      if (!response.data?.user || !response.data?.accessToken) {
         throw new Error("Invalid response from server");
       }
 
@@ -165,7 +232,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         roles: response.data.user.roles as UserRole[]
       };
 
-      updateAuthState(user);
+      Storage.setUser(user, response.data.accessToken);
+      setState({
+        user,
+        isLoading: false,
+        error: null,
+      });
       
       const redirectPath = RoleUtils.getRedirectPath(user.roles);
       router.push(redirectPath);
