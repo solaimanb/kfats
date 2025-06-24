@@ -91,13 +91,19 @@ export class AuthController {
   );
 
   static logout = catchAsync(
-    async (_req: Request, res: Response, _next: NextFunction) => {
+    async (req: Request, res: Response, _next: NextFunction) => {
       // Clear both refresh token and access token cookies
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", {
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        httpOnly: true
+      });
       res.clearCookie("accessToken", {
         path: '/',
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax"
+        sameSite: "lax",
+        httpOnly: true
       });
       res.clearCookie("auth_user_cache", {
         path: '/',

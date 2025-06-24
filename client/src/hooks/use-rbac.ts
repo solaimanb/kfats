@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAuth } from '@/contexts/auth-context/auth-context';
+import { useAuth } from '@/hooks/auth/use-auth';
 import {
   ResourceType,
   PermissionAction,

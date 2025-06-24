@@ -46,6 +46,11 @@ export const protect = catchAsync(
       authRateLimiter(req as RateLimitRequest, res, resolve as NextFunction)
     );
 
+    // Check for access token in cookie
+    if (!req.cookies.accessToken && !req.headers.authorization) {
+      return next(new AuthenticationError("Not authenticated"));
+    }
+
     // Authenticate using Passport JWT strategy
     passport.authenticate(
       "jwt",

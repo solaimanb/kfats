@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/auth-context/auth-context";
+import { useAuth } from '@/hooks/auth/use-auth';
 import { UserRole } from "@/config/rbac/types";
 
 // Dashboard-specific redirects
