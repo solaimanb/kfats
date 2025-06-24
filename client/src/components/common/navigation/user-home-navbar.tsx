@@ -12,7 +12,6 @@ import {
   AiOutlineMenu,
 } from "react-icons/ai";
 import { useAuth } from '@/hooks/auth/use-auth';
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -27,7 +26,6 @@ import { Input } from "@/components/ui/input";
 export default function UserHomeNavbar() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const { user, logout, isLoading } = useAuth();
-  const router = useRouter();
 
   // Role-based dashboard link
   const getDashboardLink = () => {
