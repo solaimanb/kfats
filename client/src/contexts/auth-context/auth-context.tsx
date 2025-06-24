@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -18,11 +18,6 @@ import { ResourceType, PermissionAction } from "@/types";
 
 import { DEFAULT_REDIRECTS } from "@/config/routes";
 import { roleHasPermission } from "@/config/rbac/roles";
-import {
-  getAccessToken,
-  setAccessToken,
-  removeAccessToken,
-} from "@/lib/utils/token";
 import { authService } from "@/lib/api/services";
 
 // Storage utilities
@@ -60,20 +55,24 @@ const Storage = {
   },
 };
 
-// Role and permission utilities
+// Role utilities
 const RoleUtils = {
   getRedirectPath: (roles: UserRole[]): string => {
-    const priorityOrder = [
-      UserRole.ADMIN,
-      UserRole.MENTOR,
-      UserRole.WRITER,
-      UserRole.SELLER,
-      UserRole.STUDENT,
-      UserRole.USER,
-    ];
+    if (!roles || roles.length === 0) return DEFAULT_REDIRECTS.user;
+    const primaryRole = roles[0];
+    return DEFAULT_REDIRECTS[primaryRole] || DEFAULT_REDIRECTS.user;
+  },
 
-    const highestRole = priorityOrder.find((role) => roles.includes(role));
-    return DEFAULT_REDIRECTS[highestRole || UserRole.USER];
+  checkRole: (user: AuthState["user"], role: UserRole): boolean => {
+    return user?.roles?.includes(role) || false;
+  },
+
+  checkAnyRole: (user: AuthState["user"], roles: UserRole[]): boolean => {
+    return user?.roles?.some(role => roles.includes(role)) || false;
+  },
+
+  checkAllRoles: (user: AuthState["user"], roles: UserRole[]): boolean => {
+    return user?.roles?.every(role => roles.includes(role)) || false;
   },
 
   checkPermission: (
@@ -81,31 +80,19 @@ const RoleUtils = {
     resource: ResourceType,
     action: PermissionAction
   ): boolean => {
-    if (!user) return false;
-    return user.roles.some((role) =>
-      roleHasPermission(role, resource, action)
-    );
+    if (!user?.roles) return false;
+    return user.roles.some(role => roleHasPermission(role, resource, action));
   },
-
-  checkRole: (user: AuthState["user"], role: UserRole): boolean =>
-    user?.roles?.includes(role) || false,
-
-  checkAnyRole: (user: AuthState["user"], roles: UserRole[]): boolean =>
-    user?.roles?.some((r) => roles.includes(r)) || false,
-
-  checkAllRoles: (user: AuthState["user"], roles: UserRole[]): boolean =>
-    user?.roles?.every((r) => roles.includes(r)) || false,
 };
 
 // Initial state
 const initialState: AuthState = {
   user: null,
-  accessToken: null,
   isLoading: true,
   error: null,
 };
 
-// Context creation
+// Create context
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider component
@@ -116,11 +103,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state from storage
   useEffect(() => {
     const user = Storage.getUser();
-    const accessToken = getAccessToken();
-
     setState({
       user,
-      accessToken,
       isLoading: false,
       error: null,
     });
@@ -141,20 +125,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearError = () => setState((prev) => ({ ...prev, error: null }));
 
   // Auth state management
-  const updateAuthState = (user: AuthState["user"], accessToken: string) => {
-    setAccessToken(accessToken);
+  const updateAuthState = (user: AuthState["user"]) => {
     Storage.setUser(user);
-
     setState({
       user,
-      accessToken,
       isLoading: false,
       error: null,
     });
   };
 
   const clearAuthState = useCallback(() => {
-    removeAccessToken();
     Storage.clearUser();
     setState(initialState);
   }, []);
@@ -176,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       startLoading();
       const response = await authService.login(credentials);
 
-      if (!response.data?.accessToken || !response.data?.user) {
+      if (!response.data?.user) {
         throw new Error("Invalid response from server");
       }
 
@@ -185,7 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         roles: response.data.user.roles as UserRole[]
       };
 
-      updateAuthState(user, response.data.accessToken);
+      updateAuthState(user);
       
       const redirectPath = RoleUtils.getRedirectPath(user.roles);
       router.push(redirectPath);
@@ -200,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       startLoading();
       const response = await authService.register(data);
 
-      if (!response.data?.accessToken || !response.data?.user) {
+      if (!response.data?.user) {
         throw new Error("Invalid response from server");
       }
 
@@ -209,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         roles: response.data.user.roles as UserRole[]
       };
 
-      updateAuthState(user, response.data.accessToken);
+      updateAuthState(user);
       router.push(RoleUtils.getRedirectPath(user.roles));
       router.refresh();
     } catch (error) {
@@ -275,13 +255,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-// Hook
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 }

@@ -222,7 +222,7 @@ export class AuthService {
     if (refreshToken) {
       // Revoke specific refresh token
       await RefreshTokenModel.updateOne(
-        { user: userId, token: refreshToken },
+        { user: userId, token: refreshToken, isRevoked: false },
         { isRevoked: true }
       );
     } else {

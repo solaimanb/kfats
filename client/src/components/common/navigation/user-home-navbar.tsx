@@ -11,7 +11,7 @@ import {
   AiOutlineLogout,
   AiOutlineMenu,
 } from "react-icons/ai";
-import { useAuth } from "@/contexts/auth-context/auth-context";
+import { useAuth } from '@/hooks/auth/use-auth';
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
