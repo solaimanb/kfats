@@ -45,10 +45,6 @@ export default function UserHomeNavbar() {
     await logout();
   };
 
-  const handleProfileClick = () => {
-    router.push("/profile");
-  };
-
   return (
     <header className="bg-[#fff5eb] shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -153,11 +149,10 @@ export default function UserHomeNavbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-white">
-                <DropdownMenuItem
-                  onClick={handleProfileClick}
-                  className="hover:text-kc-green"
-                >
-                  Profile
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="hover:text-kc-green w-full">
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={handleLogout}
@@ -170,12 +165,12 @@ export default function UserHomeNavbar() {
             </DropdownMenu>
           ) : (
             <Link href="/login">
-            <Button
-              variant="default"
-              className="bg-kc-orange hover:bg-kc-orange/90 text-white border-none"
-            >
+              <Button
+                variant="default"
+                className="bg-kc-orange hover:bg-kc-orange/90 text-white border-none"
+              >
                 Login
-            </Button>
+              </Button>
             </Link>
           )}
         </nav>
@@ -234,13 +229,14 @@ export default function UserHomeNavbar() {
               {!isLoading &&
                 (user ? (
                   <>
-                    <Button
-                      variant="ghost"
-                      onClick={handleProfileClick}
-                      className="justify-start text-black hover:text-kc-green hover:bg-transparent"
-                    >
-                      👤 {user.profile.firstName}
-                    </Button>
+                    <Link href="/profile" className="w-full">
+                      <Button
+                        variant="ghost"
+                        className="justify-start text-black hover:text-kc-green hover:bg-transparent w-full"
+                      >
+                        👤 {user.profile.firstName}
+                      </Button>
+                    </Link>
                     <Button
                       variant="ghost"
                       onClick={handleLogout}
@@ -252,12 +248,12 @@ export default function UserHomeNavbar() {
                   </>
                 ) : (
                   <Link href="/login">
-                  <Button
-                    variant="default"
-                    className="bg-kc-orange hover:bg-kc-orange/90 text-white border-none"
-                  >
+                    <Button
+                      variant="default"
+                      className="bg-kc-orange hover:bg-kc-orange/90 text-white border-none"
+                    >
                       Login
-                  </Button>
+                    </Button>
                   </Link>
                 ))}
 
@@ -266,21 +262,21 @@ export default function UserHomeNavbar() {
                   <h3 className="mb-2 font-medium text-black">Join as</h3>
                   <div className="ml-4 flex flex-col gap-2">
                     <Link
-                      href="/become-mentor"
+                      href="/role-application/become-mentor"
                       onClick={() => setSheetOpen(false)}
                       className="flex items-center text-black hover:text-kc-green"
                     >
                       ✅ Become a Mentor
                     </Link>
                     <Link
-                      href="/become-seller"
+                      href="/role-application/become-seller"
                       onClick={() => setSheetOpen(false)}
                       className="flex items-center text-black hover:text-kc-green"
                     >
                       🛍️ Become a Seller
                     </Link>
                     <Link
-                      href="/become-writer"
+                      href="/role-application/become-writer"
                       onClick={() => setSheetOpen(false)}
                       className="flex items-center text-black hover:text-kc-green"
                     >
