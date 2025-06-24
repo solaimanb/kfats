@@ -57,6 +57,7 @@ export async function middleware(request: NextRequest) {
   // Handle authentication
   if (matchesPath(ROUTES.protected) || matchesPath(ROUTES.admin)) {
     if (!token) {
+      console.log('[Middleware] No token found, redirecting to login');
       const response = redirect("/login");
       response.cookies.set("returnTo", pathname, {
         httpOnly: true,
@@ -66,72 +67,70 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Handle admin authorization
-    if (matchesPath(ROUTES.admin) && userRole !== "admin") {
-      return redirect(DEFAULT_REDIRECTS[userRole as keyof typeof DEFAULT_REDIRECTS] || DEFAULT_REDIRECTS.user);
+    try {
+      const user = await verifyToken(token);
+
+      if (!user) {
+        console.log('[Middleware] Token verification failed, redirecting to login');
+        return redirect("/login");
+      }
+
+      // For profile route, only check if user is authenticated
+      if (pathname === '/profile') {
+        return NextResponse.next();
+      }
+
+      // For other protected routes, check specific permissions
+      if (protectedRoute) {
+        const hasPermission = checkUserPermission(
+          user,
+          protectedRoute.resource,
+          protectedRoute.action
+        );
+
+        if (!hasPermission) {
+          console.log('[Middleware] Permission denied, redirecting to unauthorized');
+          return redirect("/unauthorized");
+        }
+      }
+
+      // Check role-specific routes
+      if (pathname !== '/profile') {
+        const isRoleRoute = (Object.entries(ROLE_ROUTES) as [string, readonly string[]][]).some(
+          ([role, routes]) =>
+            routes.includes(pathname) && user.roles.includes(role as UserRole)
+        );
+
+        if (!isRoleRoute) {
+          console.log('[Middleware] Role route access denied, redirecting to unauthorized');
+          return redirect("/unauthorized");
+        }
+      }
+
+      return NextResponse.next();
+    } catch (error) {
+      console.error('[Middleware] Token verification error:', error);
+      return redirect("/login");
     }
   }
 
   // Redirect authenticated users away from auth pages
   if (matchesPath(ROUTES.auth) && token) {
-    const returnTo = request.cookies.get("returnTo")?.value;
-    // If there's no specific return URL, redirect based on role
-    const defaultRedirect = DEFAULT_REDIRECTS[userRole as keyof typeof DEFAULT_REDIRECTS] || DEFAULT_REDIRECTS.user;
-    const response = redirect(returnTo || defaultRedirect);
-    response.cookies.delete("returnTo");
-    return response;
-  }
-
-  // Add no-cache headers for protected routes
-  const response = NextResponse.next();
-  if (matchesPath([...ROUTES.protected, ...ROUTES.admin])) {
-    response.headers.set("Cache-Control", "no-store");
-  }
-
-  // If has token, verify and check permissions
-  if (token && protectedRoute) {
     try {
       const user = await verifyToken(token);
-
-      // For profile route, only check if user is authenticated
-      if (pathname === '/profile') {
-        if (!user) {
-          return NextResponse.redirect(new URL('/login', request.url));
-        }
+      if (user) {
+        const returnTo = request.cookies.get("returnTo")?.value;
+        const defaultRedirect = DEFAULT_REDIRECTS[userRole as keyof typeof DEFAULT_REDIRECTS] || DEFAULT_REDIRECTS.user;
+        const response = redirect(returnTo || defaultRedirect);
+        response.cookies.delete("returnTo");
         return response;
       }
-
-      // For other protected routes, check specific permissions
-      if (!user) {
-        return NextResponse.redirect(new URL('/login', request.url));
-      }
-
-      // Check if user has required permission
-      const hasPermission = checkUserPermission(
-        user,
-        protectedRoute.resource,
-        protectedRoute.action
-      );
-
-      if (!hasPermission) {
-        return NextResponse.redirect(new URL('/unauthorized', request.url));
-      }
-
-      // Check role-specific routes
-      const isRoleRoute = (Object.entries(ROLE_ROUTES) as [string, readonly string[]][]).some(
-        ([role, routes]) =>
-          routes.includes(pathname) && user.roles.includes(role as UserRole)
-      );
-
-      if (!isRoleRoute && pathname !== '/profile') {
-        return NextResponse.redirect(new URL('/unauthorized', request.url));
-      }
-    } catch {
-      return NextResponse.redirect(new URL('/login', request.url));
+    } catch (error) {
+      console.error('[Middleware] Auth page redirect error:', error);
     }
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 // Configure the middleware to run on specific paths
@@ -146,31 +145,37 @@ async function verifyToken(token: string): Promise<{
   permissions: string[];
 } | null> {
   try {
-    // Basic JWT structure validation
-    const [header, payload, signature] = token.split('.');
-    if (!header || !payload || !signature) {
+    // Make a request to the backend to verify the token
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/validate`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      console.error('Token validation failed:', await response.text());
       return null;
     }
 
-    // Decode the payload
-    const decodedPayload = JSON.parse(atob(payload));
+    const { status, data } = await response.json();
 
-    // Check if token is expired
-    if (decodedPayload.exp && Date.now() >= decodedPayload.exp * 1000) {
+    if (status !== 'success' || !data?.user) {
+      console.error('No user data in validation response');
       return null;
     }
 
-    // Check if token has required fields
-    if (!decodedPayload.id || !decodedPayload.roles) {
-      return null;
-    }
-
+    const user = data.user;
     return {
-      id: decodedPayload.id,
-      roles: decodedPayload.roles,
-      permissions: decodedPayload.permissions || []
+      id: user._id,
+      roles: user.roles,
+      permissions: user.permissions || []
     };
-  } catch {
+  } catch (error) {
+    console.error('Token validation error:', error);
     return null;
   }
 }

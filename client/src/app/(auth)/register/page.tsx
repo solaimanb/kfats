@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { RegisterRequest } from "@/types";
-import { useAuth } from "@/contexts/auth-context/auth-context";
+import { useAuth } from '@/hooks/auth/use-auth';
 
 export default function SignupForm() {
   const { register, isLoading } = useAuth();

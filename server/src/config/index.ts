@@ -97,7 +97,7 @@ export const config: Config = {
   },
   cors: {
     get origin() {
-      return config.app.clientUrl;
+      return config.app.clientUrl?.replace(/\/$/, '') || '';
     },
     credentials: true,
   },

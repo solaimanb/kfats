@@ -91,13 +91,19 @@ export class AuthController {
   );
 
   static logout = catchAsync(
-    async (_req: Request, res: Response, _next: NextFunction) => {
+    async (req: Request, res: Response, _next: NextFunction) => {
       // Clear both refresh token and access token cookies
-      res.clearCookie("refreshToken");
+      res.clearCookie("refreshToken", {
+        path: '/',
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        httpOnly: true
+      });
       res.clearCookie("accessToken", {
         path: '/',
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax"
+        sameSite: "lax",
+        httpOnly: true
       });
       res.clearCookie("auth_user_cache", {
         path: '/',
@@ -172,4 +178,26 @@ export class AuthController {
       message: "Password reset successful",
     });
   });
+
+  static validateToken = catchAsync(
+    async (req: Request, res: Response, _next: NextFunction) => {
+      // The user is already attached to the request by the protect middleware
+      const user = req.user;
+
+      // Set user cache in cookie
+      res.cookie("auth_user_cache", JSON.stringify(user), {
+        httpOnly: false, // Allow JavaScript access
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 1000, // 1 hour
+      });
+
+      res.status(200).json({
+        status: "success",
+        data: {
+          user,
+        },
+      });
+    }
+  );
 }
