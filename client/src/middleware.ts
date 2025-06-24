@@ -146,29 +146,24 @@ async function verifyToken(token: string): Promise<{
   permissions: string[];
 } | null> {
   try {
-    // Basic JWT structure validation
-    const [header, payload, signature] = token.split('.');
-    if (!header || !payload || !signature) {
+    // Make a request to the backend to verify the token
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/verify`, {
+      method: 'GET',
+      headers: {
+        'Cookie': `accessToken=${token}`
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
       return null;
     }
 
-    // Decode the payload
-    const decodedPayload = JSON.parse(atob(payload));
-
-    // Check if token is expired
-    if (decodedPayload.exp && Date.now() >= decodedPayload.exp * 1000) {
-      return null;
-    }
-
-    // Check if token has required fields
-    if (!decodedPayload.id || !decodedPayload.roles) {
-      return null;
-    }
-
+    const data = await response.json();
     return {
-      id: decodedPayload.id,
-      roles: decodedPayload.roles,
-      permissions: decodedPayload.permissions || []
+      id: data.id,
+      roles: data.roles,
+      permissions: data.permissions || []
     };
   } catch {
     return null;

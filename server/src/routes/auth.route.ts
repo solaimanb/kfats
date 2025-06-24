@@ -264,4 +264,35 @@ router.post("/logout-all", protect, AuthController.logoutAllDevices);
  */
 router.post("/refresh-token", AuthController.refreshToken);
 
+/**
+ * @swagger
+ * /api/v1/auth/validate:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: Validate token
+ *     description: Validate the current access token and return user data
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Invalid or expired token
+ */
+router.get("/validate", protect, AuthController.validateToken);
+
 export default router;
