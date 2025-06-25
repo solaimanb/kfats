@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { PlusCircle, X } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 
 const formSchema = z.object({
   // Basic Profile Info
@@ -158,300 +160,467 @@ export function BecomeWriterForm() {
   };
 
   return (
-    <section className="container max-w-3xl py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
-            Become a Writer
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Basic Profile Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Basic Information</h3>
-                <div className="grid grid-cols-2 gap-4">
+    <section className="min-h-screen bg-gradient-to-br from-background to-muted/30 py-8 px-4 sm:px-6">
+      <div className="max-w-3xl mx-auto">
+        <Link href="/" className="inline-flex items-center gap-2 mb-8 text-muted-foreground hover:text-primary transition-colors">
+          <Image
+            src="/images/kc-logo.png"
+            alt="Logo"
+            width={48}
+            height={48}
+            className="object-contain"
+          />
+          <span className="font-medium">Back to Home</span>
+        </Link>
+
+        <Card className="border-none shadow-md bg-card/50 backdrop-blur-sm">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center text-foreground">
+              Become a Writer
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                {/* Basic Profile Information */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Basic Information</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Your first name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Your last name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="Your email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Your phone number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
                   <FormField
                     control={form.control}
-                    name="firstName"
+                    name="bio"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel>Bio</FormLabel>
                         <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
+                          <textarea
+                            placeholder="Tell us about your writing experience and interests"
+                            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="bio"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bio</FormLabel>
-                      <FormControl>
-                        <textarea
-                          className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
-              <Separator />
+                <Separator />
 
-              {/* Specializations */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Specializations</h3>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add specialization"
-                    value={specializationInput}
-                    onChange={(e) => setSpecializationInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (specializationInput.trim()) {
-                          form.setValue("specializations", [
-                            ...form.watch("specializations"),
-                            specializationInput.trim(),
-                          ]);
-                          setSpecializationInput("");
-                        }
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (specializationInput.trim()) {
-                        form.setValue("specializations", [
-                          ...form.watch("specializations"),
-                          specializationInput.trim(),
-                        ]);
-                        setSpecializationInput("");
-                      }
-                    }}
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                  </Button>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="specializations"
-                  render={() => (
-                    <FormItem>
-                      <div className="flex flex-wrap gap-2">
-                        {form.watch("specializations").map((item, index) => (
-                          <div
-                            key={index}
-                            className="bg-primary/10 text-primary px-3 py-1 rounded-full flex items-center gap-2"
-                          >
-                            {item}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newSpecializations = [
-                                  ...form.watch("specializations"),
-                                ];
-                                newSpecializations.splice(index, 1);
-                                form.setValue(
-                                  "specializations",
-                                  newSpecializations
-                                );
-                              }}
-                              className="text-primary hover:text-primary/80"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
+                {/* Specializations */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Specializations</h3>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add specialization (e.g., Creative Writing, Technical Writing)"
+                        value={specializationInput}
+                        onChange={(e) => setSpecializationInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (specializationInput.trim()) {
+                              form.setValue("specializations", [
+                                ...form.watch("specializations"),
+                                specializationInput.trim(),
+                              ]);
+                              setSpecializationInput("");
+                            }
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (specializationInput.trim()) {
+                            form.setValue("specializations", [
+                              ...form.watch("specializations"),
+                              specializationInput.trim(),
+                            ]);
+                            setSpecializationInput("");
+                          }
+                        }}
+                      >
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="specializations"
+                      render={() => (
+                        <FormItem>
+                          <div className="flex flex-wrap gap-2">
+                            {form.watch("specializations").map((item, index) => (
+                              <div
+                                key={index}
+                                className="bg-primary/10 text-primary px-3 py-1 rounded-full flex items-center gap-2"
+                              >
+                                {item}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newSpecializations = [
+                                      ...form.watch("specializations"),
+                                    ];
+                                    newSpecializations.splice(index, 1);
+                                    form.setValue(
+                                      "specializations",
+                                      newSpecializations
+                                    );
+                                  }}
+                                  className="text-primary hover:text-primary/80"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
 
-              <Separator />
+                <Separator />
 
-              {/* Languages */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Languages</h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    appendLanguage({
-                      language: "",
-                      proficiencyLevel: "Professional",
-                    })
-                  }
-                >
-                  Add Language
-                </Button>
-                {languageFields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="space-y-4 p-4 border rounded-lg relative"
-                  >
-                    <button
+                {/* Languages */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Languages</h3>
+                  <div className="space-y-4">
+                    <Button
                       type="button"
-                      onClick={() => removeLanguage(index)}
-                      className="absolute right-2 top-2 text-destructive hover:text-destructive/80"
+                      variant="outline"
+                      onClick={() =>
+                        appendLanguage({
+                          language: "",
+                          proficiencyLevel: "Professional",
+                        })
+                      }
                     >
-                      <X className="h-4 w-4" />
-                    </button>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name={`languages.${index}.language`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Language</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`languages.${index}.proficiencyLevel`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Proficiency Level</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select level" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {proficiencyLevels.map((level) => (
-                                  <SelectItem key={level} value={level}>
-                                    {level}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      Add Language
+                    </Button>
+                    {languageFields.map((field, index) => (
+                      <div
+                        key={field.id}
+                        className="space-y-4 p-4 bg-muted/30 rounded-lg relative"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => removeLanguage(index)}
+                          className="absolute right-2 top-2 text-destructive hover:text-destructive/80"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`languages.${index}.language`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Language</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Language name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`languages.${index}.proficiencyLevel`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Proficiency Level</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select level" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {proficiencyLevels.map((level) => (
+                                      <SelectItem key={level} value={level}>
+                                        {level}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Experience */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Experience</h3>
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="experience.years"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Years of Experience</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="Enter years of experience"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(Number(e.target.value))
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-md font-medium">Publications</h4>
+                        <span className="text-sm text-muted-foreground">(Optional)</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          appendPublication({ title: "", url: "", date: "" })
+                        }
+                      >
+                        Add Publication
+                      </Button>
+                      {publicationFields.map((field, index) => (
+                        <div
+                          key={field.id}
+                          className="space-y-4 p-4 bg-muted/30 rounded-lg relative"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => removePublication(index)}
+                            className="absolute right-2 top-2 text-destructive hover:text-destructive/80"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                          <FormField
+                            control={form.control}
+                            name={`experience.publications.${index}.title`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Title</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Publication title" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`experience.publications.${index}.url`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>URL</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="https://" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`experience.publications.${index}.date`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Publication Date</FormLabel>
+                                <FormControl>
+                                  <Input type="date" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
 
-              <Separator />
+                <Separator />
 
-              {/* Experience */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Experience</h3>
-                <FormField
-                  control={form.control}
-                  name="experience.years"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Years of Experience</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
+                {/* Portfolio */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Portfolio</h3>
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add portfolio URL (e.g., Blog, Medium, Personal Website)"
+                        value={portfolioInput}
+                        onChange={(e) => setPortfolioInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (portfolioInput.trim()) {
+                              form.setValue("portfolio", [
+                                ...form.watch("portfolio"),
+                                portfolioInput.trim(),
+                              ]);
+                              setPortfolioInput("");
+                            }
                           }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="space-y-4">
-                  <h4 className="text-md font-medium">
-                    Publications (Optional)
-                  </h4>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      appendPublication({ title: "", url: "", date: "" })
-                    }
-                  >
-                    Add Publication
-                  </Button>
-                  {publicationFields.map((field, index) => (
-                    <div
-                      key={field.id}
-                      className="space-y-4 p-4 border rounded-lg relative"
-                    >
-                      <button
+                        }}
+                      />
+                      <Button
                         type="button"
-                        onClick={() => removePublication(index)}
-                        className="absolute right-2 top-2 text-destructive hover:text-destructive/80"
+                        variant="outline"
+                        onClick={() => {
+                          if (portfolioInput.trim()) {
+                            form.setValue("portfolio", [
+                              ...form.watch("portfolio"),
+                              portfolioInput.trim(),
+                            ]);
+                            setPortfolioInput("");
+                          }
+                        }}
                       >
-                        <X className="h-4 w-4" />
-                      </button>
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="portfolio"
+                      render={() => (
+                        <FormItem>
+                          <div className="flex flex-wrap gap-2">
+                            {form.watch("portfolio").map((item, index) => (
+                              <div
+                                key={index}
+                                className="bg-primary/10 text-primary px-3 py-1 rounded-full flex items-center gap-2"
+                              >
+                                {item}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newPortfolio = [
+                                      ...form.watch("portfolio"),
+                                    ];
+                                    newPortfolio.splice(index, 1);
+                                    form.setValue("portfolio", newPortfolio);
+                                  }}
+                                  className="text-primary hover:text-primary/80"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Social Links */}
+                <div className="space-y-6">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold">Social Links</h3>
+                    <span className="text-sm text-muted-foreground">(Optional)</span>
+                  </div>
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="socialLinks.website"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Website</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
-                        name={`experience.publications.${index}.title`}
+                        name="socialLinks.linkedin"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Title</FormLabel>
+                            <FormLabel>LinkedIn</FormLabel>
                             <FormControl>
-                              <Input {...field} />
+                              <Input placeholder="https://" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -459,205 +628,69 @@ export function BecomeWriterForm() {
                       />
                       <FormField
                         control={form.control}
-                        name={`experience.publications.${index}.url`}
+                        name="socialLinks.twitter"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>URL (Optional)</FormLabel>
+                            <FormLabel>Twitter</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="https://" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`experience.publications.${index}.date`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Publication Date</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} />
+                              <Input placeholder="https://" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
-                  ))}
+                    <FormField
+                      control={form.control}
+                      name="socialLinks.facebook"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Facebook</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <Separator />
+                <Separator />
 
-              {/* Portfolio */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Portfolio</h3>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Add portfolio URL"
-                    value={portfolioInput}
-                    onChange={(e) => setPortfolioInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        if (portfolioInput.trim()) {
-                          form.setValue("portfolio", [
-                            ...form.watch("portfolio"),
-                            portfolioInput.trim(),
-                          ]);
-                          setPortfolioInput("");
-                        }
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      if (portfolioInput.trim()) {
-                        form.setValue("portfolio", [
-                          ...form.watch("portfolio"),
-                          portfolioInput.trim(),
-                        ]);
-                        setPortfolioInput("");
-                      }
-                    }}
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                  </Button>
-                </div>
+                {/* Agreement */}
                 <FormField
                   control={form.control}
-                  name="portfolio"
-                  render={() => (
-                    <FormItem>
-                      <div className="flex flex-wrap gap-2">
-                        {form.watch("portfolio").map((item, index) => (
-                          <div
-                            key={index}
-                            className="bg-primary/10 text-primary px-3 py-1 rounded-full flex items-center gap-2"
-                          >
-                            {item}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newPortfolio = [
-                                  ...form.watch("portfolio"),
-                                ];
-                                newPortfolio.splice(index, 1);
-                                form.setValue("portfolio", newPortfolio);
-                              }}
-                              className="text-primary hover:text-primary/80"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
+                  name="agreement"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          I confirm all information is accurate and I agree to the
+                          terms and conditions
+                        </FormLabel>
                       </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <Separator />
-
-              {/* Social Links */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
-                  Social Links (Optional)
-                </h3>
-                <FormField
-                  control={form.control}
-                  name="socialLinks.website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Website</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="https://" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="socialLinks.linkedin"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>LinkedIn</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="https://" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="socialLinks.twitter"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Twitter</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="https://" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="text-center">
+                  <Button type="submit" size="lg">
+                    Submit Application
+                  </Button>
                 </div>
-                <FormField
-                  control={form.control}
-                  name="socialLinks.facebook"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Facebook</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="https://" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Separator />
-
-              {/* Agreement */}
-              <FormField
-                control={form.control}
-                name="agreement"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        I confirm all information is accurate and I agree to the
-                        terms and conditions
-                      </FormLabel>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="text-center">
-                <Button type="submit" size="lg">
-                  Submit Application
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </section>
   );
 }
