@@ -2,6 +2,7 @@ import { api } from "../api-client";
 import type { ApiResponse } from "@/types";
 import type { ApplicationStatus } from "@/types";
 import type { RoleApplication } from "@/types";
+import type { RoleApplicationRequest } from "@/types";
 
 export interface RoleApplicationFilters {
   status?: ApplicationStatus;
@@ -21,9 +22,10 @@ export interface RoleStatistics {
 class RoleApplicationService {
   // Application Submission
   async submitApplication(
-    data: Partial<RoleApplication>
-  ): Promise<ApiResponse<RoleApplication>> {
-    return api.post("/role-applications", data);
+    application: RoleApplicationRequest
+  ): Promise<ApiResponse<void>> {
+    console.log("[RoleApplicationService] Submitting application");
+    return api.post("/role-applications", application);
   }
 
   async updateApplication(

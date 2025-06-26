@@ -38,20 +38,6 @@ const studentFieldsSchema = baseFieldsSchema.extend({
 });
 
 const mentorFieldsSchema = baseFieldsSchema.extend({
-  expertise: z
-    .array(
-      z
-        .string()
-        .regex(
-          /^[a-zA-Z0-9\s]{3,50}$/,
-          "Each expertise must be 3-50 characters long"
-        )
-    )
-    .min(1, "At least one area of expertise is required")
-    .max(5, "Maximum 5 areas of expertise allowed"),
-  experience: z
-    .number()
-    .min(1, "Must have at least 1 year of teaching experience"),
   qualifications: z
     .array(
       z.object({
@@ -62,13 +48,28 @@ const mentorFieldsSchema = baseFieldsSchema.extend({
       })
     )
     .min(1, "At least one qualification is required"),
-  teachingMethodology: z
+  experience: z.object({
+    years: z.number().min(1, "Must have at least 1 year of teaching experience"),
+    details: z.string().min(1, "Experience details are required")
+  }),
+  specialization: z
+    .array(
+      z
+        .string()
+        .regex(
+          /^[a-zA-Z0-9\s]{3,50}$/,
+          "Each expertise must be 3-50 characters long"
+        )
+    )
+    .min(1, "At least one area of expertise is required")
+    .max(5, "Maximum 5 areas of expertise allowed"),
+  teachingStyle: z
     .string()
     .min(100, "Teaching methodology must be at least 100 characters")
     .max(1000, "Teaching methodology must not exceed 1000 characters"),
-  languages: z
+  availability: z
     .array(z.string())
-    .min(1, "At least one teaching language is required"),
+    .min(1, "At least one teaching language is required")
 });
 
 const writerFieldsSchema = baseFieldsSchema.extend({
@@ -133,9 +134,7 @@ const roleSpecificDocumentRequirements: DocumentRequirements = {
   [UserRole.STUDENT]: ["student_id", "enrollment_proof"],
   [UserRole.MENTOR]: [
     "cv",
-    "certificates",
-    "identity_proof",
-    "teaching_certification",
+    "identity_proof"
   ],
   [UserRole.WRITER]: ["portfolio", "language_certificates", "identity_proof"],
   [UserRole.SELLER]: [
@@ -198,6 +197,7 @@ export const createRoleApplicationSchema = z
     const requiredTypes = roleSpecificDocumentRequirements[role];
     const providedTypes = data.documents.map((doc) => doc.type);
 
+    // Check for required documents
     const missingTypes = requiredTypes.filter(
       (type) => !providedTypes.includes(type)
     );
@@ -207,6 +207,37 @@ export const createRoleApplicationSchema = z
         code: z.ZodIssueCode.custom,
         message: `Missing required documents: ${missingTypes.join(", ")}`,
       });
+      return;
+    }
+
+    // Validate document types based on role
+    if (data.role === UserRole.MENTOR) {
+      // Allow optional teaching_certification for mentors
+      const allowedTypes = [...requiredTypes, "teaching_certification"];
+      const invalidTypes = providedTypes.filter(
+        (type) => !allowedTypes.includes(type)
+      );
+
+      if (invalidTypes.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid document types: ${invalidTypes.join(", ")}`,
+        });
+        return;
+      }
+    } else {
+      // For other roles, only allow the required types
+      const invalidTypes = providedTypes.filter(
+        (type) => !requiredTypes.includes(type)
+      );
+
+      if (invalidTypes.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Invalid document types: ${invalidTypes.join(", ")}`,
+        });
+        return;
+      }
     }
   })
   .refine(

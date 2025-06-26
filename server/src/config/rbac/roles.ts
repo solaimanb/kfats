@@ -107,23 +107,23 @@ export const ROLE_TRANSITIONS: Record<
   }
 > = {
   [UserRole.USER]: {
-    possible: [UserRole.STUDENT],
-    requiresApproval: false,
+    possible: [UserRole.STUDENT, UserRole.MENTOR, UserRole.WRITER, UserRole.SELLER],
+    requiresApproval: true,
   },
   [UserRole.STUDENT]: {
-    possible: [],
-    requiresApproval: false,
+    possible: [UserRole.MENTOR, UserRole.WRITER, UserRole.SELLER],
+    requiresApproval: true,
   },
   [UserRole.MENTOR]: {
-    possible: [],
+    possible: [UserRole.WRITER, UserRole.SELLER],
     requiresApproval: true,
   },
   [UserRole.WRITER]: {
-    possible: [],
+    possible: [UserRole.MENTOR, UserRole.SELLER],
     requiresApproval: true,
   },
   [UserRole.SELLER]: {
-    possible: [],
+    possible: [UserRole.MENTOR, UserRole.WRITER],
     requiresApproval: true,
   },
   [UserRole.ADMIN]: {
