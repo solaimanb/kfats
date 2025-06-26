@@ -1,11 +1,7 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm } from "react-hook-form";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
@@ -15,7 +11,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Select,
   SelectContent,
@@ -23,10 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { roleApplicationService } from "@/lib/api/services/role-application.service";
+import { RoleApplicationRequest } from "@/types/api/role/requests";
+import { UserRole } from "@/types/domain/role/types";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusCircle, X } from "lucide-react";
-import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
 
 const formSchema = z.object({
   // Basic Profile Info
@@ -107,6 +113,8 @@ const proficiencyLevels = [
 ] as const;
 
 export function BecomeWriterForm() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [specializationInput, setSpecializationInput] = useState("");
   const [portfolioInput, setPortfolioInput] = useState("");
 
@@ -154,9 +162,34 @@ export function BecomeWriterForm() {
     control: form.control,
   });
 
-  const onSubmit = (values: FormValues) => {
-    console.log(values);
-    // TODO: Implement form submission
+  const onSubmit = async (values: FormValues) => {
+    try {
+      setIsSubmitting(true);
+
+      const applicationData: RoleApplicationRequest = {
+        role: UserRole.WRITER,
+        fields: {
+          reason: values.bio || "Interested in becoming a writer",
+          portfolio: values.portfolio.join(", "),
+          samples: [],
+          specialization: values.specializations,
+          languages: values.languages.map(l => l.language),
+          experience: {
+            years: values.experience.years,
+            details: values.bio || ""
+          }
+        },
+        documents: []
+      };
+
+      await roleApplicationService.submitApplication(applicationData);
+      toast.success("Application submitted successfully!");
+      router.push("/role-application/success");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to submit application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -477,7 +510,7 @@ export function BecomeWriterForm() {
                               <FormItem>
                                 <FormLabel>Title</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Publication title" {...field} />
+                                  <Input placeholder="Title" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -490,7 +523,7 @@ export function BecomeWriterForm() {
                               <FormItem>
                                 <FormLabel>URL</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="https://" {...field} />
+                                  <Input placeholder="URL" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -501,9 +534,9 @@ export function BecomeWriterForm() {
                             name={`experience.publications.${index}.date`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Publication Date</FormLabel>
+                                <FormLabel>Date</FormLabel>
                                 <FormControl>
-                                  <Input type="date" {...field} />
+                                  <Input placeholder="Date" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -523,7 +556,7 @@ export function BecomeWriterForm() {
                   <div className="space-y-4">
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Add portfolio URL (e.g., Blog, Medium, Personal Website)"
+                        placeholder="Add portfolio item URL"
                         value={portfolioInput}
                         onChange={(e) => setPortfolioInput(e.target.value)}
                         onKeyDown={(e) => {
@@ -574,7 +607,10 @@ export function BecomeWriterForm() {
                                       ...form.watch("portfolio"),
                                     ];
                                     newPortfolio.splice(index, 1);
-                                    form.setValue("portfolio", newPortfolio);
+                                    form.setValue(
+                                      "portfolio",
+                                      newPortfolio
+                                    );
                                   }}
                                   className="text-primary hover:text-primary/80"
                                 >
@@ -594,10 +630,7 @@ export function BecomeWriterForm() {
 
                 {/* Social Links */}
                 <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold">Social Links</h3>
-                    <span className="text-sm text-muted-foreground">(Optional)</span>
-                  </div>
+                  <h3 className="text-lg font-semibold">Social Links</h3>
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
@@ -606,40 +639,38 @@ export function BecomeWriterForm() {
                         <FormItem>
                           <FormLabel>Website</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://" {...field} />
+                            <Input placeholder="Website URL" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="socialLinks.linkedin"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>LinkedIn</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="socialLinks.twitter"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Twitter</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <FormField
+                      control={form.control}
+                      name="socialLinks.linkedin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>LinkedIn</FormLabel>
+                          <FormControl>
+                            <Input placeholder="LinkedIn URL" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="socialLinks.twitter"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Twitter</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Twitter URL" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={form.control}
                       name="socialLinks.facebook"
@@ -647,7 +678,7 @@ export function BecomeWriterForm() {
                         <FormItem>
                           <FormLabel>Facebook</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://" {...field} />
+                            <Input placeholder="Facebook URL" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -663,29 +694,28 @@ export function BecomeWriterForm() {
                   control={form.control}
                   name="agreement"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormItem>
+                      <FormLabel>Agreement</FormLabel>
                       <FormControl>
                         <Checkbox
                           checked={field.value}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          I confirm all information is accurate and I agree to the
-                          terms and conditions
-                        </FormLabel>
-                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="text-center">
-                  <Button type="submit" size="lg">
-                    Submit Application
-                  </Button>
-                </div>
+                <Separator />
+
+                <LoadingButton
+                  type="submit"
+                  loading={isSubmitting}
+                  className="w-full"
+                >
+                  Submit Application
+                </LoadingButton>
               </form>
             </Form>
           </CardContent>

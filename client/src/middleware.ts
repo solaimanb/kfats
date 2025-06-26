@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { ResourceType, PermissionAction, UserRole } from "./config/rbac/types";
 import { ROUTES, DEFAULT_REDIRECTS } from "./config/routes";
 
+// Define public routes that don't require authentication
+const PUBLIC_ROUTES = [
+  ...ROUTES.auth,
+  '/role-application/become-mentor',
+  '/role-application/become-seller',
+  '/role-application/become-writer',
+  '/role-application/success'
+];
+
 // Define protected routes and their required permissions
 const PROTECTED_ROUTES = {
   '/profile': {
@@ -29,11 +38,18 @@ const PROTECTED_ROUTES = {
 // Define role-specific routes
 const ROLE_ROUTES = {
   [UserRole.ADMIN]: ['/admin', '/dashboard/admin'],
-  [UserRole.MENTOR]: ['/dashboard/courses'],
-  [UserRole.STUDENT]: ['/dashboard/my-courses'],
+  [UserRole.MENTOR]: ['/dashboard/courses', '/dashboard/mentoring'],
+  [UserRole.STUDENT]: ['/dashboard/my-courses', '/dashboard/courses'],
   [UserRole.WRITER]: ['/dashboard/articles'],
-  [UserRole.SELLER]: ['/dashboard/products']
+  [UserRole.SELLER]: ['/dashboard/products'],
+  [UserRole.USER]: ['/dashboard', '/dashboard/user']
 } as const;
+
+// Define protected routes that don't require specific roles
+const COMMON_PROTECTED_ROUTES = [
+  '/profile',
+  '/dashboard'
+];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -51,10 +67,17 @@ export async function middleware(request: NextRequest) {
     return response;
   };
 
-  // Check if it's a protected route
-  const protectedRoute = PROTECTED_ROUTES[pathname as keyof typeof PROTECTED_ROUTES];
+  // Check if it's a public route
+  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
 
-  // Handle authentication
+  // Check if it's a dashboard route after role application
+  if (pathname.startsWith('/dashboard/user') && request.headers.get('referer')?.includes('/role-application/')) {
+    return NextResponse.next();
+  }
+
+  // Check if it's a protected route
   if (matchesPath(ROUTES.protected) || matchesPath(ROUTES.admin)) {
     if (!token) {
       console.log('[Middleware] No token found, redirecting to login');
@@ -75,12 +98,13 @@ export async function middleware(request: NextRequest) {
         return redirect("/login");
       }
 
-      // For profile route, only check if user is authenticated
-      if (pathname === '/profile') {
+      // For common protected routes like profile and dashboard root, only check if user is authenticated
+      if (COMMON_PROTECTED_ROUTES.includes(pathname)) {
         return NextResponse.next();
       }
 
       // For other protected routes, check specific permissions
+      const protectedRoute = PROTECTED_ROUTES[pathname as keyof typeof PROTECTED_ROUTES];
       if (protectedRoute) {
         const hasPermission = checkUserPermission(
           user,

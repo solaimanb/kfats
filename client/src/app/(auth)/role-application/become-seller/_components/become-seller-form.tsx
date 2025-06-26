@@ -1,11 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
@@ -15,7 +10,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { LoadingButton } from "@/components/ui/loading-button";
 import {
   Select,
   SelectContent,
@@ -23,8 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Link from "next/link";
+import { Separator } from "@/components/ui/separator";
+import { roleApplicationService } from "@/lib/api/services/role-application.service";
+import { RoleApplicationRequest } from "@/types/api/role/requests";
+import { UserRole } from "@/types/domain/role/types";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
 
 const formSchema = z.object({
   // Basic Profile Info
@@ -98,6 +104,9 @@ const businessTypes = [
 const accountTypes = ["Checking", "Savings", "Business"];
 
 export function BecomeSellerForm() {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -134,9 +143,34 @@ export function BecomeSellerForm() {
     },
   });
 
-  const onSubmit = (values: FormValues) => {
-    console.log(values);
-    // TODO: Implement form submission
+  const onSubmit = async (values: FormValues) => {
+    try {
+      setIsSubmitting(true);
+
+      const applicationData: RoleApplicationRequest = {
+        role: UserRole.SELLER,
+        fields: {
+          reason: values.bio || "Interested in becoming a seller",
+          businessName: values.businessName,
+          businessType: values.businessType,
+          categories: [],
+          experience: {
+            years: 0,
+            details: values.bio || ""
+          },
+          documents: []
+        },
+        documents: []
+      };
+
+      await roleApplicationService.submitApplication(applicationData);
+      toast.success("Application submitted successfully!");
+      router.push("/role-application/success");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to submit application. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -565,9 +599,13 @@ export function BecomeSellerForm() {
                 />
 
                 <div className="text-center">
-                  <Button type="submit" size="lg">
+                  <LoadingButton
+                    type="submit"
+                    className="w-full"
+                    loading={isSubmitting}
+                  >
                     Submit Application
-                  </Button>
+                  </LoadingButton>
                 </div>
               </form>
             </Form>

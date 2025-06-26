@@ -1,35 +1,37 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useFieldArray, useForm } from "react-hook-form";
-import * as z from "zod";
-import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Checkbox,
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
+  Input,
+  Label,
+  LoadingButton,
+  Separator,
+  Textarea
+} from "@/components/ui";
+import { roleApplicationService } from "@/lib/api/services/role-application.service";
+import { UserRole } from "@/types/domain/role/types";
+import { RoleApplicationRequest } from "@/types/api/role/requests";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { PlusCircle, X } from "lucide-react";
-
-const qualificationSchema = z.object({
-  degree: z.string().min(2, "Degree is required"),
-  institution: z.string().min(2, "Institution is required"),
-  year: z.number().min(1900, "Invalid year").max(new Date().getFullYear()),
-  field: z.string().min(2, "Field of study is required"),
-  certificate: z.string().optional(),
-});
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, ChangeEvent } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   // Basic Profile
@@ -44,6 +46,10 @@ const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   phone: z.string().regex(/^\+?[\d\s-]{10,}$/, "Invalid phone number format"),
   bio: z.string().min(100, "Bio must be at least 100 characters").max(500),
+
+  // Required fields for role application
+  reason: z.string().min(100, "Please provide a detailed reason for becoming a mentor (minimum 100 characters)"),
+  additionalInfo: z.string().optional(),
 
   // Address (optional)
   address: z
@@ -75,21 +81,66 @@ const formSchema = z.object({
   // Mentor-specific
   expertise: z
     .array(z.string())
-    .min(1, "At least one area of expertise is required"),
+    .min(1, "At least one area of expertise is required")
+    .max(5, "Maximum 5 areas of expertise allowed"),
+  experience: z.number().min(1, "Must have at least 1 year of teaching experience"),
   qualifications: z
-    .array(qualificationSchema)
+    .array(
+      z.object({
+        degree: z.string().min(1, "Degree is required"),
+        institution: z.string().min(1, "Institution is required"),
+        year: z.number().min(1900, "Invalid year"),
+        field: z.string().min(1, "Field of study is required"),
+      })
+    )
     .min(1, "At least one qualification is required"),
-  experience: z.number().min(1, "Must have at least 1 year of experience"),
-  languages: z.array(z.string()).min(1, "At least one language is required"),
+  teachingMethodology: z
+    .string()
+    .min(100, "Teaching methodology must be at least 100 characters")
+    .max(1000, "Teaching methodology must not exceed 1000 characters"),
+  languages: z
+    .array(z.string())
+    .min(1, "At least one teaching language is required"),
 
   agreement: z.boolean().refine((val) => val === true, {
     message: "You must agree to the terms",
   }),
 });
 
+interface Documents {
+  cv?: File;
+  identityProof?: File;
+  teachingCertification?: File;
+}
+
+interface DocumentTypes {
+  cv: string[];
+  identity_proof: string[];
+  teaching_certification: string[];
+}
+
+type DocumentType = 'cv' | 'identity_proof' | 'teaching_certification';
+
+const ACCEPTED_DOCUMENT_TYPES: DocumentTypes = {
+  cv: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  identity_proof: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  teaching_certification: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+};
+
+interface UploadedDocument {
+  type: string;
+  url: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  publicId?: string;
+}
+
 export const BecomeMentorForm = () => {
-  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [documents, setDocuments] = useState<Documents>({});
   const [expertiseInput, setExpertiseInput] = useState("");
   const [languageInput, setLanguageInput] = useState("");
 
@@ -101,6 +152,7 @@ export const BecomeMentorForm = () => {
       email: "",
       phone: "",
       bio: "",
+      reason: "",
       address: {
         street: "",
         city: "",
@@ -121,13 +173,13 @@ export const BecomeMentorForm = () => {
           institution: "",
           year: new Date().getFullYear(),
           field: "",
-          certificate: "",
         },
       ],
       experience: 0,
       languages: [],
       agreement: false,
     },
+    mode: "onSubmit",
   });
 
   const {
@@ -139,17 +191,208 @@ export const BecomeMentorForm = () => {
     control: form.control,
   });
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setProfileImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      try {
+        setPreviewUrl(URL.createObjectURL(file));
+      } catch (error) {
+        console.error('[handleImageChange] Error:', error);
+        const message = error instanceof Error ? error.message : 'Unknown error occurred';
+        toast.error(`Failed to upload image: ${message}`);
+      }
     }
   };
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log("Form Data:", values);
-    console.log("Profile Image:", profileImage);
+  const handleFileChange = (
+    event: ChangeEvent<HTMLInputElement>,
+    type: "cv" | "identityProof" | "teachingCertification"
+  ) => {
+    console.log(`[handleFileChange] Processing ${type} upload:`, event.target.files);
+    const file = event.target.files?.[0];
+    if (file) {
+      const documentType = type === 'cv' ? 'cv' :
+        type === 'identityProof' ? 'identity_proof' :
+          'teaching_certification';
+
+      if (!ACCEPTED_DOCUMENT_TYPES[documentType].includes(file.type)) {
+        toast.error(`Invalid file type for ${type}. Please upload a PDF or Word document.`);
+        return;
+      }
+
+      setDocuments(prev => ({ ...prev, [type]: file }));
+    }
+  };
+
+  const uploadDocument = async (file: File, type: DocumentType): Promise<UploadedDocument> => {
+    console.log(`[uploadDocument] Starting upload for ${type}`);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const endpoint = `/api/v1/role-applications/upload/${type}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[uploadDocument] Upload response:', data);
+
+      return {
+        type,
+        url: data.document.url,
+        name: file.name,
+        mimeType: file.type,
+        size: file.size,
+        publicId: data.document.publicId
+      };
+    } catch (error) {
+      console.error('[uploadDocument] Error:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Failed to upload ${type}: ${message}`);
+    }
+  };
+
+  const uploadDocuments = async (documents: Documents): Promise<UploadedDocument[]> => {
+    const uploadedDocs: UploadedDocument[] = [];
+
+    try {
+      // Upload CV if exists
+      if (documents.cv) {
+        const cvDoc = await uploadDocument(documents.cv, 'cv');
+        if (Array.isArray(cvDoc)) {
+          uploadedDocs.push(...cvDoc);
+        } else {
+          uploadedDocs.push(cvDoc);
+        }
+      }
+
+      // Upload Identity Proof if exists
+      if (documents.identityProof) {
+        const idDoc = await uploadDocument(documents.identityProof, 'identity_proof');
+        if (Array.isArray(idDoc)) {
+          uploadedDocs.push(...idDoc);
+        } else {
+          uploadedDocs.push(idDoc);
+        }
+      }
+
+      // Upload Teaching Certification if exists
+      if (documents.teachingCertification) {
+        const certDoc = await uploadDocument(documents.teachingCertification, 'teaching_certification');
+        if (Array.isArray(certDoc)) {
+          uploadedDocs.push(...certDoc);
+        } else {
+          uploadedDocs.push(certDoc);
+        }
+      }
+
+      return uploadedDocs;
+    } catch (error) {
+      console.error('[uploadDocuments] Error:', error);
+      throw error;
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log('[onSubmit] Starting submission process');
+    setIsSubmitting(true);
+
+    try {
+      console.log('[onSubmit] Starting document uploads...');
+      const uploadedDocs = await uploadDocuments(documents);
+
+      const applicationData: RoleApplicationRequest = {
+        role: UserRole.MENTOR,
+        fields: {
+          reason: values.reason,
+          additionalInfo: values.additionalInfo,
+          qualifications: values.qualifications.map(q => ({
+            degree: q.degree,
+            institution: q.institution,
+            year: q.year,
+            field: q.field
+          })),
+          experience: {
+            years: values.experience,
+            details: values.teachingMethodology
+          },
+          specialization: values.expertise,
+          teachingStyle: values.teachingMethodology,
+          availability: [] // TODO: Add availability field to form
+        },
+        documents: uploadedDocs
+      };
+
+      await roleApplicationService.submitApplication(applicationData);
+      toast.success("Application submitted successfully!");
+      router.push("/role-application/success");
+    } catch (error) {
+      console.error('[onSubmit] Error:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to submit application");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Add document upload section
+  const renderDocumentUpload = (
+    type: "cv" | "identityProof" | "teachingCertification",
+    label: string,
+    required = false
+  ) => {
+    const file = documents[type];
+    console.log(`[renderDocumentUpload] Rendering ${type}:`, { file });
+
+    return (
+      <FormItem>
+        <FormLabel>
+          {label} {required && <span className="text-destructive">*</span>}
+        </FormLabel>
+        <FormControl>
+          <div className="flex items-center gap-4">
+            <Input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) => handleFileChange(e, type)}
+              className={cn(
+                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              )}
+            />
+            {file && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {file.name}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    console.log(`[renderDocumentUpload] Removing ${type}`);
+                    setDocuments(prev => {
+                      const newState = { ...prev };
+                      delete newState[type];
+                      console.log('[renderDocumentUpload] Updated documents state:', newState);
+                      return newState;
+                    });
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+            )}
+          </div>
+        </FormControl>
+      </FormItem>
+    );
   };
 
   return (
@@ -174,7 +417,19 @@ export const BecomeMentorForm = () => {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <form
+                onSubmit={form.handleSubmit(
+                  (values) => {
+                    console.log('[Form] Submit triggered with values:', values);
+                    onSubmit(values);
+                  },
+                  (errors) => {
+                    console.error('[Form] Validation errors:', errors);
+                    toast.error("Please fill in all required fields correctly");
+                  }
+                )}
+                className="space-y-8"
+              >
                 {/* Profile Image Upload */}
                 <div className="flex flex-col items-center text-center space-y-6 p-8 bg-muted/30 rounded-lg">
                   <div className="relative">
@@ -437,6 +692,47 @@ export const BecomeMentorForm = () => {
 
                 <Separator className="my-8" />
 
+                {/* Application Details */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Application Details</h3>
+
+                  <FormField
+                    control={form.control}
+                    name="reason"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Why do you want to become a mentor?</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Share your motivation and goals..."
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="teachingMethodology"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teaching Methodology</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Describe your teaching approach and methods..."
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 {/* Expertise */}
                 <div className="space-y-4">
                   <Label>Areas of Expertise</Label>
@@ -520,7 +816,6 @@ export const BecomeMentorForm = () => {
                           institution: "",
                           year: new Date().getFullYear(),
                           field: "",
-                          certificate: "",
                         })
                       }
                     >
@@ -601,20 +896,6 @@ export const BecomeMentorForm = () => {
                                 <FormLabel>Field of Study</FormLabel>
                                 <FormControl>
                                   <Input placeholder="Your field of study" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`qualifications.${index}.certificate`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Certificate URL</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Link to your certificate" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -715,6 +996,17 @@ export const BecomeMentorForm = () => {
                   />
                 </div>
 
+                {/* Document Upload */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Required Documents</h3>
+                  {renderDocumentUpload("cv", "CV/Resume", true)}
+                  {renderDocumentUpload("identityProof", "Identity Proof", true)}
+                  {renderDocumentUpload(
+                    "teachingCertification",
+                    "Teaching Certification (Optional)"
+                  )}
+                </div>
+
                 {/* Agreement */}
                 <FormField
                   control={form.control}
@@ -729,18 +1021,22 @@ export const BecomeMentorForm = () => {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>
-                          I confirm all information is accurate and I agree to the terms and conditions
+                          I agree to the terms and conditions
                         </FormLabel>
                       </div>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
 
                 <div className="pt-6">
-                  <Button type="submit" className="w-full sm:w-auto">
-                    Submit Application
-                  </Button>
+                  <LoadingButton
+                    type="submit"
+                    className="w-full"
+                    loading={isSubmitting}
+                    disabled={isSubmitting || !form.formState.isValid}
+                  >
+                    {isSubmitting ? "Submitting Application..." : "Submit Application"}
+                  </LoadingButton>
                 </div>
               </form>
             </Form>
