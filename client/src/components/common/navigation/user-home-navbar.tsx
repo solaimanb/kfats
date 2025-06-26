@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 export default function UserHomeNavbar() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const { user, logout, isLoading } = useAuth();
+  console.log("USER at navbar", user);
 
   // Role-based dashboard link
   const getDashboardLink = () => {
@@ -36,7 +37,7 @@ export default function UserHomeNavbar() {
     if (role === "writer") return "/dashboard/articles";
     if (role === "seller") return "/dashboard/products";
     if (role === "student") return "/dashboard/courses";
-    return "/dashboard";
+    return "/dashboard/user";  // Return user dashboard path for user role
   };
 
   const handleLogout = async () => {
@@ -115,7 +116,7 @@ export default function UserHomeNavbar() {
           <Link href="/products" className="text-black hover:text-kc-green">
             প্রোডাক্টস
           </Link>
-          {user && (
+          {user && user.roles.length > 0 && user.roles[0] !== "user" && (
             <Link
               href={getDashboardLink()}
               className="text-black hover:text-kc-green"
@@ -200,7 +201,7 @@ export default function UserHomeNavbar() {
               >
                 প্রোডাক্টস
               </Link>
-              {user && (
+              {user && user.roles.length > 0 && user.roles[0] !== "user" && (
                 <Link
                   href={getDashboardLink()}
                   onClick={() => setSheetOpen(false)}

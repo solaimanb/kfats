@@ -30,18 +30,13 @@ export function setCookie(
   document.cookie = cookie;
 }
 
-export function getCookie(name: string): string | null {
-  const nameEQ = encodeURIComponent(name) + "=";
-  const cookies = document.cookie.split(";");
-
-  for (let cookie of cookies) {
-    cookie = cookie.trim();
-    if (cookie.indexOf(nameEQ) === 0) {
-      return decodeURIComponent(cookie.substring(nameEQ.length));
-    }
+export function getCookie(name: string): string | undefined {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift();
   }
-
-  return null;
+  return undefined;
 }
 
 export function deleteCookie(name: string, path = "/", domain?: string) {
@@ -52,4 +47,8 @@ export function deleteCookie(name: string, path = "/", domain?: string) {
     secure: true,
     sameSite: "strict",
   });
+}
+
+export function removeCookie(name: string): void {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 }

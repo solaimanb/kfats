@@ -1,7 +1,8 @@
 import express from "express";
-import { protect, restrictTo } from "../middleware/auth.middleware";
 import { UserRole } from "../config/rbac/types";
 import { RoleApplicationController } from "../controllers/role-application.controller";
+import { protect, restrictTo } from "../middleware/auth.middleware";
+import { handleMultipleImageUpload, handleSingleDocumentUpload } from "../middleware/upload.middleware";
 import { validateRequest } from "../middleware/validation.middleware";
 import { createRoleApplicationSchema } from "../validators/role-application.validator";
 
@@ -117,6 +118,34 @@ router.post(
  *                         $ref: '#/components/schemas/RoleApplication'
  */
 router.get("/my-applications", roleApplicationController.getMyApplications);
+
+// Document upload endpoints
+router.post(
+  "/upload/:type",
+  handleSingleDocumentUpload("document"),
+  (req, res) => {
+    res.status(200).json({
+      status: "success",
+      data: {
+        document: req.body.document
+      }
+    });
+  }
+);
+
+// Multiple document upload endpoint
+router.post(
+  "/upload-multiple/:type",
+  handleMultipleImageUpload("documents", 5),
+  (req, res) => {
+    res.status(200).json({
+      status: "success",
+      data: {
+        documents: req.body.documents
+      }
+    });
+  }
+);
 
 // Admin routes
 router.use(restrictTo(UserRole.ADMIN));
