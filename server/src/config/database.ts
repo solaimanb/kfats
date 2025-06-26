@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ReadPreference } from "mongodb";
 import { logger } from "../utils/logger.util";
 
 const MAX_RETRIES = 5;
@@ -9,7 +10,7 @@ class DatabaseService {
   private retryCount = 0;
   private isConnected = false;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {
@@ -36,6 +37,7 @@ class DatabaseService {
         minPoolSize: 2,
         maxIdleTimeMS: 30000,
         connectTimeoutMS: 10000,
+        readPreference: ReadPreference.PRIMARY
       };
 
       // Connect to MongoDB
