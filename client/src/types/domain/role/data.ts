@@ -4,6 +4,11 @@
 
 import type { UserRole } from './types';
 
+export interface BaseRoleData {
+  reason: string;
+  additionalInfo?: string;
+}
+
 export interface QualificationData {
   degree: string;
   institution: string;
@@ -17,7 +22,7 @@ export interface ExperienceData {
   details: string;
 }
 
-export interface MentorRoleData {
+export interface MentorRoleData extends BaseRoleData {
   qualifications: QualificationData[];
   experience: ExperienceData;
   specialization: string[];
@@ -25,7 +30,7 @@ export interface MentorRoleData {
   availability: string[];
 }
 
-export interface WriterRoleData {
+export interface WriterRoleData extends BaseRoleData {
   portfolio: string;
   samples: string[];
   specialization: string[];
@@ -33,7 +38,7 @@ export interface WriterRoleData {
   experience: ExperienceData;
 }
 
-export interface SellerRoleData {
+export interface SellerRoleData extends BaseRoleData {
   businessName: string;
   businessType: string;
   categories: string[];
@@ -48,4 +53,4 @@ export type RoleApplicationData = {
   [UserRole.MENTOR]: MentorRoleData;
   [UserRole.WRITER]: WriterRoleData;
   [UserRole.SELLER]: SellerRoleData;
-}; 
+};

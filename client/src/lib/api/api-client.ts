@@ -1,6 +1,7 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from "axios";
-import { ApiResponse, ApiError } from "@/types";
 import { RBAC_VERSION } from "@/config/rbac/types";
+import { ApiError, ApiResponse } from "@/types";
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import { setupAuthInterceptor } from "./interceptors/auth.interceptor";
 
 interface ApiResponseData<T> extends ApiResponse<T> {
   success: boolean;
@@ -79,19 +80,8 @@ class ApiClient {
   }
 
   private setupInterceptors(): void {
-    // Request interceptor to add token
-    this.axiosInstance.interceptors.request.use(
-      (config) => {
-        const token = document.cookie.split('; ').find(row => row.startsWith('accessToken='))?.split('=')[1];
-        if (token) {
-          config.headers['Authorization'] = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
+    // Setup auth interceptor
+    setupAuthInterceptor(this.axiosInstance);
 
     // Response interceptor
     this.axiosInstance.interceptors.response.use(

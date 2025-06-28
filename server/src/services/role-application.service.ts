@@ -1,4 +1,5 @@
 import { Schema, startSession, Types } from "mongoose";
+import { ReadPreference } from "mongodb";
 import {
   RoleApplicationModel,
   IRoleApplication,
@@ -80,7 +81,11 @@ export class RoleApplicationService {
 
     const session = await startSession();
     try {
-      session.startTransaction();
+      session.startTransaction({
+        readPreference: 'primary',
+        readConcern: { level: 'local' },
+        writeConcern: { w: 'majority' }
+      });
 
       // Convert user ID to ObjectId if it's a string
       const userId =
@@ -89,7 +94,9 @@ export class RoleApplicationService {
           : data.user;
 
       // Get user and validate role transition
-      const user = await UserModel.findById(userId).session(session);
+      const user = await UserModel.findById(userId)
+        .session(session)
+        .read('primary');
       if (!user) {
         throw new AppError("User not found", 404);
       }
@@ -122,7 +129,9 @@ export class RoleApplicationService {
         status: {
           $in: [ApplicationStatus.PENDING, ApplicationStatus.IN_REVIEW],
         },
-      }).session(session);
+      })
+        .session(session)
+        .read('primary');
 
       if (existingApplication) {
         throw new AppError(
