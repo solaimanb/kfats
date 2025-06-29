@@ -8,6 +8,7 @@ import type {
 } from "@/types";
 import type { RoleApplicationRequest } from "@/types";
 import { api } from "../api-client";
+import { setCookie, deleteCookie } from "@/lib/utils/cookie";
 
 class AuthService {
   async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
@@ -18,6 +19,11 @@ class AuthService {
       hasData: !!response.data,
       hasAccessToken: !!response.data?.accessToken
     });
+
+    if (response.status === "success" && response.data?.accessToken) {
+      setCookie("accessToken", response.data.accessToken);
+    }
+
     return response;
   }
 
@@ -30,6 +36,7 @@ class AuthService {
 
   async logout(): Promise<ApiResponse<void>> {
     console.log("[AuthService] Making logout request");
+    deleteCookie("accessToken");
     return api.post("/auth/logout");
   }
 
