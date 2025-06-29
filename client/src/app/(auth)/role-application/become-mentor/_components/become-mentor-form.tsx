@@ -1,37 +1,43 @@
 "use client";
 
+import { useState, ChangeEvent, useEffect } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { z } from "zod";
+import { PlusCircle, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 import {
-  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  Checkbox,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  Input,
-  Label,
-  LoadingButton,
-  Separator,
-  Textarea
-} from "@/components/ui";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+
 import { roleApplicationService } from "@/lib/api/services/role-application.service";
-import { UserRole } from "@/types/domain/role/types";
-import { RoleApplicationRequest } from "@/types/api/role/requests";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { PlusCircle, X } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, ChangeEvent } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import * as z from "zod";
+import { handleApiError } from '@/lib/utils/error';
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/auth/use-auth";
+import { UserRole } from "@/config/rbac/types";
+import type { RoleApplicationRequest } from "@/types/api/role/requests";
 
 const formSchema = z.object({
   // Basic Profile
@@ -45,10 +51,26 @@ const formSchema = z.object({
     .max(50),
   email: z.string().email("Invalid email address"),
   phone: z.string().regex(/^\+?[\d\s-]{10,}$/, "Invalid phone number format"),
-  bio: z.string().min(100, "Bio must be at least 100 characters").max(500),
+  bio: z.string()
+    .min(100, "Bio must be at least 100 characters")
+    .max(500)
+    .refine(
+      (value) => !/^(.)\1+$/.test(value),
+      "Please provide a meaningful bio"
+    ),
+
+  // File uploads
+  avatar: z.any().optional(),
+  documents: z.any().array().optional(),
 
   // Required fields for role application
-  reason: z.string().min(100, "Please provide a detailed reason for becoming a mentor (minimum 100 characters)"),
+  reason: z.string()
+    .min(100, "Please provide a detailed reason for becoming a mentor (minimum 100 characters)")
+    .max(500)
+    .refine(
+      (value) => !/^(.)\1+$/.test(value),
+      "Please provide a meaningful reason"
+    ),
   additionalInfo: z.string().optional(),
 
   // Address (optional)
@@ -82,25 +104,39 @@ const formSchema = z.object({
   expertise: z
     .array(z.string())
     .min(1, "At least one area of expertise is required")
-    .max(5, "Maximum 5 areas of expertise allowed"),
+    .max(5, "Maximum 5 areas of expertise allowed")
+    .refine(
+      (values) => values.every((value) => value.length >= 3),
+      "Each expertise must be at least 3 characters long"
+    ),
   experience: z.number().min(1, "Must have at least 1 year of teaching experience"),
   qualifications: z
     .array(
       z.object({
-        degree: z.string().min(1, "Degree is required"),
-        institution: z.string().min(1, "Institution is required"),
-        year: z.number().min(1900, "Invalid year"),
-        field: z.string().min(1, "Field of study is required"),
+        degree: z.string().min(2, "Degree must be at least 2 characters"),
+        institution: z.string().min(2, "Institution must be at least 2 characters"),
+        year: z.number()
+          .min(1900, "Invalid year")
+          .max(new Date().getFullYear() + 5, "Year cannot be more than 5 years in the future"),
+        field: z.string().min(2, "Field must be at least 2 characters"),
       })
     )
     .min(1, "At least one qualification is required"),
   teachingMethodology: z
     .string()
     .min(100, "Teaching methodology must be at least 100 characters")
-    .max(1000, "Teaching methodology must not exceed 1000 characters"),
+    .max(1000, "Teaching methodology must not exceed 1000 characters")
+    .refine(
+      (value) => !/^(.)\1+$/.test(value),
+      "Please provide a meaningful teaching methodology"
+    ),
   languages: z
     .array(z.string())
-    .min(1, "At least one teaching language is required"),
+    .min(1, "At least one teaching language is required")
+    .refine(
+      (values) => values.every((value) => value.length >= 2),
+      "Each language must be at least 2 characters long"
+    ),
 
   agreement: z.boolean().refine((val) => val === true, {
     message: "You must agree to the terms",
@@ -114,17 +150,13 @@ interface Documents {
 }
 
 interface DocumentTypes {
-  cv: string[];
-  identity_proof: string[];
-  teaching_certification: string[];
+  [key: string]: string[];
 }
-
-type DocumentType = 'cv' | 'identity_proof' | 'teaching_certification';
 
 const ACCEPTED_DOCUMENT_TYPES: DocumentTypes = {
   cv: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  identity_proof: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-  teaching_certification: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+  identity_proof: ['image/jpeg', 'image/png', 'application/pdf'],
+  teaching_certification: ['image/jpeg', 'image/png', 'application/pdf']
 };
 
 interface UploadedDocument {
@@ -138,11 +170,16 @@ interface UploadedDocument {
 
 export const BecomeMentorForm = () => {
   const router = useRouter();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Documents>({});
   const [expertiseInput, setExpertiseInput] = useState("");
   const [languageInput, setLanguageInput] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -152,7 +189,10 @@ export const BecomeMentorForm = () => {
       email: "",
       phone: "",
       bio: "",
+      avatar: "",
+      documents: [],
       reason: "",
+      additionalInfo: "",
       address: {
         street: "",
         city: "",
@@ -179,8 +219,36 @@ export const BecomeMentorForm = () => {
       languages: [],
       agreement: false,
     },
-    mode: "onSubmit",
+    mode: "onChange",
   });
+
+  // Pre-fill form with user data
+  useEffect(() => {
+    if (user?.profile) {
+      form.setValue("firstName", user.profile.firstName || "");
+      form.setValue("lastName", user.profile.lastName || "");
+      form.setValue("email", user.email || "");
+      form.setValue("phone", user.profile.phone || "");
+      form.setValue("bio", user.profile.bio || "");
+
+      // Pre-fill address if available
+      if (user.profile.address) {
+        form.setValue("address.street", user.profile.address.street || "");
+        form.setValue("address.city", user.profile.address.city || "");
+        form.setValue("address.state", user.profile.address.state || "");
+        form.setValue("address.postalCode", user.profile.address.postalCode || "");
+        form.setValue("address.country", user.profile.address.country || "");
+      }
+
+      // Pre-fill social links if available
+      if (user.profile.socialLinks) {
+        form.setValue("socialLinks.website", user.profile.socialLinks.website || "");
+        form.setValue("socialLinks.linkedin", user.profile.socialLinks.linkedin || "");
+        form.setValue("socialLinks.twitter", user.profile.socialLinks.twitter || "");
+        form.setValue("socialLinks.facebook", user.profile.socialLinks.facebook || "");
+      }
+    }
+  }, [user, form]);
 
   const {
     fields: qualificationFields,
@@ -191,11 +259,25 @@ export const BecomeMentorForm = () => {
     control: form.control,
   });
 
+  useEffect(() => {
+    if (selectedFile) {
+      form.setValue("avatar", selectedFile.name);
+    }
+  }, [selectedFile, form]);
+
+  useEffect(() => {
+    if (selectedFiles.length > 0) {
+      form.setValue("documents", selectedFiles.map((file) => file.name));
+    }
+  }, [selectedFiles, form]);
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
         setPreviewUrl(URL.createObjectURL(file));
+        setSelectedFile(file);
+        form.setValue("avatar", file);
       } catch (error) {
         console.error('[handleImageChange] Error:', error);
         const message = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -221,17 +303,48 @@ export const BecomeMentorForm = () => {
       }
 
       setDocuments(prev => ({ ...prev, [type]: file }));
+      setSelectedFiles(prev => [...prev, file]);
+      const currentDocs = form.getValues("documents") || [];
+      form.setValue("documents", [...currentDocs, file]);
     }
   };
 
-  const uploadDocument = async (file: File, type: DocumentType): Promise<UploadedDocument> => {
-    console.log(`[uploadDocument] Starting upload for ${type}`);
+  const uploadDocument = async (
+    file: File,
+    type: "cv" | "identity_proof" | "teaching_certification"
+  ): Promise<UploadedDocument> => {
+    console.log("[uploadDocument] Starting upload for", type);
+
+    // Validate file type based on document type
+    const allowedTypes: Record<string, string[]> = {
+      cv: ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+      identity_proof: ["image/jpeg", "image/png", "application/pdf"],
+      teaching_certification: ["application/pdf", "image/jpeg", "image/png"]
+    };
+
+    if (!allowedTypes[type].includes(file.type)) {
+      throw new Error(`Invalid file type for ${type}. Allowed types: ${allowedTypes[type].join(", ")}`);
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new Error(`File size must be less than 5MB`);
+    }
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('document', file);
+
+    // Log FormData contents
+    console.log('[uploadDocument] FormData contents:');
+    for (const [key, value] of formData.entries()) {
+      console.log(`  ${key}:`, value);
+    }
 
     try {
       const endpoint = `/api/v1/role-applications/upload/${type}`;
+      console.log('[uploadDocument] Sending request to:', endpoint);
+
       const response = await fetch(endpoint, {
         method: 'POST',
         body: formData
@@ -241,10 +354,17 @@ export const BecomeMentorForm = () => {
         throw new Error(`Upload failed with status ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log('[uploadDocument] Upload response:', data);
+      const responseText = await response.text();
+      console.log('[uploadDocument] Raw response:', responseText);
 
-      return {
+      const { status, data } = JSON.parse(responseText);
+      console.log('[uploadDocument] Parsed response:', { status, data });
+
+      if (status !== 'success' || !data?.document) {
+        throw new Error('Invalid response from server');
+      }
+
+      const uploadedDoc = {
         type,
         url: data.document.url,
         name: file.name,
@@ -252,6 +372,9 @@ export const BecomeMentorForm = () => {
         size: file.size,
         publicId: data.document.publicId
       };
+      console.log('[uploadDocument] Created document object:', uploadedDoc);
+
+      return uploadedDoc;
     } catch (error) {
       console.error('[uploadDocument] Error:', error);
       const message = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -260,11 +383,13 @@ export const BecomeMentorForm = () => {
   };
 
   const uploadDocuments = async (documents: Documents): Promise<UploadedDocument[]> => {
+    console.log('[uploadDocuments] Starting document uploads with:', documents);
     const uploadedDocs: UploadedDocument[] = [];
 
     try {
       // Upload CV if exists
       if (documents.cv) {
+        console.log('[uploadDocuments] Uploading CV...');
         const cvDoc = await uploadDocument(documents.cv, 'cv');
         if (Array.isArray(cvDoc)) {
           uploadedDocs.push(...cvDoc);
@@ -275,6 +400,7 @@ export const BecomeMentorForm = () => {
 
       // Upload Identity Proof if exists
       if (documents.identityProof) {
+        console.log('[uploadDocuments] Uploading Identity Proof...');
         const idDoc = await uploadDocument(documents.identityProof, 'identity_proof');
         if (Array.isArray(idDoc)) {
           uploadedDocs.push(...idDoc);
@@ -285,6 +411,7 @@ export const BecomeMentorForm = () => {
 
       // Upload Teaching Certification if exists
       if (documents.teachingCertification) {
+        console.log('[uploadDocuments] Uploading Teaching Certification...');
         const certDoc = await uploadDocument(documents.teachingCertification, 'teaching_certification');
         if (Array.isArray(certDoc)) {
           uploadedDocs.push(...certDoc);
@@ -293,6 +420,7 @@ export const BecomeMentorForm = () => {
         }
       }
 
+      console.log('[uploadDocuments] All documents uploaded:', uploadedDocs);
       return uploadedDocs;
     } catch (error) {
       console.error('[uploadDocuments] Error:', error);
@@ -302,17 +430,18 @@ export const BecomeMentorForm = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log('[onSubmit] Starting submission process');
+    console.log('[onSubmit] Form values:', values);
     setIsSubmitting(true);
 
     try {
       console.log('[onSubmit] Starting document uploads...');
       const uploadedDocs = await uploadDocuments(documents);
+      console.log('[onSubmit] All documents uploaded:', uploadedDocs);
 
       const applicationData: RoleApplicationRequest = {
         role: UserRole.MENTOR,
         fields: {
           reason: values.reason,
-          additionalInfo: values.additionalInfo,
           qualifications: values.qualifications.map(q => ({
             degree: q.degree,
             institution: q.institution,
@@ -321,21 +450,47 @@ export const BecomeMentorForm = () => {
           })),
           experience: {
             years: values.experience,
-            details: values.teachingMethodology
+            details: values.bio
           },
           specialization: values.expertise,
           teachingStyle: values.teachingMethodology,
-          availability: [] // TODO: Add availability field to form
+          availability: values.languages || []
         },
-        documents: uploadedDocs
+        documents: uploadedDocs.map(doc => ({
+          type: doc.type,
+          url: doc.url,
+          name: doc.name,
+          mimeType: doc.mimeType,
+          size: doc.size
+        }))
       };
 
+      console.log('[onSubmit] Submitting application with data:', JSON.stringify(applicationData, null, 2));
+
+      // Log the request that will be sent
+      console.log('[onSubmit] Request URL:', '/api/v1/role-applications');
+      console.log('[onSubmit] Request method: POST');
+      console.log('[onSubmit] Request headers:', {
+        'Content-Type': 'application/json'
+      });
+      console.log('[onSubmit] Request body:', applicationData);
+
       await roleApplicationService.submitApplication(applicationData);
-      toast.success("Application submitted successfully!");
-      router.push("/role-application/success");
+
+      toast.success('Application submitted successfully!');
+      router.push('/role-application/success');
+      setIsSuccess(true);
     } catch (error) {
-      console.error('[onSubmit] Error:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to submit application");
+      console.log('[onSubmit] Error:', error);
+      if (error instanceof Error) {
+        console.log('[onSubmit] Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      toast.error(handleApiError(error));
+      setError(error as Error);
     } finally {
       setIsSubmitting(false);
     }
@@ -394,6 +549,28 @@ export const BecomeMentorForm = () => {
       </FormItem>
     );
   };
+
+  // Add debug logging for form validation
+  useEffect(() => {
+    const errors = form.formState.errors;
+    if (Object.keys(errors).length > 0) {
+      console.log('[Form Validation] Current errors:', errors);
+      console.log('[Form Validation] Form values:', form.getValues());
+      console.log('[Form Validation] Required documents:', documents);
+    }
+  }, [form.formState.errors, form.getValues, documents, form]);
+
+  useEffect(() => {
+    if (isSuccess) {
+      router.push("/role-application/success");
+    }
+  }, [isSuccess, router]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error.message);
+    }
+  }, [error]);
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-background to-muted/30 py-8 px-4 sm:px-6">
@@ -919,7 +1096,10 @@ export const BecomeMentorForm = () => {
                           type="number"
                           placeholder="Years of teaching experience"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            field.onChange(value === "" ? 0 : parseInt(value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1028,15 +1208,26 @@ export const BecomeMentorForm = () => {
                   )}
                 />
 
-                <div className="pt-6">
+                <div className="pt-6 space-y-2">
                   <LoadingButton
                     type="submit"
                     className="w-full"
                     loading={isSubmitting}
                     disabled={isSubmitting || !form.formState.isValid}
+                    onClick={() => {
+                      if (!form.formState.isValid) {
+                        console.log('[Submit Button] Form is invalid. Current errors:', form.formState.errors);
+                        toast.error("Please fill in all required fields correctly");
+                      }
+                    }}
                   >
                     {isSubmitting ? "Submitting Application..." : "Submit Application"}
                   </LoadingButton>
+                  {!form.formState.isValid && (
+                    <p className="text-xs text-destructive/50 text-center">
+                      Please fill in all required fields correctly to enable submission
+                    </p>
+                  )}
                 </div>
               </form>
             </Form>

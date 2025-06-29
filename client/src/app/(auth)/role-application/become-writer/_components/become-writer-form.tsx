@@ -170,14 +170,14 @@ export function BecomeWriterForm() {
         role: UserRole.WRITER,
         fields: {
           reason: values.bio || "Interested in becoming a writer",
-          portfolio: values.portfolio.join(", "),
-          samples: [],
-          specialization: values.specializations,
-          languages: values.languages.map(l => l.language),
+          qualifications: [],
           experience: {
             years: values.experience.years,
-            details: values.bio || ""
-          }
+            details: `Portfolio: ${values.portfolio.join(", ")}\nPublications: ${values.experience.publications?.map(p => p.title).join(", ") || "None"}`
+          },
+          specialization: values.specializations,
+          teachingStyle: "",
+          availability: values.languages.map(l => l.language)
         },
         documents: []
       };

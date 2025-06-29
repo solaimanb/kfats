@@ -27,4 +27,4 @@ export interface IRole {
   permissions: string[];
   createdAt: Date;
   updatedAt: Date;
-} 
+}

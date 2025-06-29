@@ -121,4 +121,4 @@ roleApplicationSchema.index({ createdAt: 1 });
 export const RoleApplicationModel = mongoose.model<IRoleApplication>(
   "RoleApplication",
   roleApplicationSchema
-); 
+);

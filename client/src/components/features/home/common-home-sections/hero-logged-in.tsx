@@ -6,22 +6,22 @@ import { motion } from "framer-motion";
 export default function HeroLoggedIn() {
   return (
     <section className="relative flex w-full min-h-[90vh] bg-cover bg-center"
-    style={{ backgroundImage: "url('/images/banner.gif')" }}
+      style={{ backgroundImage: 'url("/images/banner.gif")' }}
     >
       <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 items-center pl-6">
-        
+
         {/* Left: Text Content */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-        > 
+        >
           <h1 className="text-4xl md:text-5xl font-bold text-kc-text mb-4">
-            কুষ্টিয়া চারুকলায় আপনাকে স্বাগতম!
+            কুষ্টিয়া চারুকলায় আপনাকে স্বাগতম!
           </h1>
           <p className="text-lg text-gray-700 mb-6">
-            আপনার দক্ষতা বৃদ্ধি ও দক্ষতাকে কাজে লাগিয়ে
-             অনলাইনে <br />  আয়ের উৎসে রূপান্তর করুন আমাদের সাথে।
+            আপনার দক্ষতা বৃদ্ধি ও দক্ষতাকে কাজে লাগিয়ে
+            অনলাইনে <br />  আয়ের উৎসে রূপান্তর করুন আমাদের সাথে।
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4">
