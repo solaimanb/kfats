@@ -33,11 +33,11 @@ export default function UserHomeNavbar() {
     if (!user) return "/dashboard";
     const role = user.roles[0];
     if (role === "admin") return "/dashboard/admin";
-    if (role === "mentor") return "/dashboard/mentoring";
-    if (role === "writer") return "/dashboard/articles";
-    if (role === "seller") return "/dashboard/products";
-    if (role === "student") return "/dashboard/courses";
-    return "/dashboard/user";  // Return user dashboard path for user role
+    if (role === "mentor") return "/dashboard/mentor";
+    if (role === "writer") return "/dashboard/writer";
+    if (role === "seller") return "/dashboard/seller";
+    if (role === "student") return "/dashboard/student";
+    return "/dashboard/user";
   };
 
   const handleLogout = async () => {
@@ -116,7 +116,7 @@ export default function UserHomeNavbar() {
           <Link href="/products" className="text-black hover:text-kc-green">
             প্রোডাক্টস
           </Link>
-          {user && user.roles.length > 0 && user.roles[0] !== "user" && (
+          {user && (
             <Link
               href={getDashboardLink()}
               className="text-black hover:text-kc-green"
@@ -151,6 +151,11 @@ export default function UserHomeNavbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile" className="hover:text-kc-green w-full">
                     Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/user/role-applications" className="hover:text-kc-green w-full">
+                    Role Applications
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -201,7 +206,7 @@ export default function UserHomeNavbar() {
               >
                 প্রোডাক্টস
               </Link>
-              {user && user.roles.length > 0 && user.roles[0] !== "user" && (
+              {user && (
                 <Link
                   href={getDashboardLink()}
                   onClick={() => setSheetOpen(false)}
@@ -234,6 +239,14 @@ export default function UserHomeNavbar() {
                         className="justify-start text-black hover:text-kc-green hover:bg-transparent w-full"
                       >
                         👤 {user.profile.firstName}
+                      </Button>
+                    </Link>
+                    <Link href="/dashboard/user/role-applications" className="w-full">
+                      <Button
+                        variant="ghost"
+                        className="justify-start text-black hover:text-kc-green hover:bg-transparent w-full"
+                      >
+                        📝 Role Applications
                       </Button>
                     </Link>
                     <Button

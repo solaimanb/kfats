@@ -18,6 +18,19 @@ export interface UserProfile {
   avatar?: string;
   phone?: string;
   bio?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  };
+  socialLinks?: {
+    website?: string;
+    linkedin?: string;
+    twitter?: string;
+    facebook?: string;
+  };
 }
 
 export interface User {
@@ -31,4 +44,4 @@ export interface User {
   lastLogin?: string;
   createdAt: string;
   updatedAt: string;
-} 
+}

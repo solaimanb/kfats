@@ -12,8 +12,8 @@ export function setCookie(
   options: CookieOptions = {}
 ) {
   const {
-    secure = true,
-    sameSite = "strict",
+    secure = process.env.NODE_ENV === 'production',
+    sameSite = process.env.NODE_ENV === 'production' ? "strict" : "lax",
     maxAge = 24 * 60 * 60, // 24 hours by default
     path = "/",
     domain,
