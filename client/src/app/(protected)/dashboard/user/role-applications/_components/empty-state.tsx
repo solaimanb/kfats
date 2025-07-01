@@ -1,7 +1,6 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
 
 export function EmptyState() {
@@ -15,9 +14,6 @@ export function EmptyState() {
         <p className="text-muted-foreground text-sm mb-4 max-w-sm">
           Start your journey by applying for a mentor, writer, or seller role.
         </p>
-        <Button asChild variant="default">
-          <a href="/role-application/become-mentor">Apply for a Role</a>
-        </Button>
       </CardContent>
     </Card>
   );

@@ -59,7 +59,7 @@ export const ROLE_REQUIREMENTS: Partial<
   },
   [UserRole.SELLER]: {
     requiredVerification: true,
-    requiredDocuments: ["businessRegistration", "taxId", "bankDetails"],
+    requiredDocuments: ["identityProof"],
     minimumRequirements: {
       experience: 0,
       reviews: 0,

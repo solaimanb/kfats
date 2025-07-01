@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { roleApplicationService } from "@/lib/api/services/role-application.service";
 import { handleApiError } from "@/lib/utils/error";
@@ -55,11 +54,6 @@ export default function RoleApplicationsPage() {
               Track and manage your role applications
             </p>
           </div>
-          {applications.length === 0 && (
-            <Button asChild variant="default">
-              <a href="/role-application/become-mentor">Apply for a Role</a>
-            </Button>
-          )}
         </div>
 
         {applications.length === 0 ? (

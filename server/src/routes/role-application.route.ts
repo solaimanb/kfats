@@ -4,7 +4,10 @@ import { RoleApplicationController } from "../controllers/role-application.contr
 import { protect, restrictTo } from "../middleware/auth.middleware";
 import { handleMultipleImageUpload, handleSingleDocumentUpload } from "../middleware/upload.middleware";
 import { validateRequest } from "../middleware/validation.middleware";
-import { createRoleApplicationSchema } from "../validators/role-application.validator";
+import { 
+  createRoleApplicationSchema,
+  withdrawApplicationSchema
+} from "../validators/role-application.validator";
 
 const router = express.Router();
 const roleApplicationController = new RoleApplicationController();
@@ -145,6 +148,46 @@ router.post(
       }
     });
   }
+);
+
+/**
+ * @swagger
+ * /api/v1/role-applications/{id}/withdraw:
+ *   post:
+ *     tags:
+ *       - Role Applications
+ *     summary: Withdraw application
+ *     description: Withdraw a pending role application
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Application ID
+ *     responses:
+ *       200:
+ *         description: Application withdrawn successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     application:
+ *                       $ref: '#/components/schemas/RoleApplication'
+ */
+router.post(
+  "/:id/withdraw", 
+  validateRequest(withdrawApplicationSchema),
+  roleApplicationController.withdrawApplication
 );
 
 // Admin routes
