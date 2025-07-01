@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { UserRole } from "../config/rbac/types";
 import { isValidRoleTransition } from "../config/rbac/roles";
+import { ApplicationStatus } from "../models/role-application.model";
 
 const documentSchema = z.object({
   type: z.string().min(1, "Document type is required"),
@@ -99,9 +100,7 @@ const writerFieldsSchema = baseFieldsSchema.extend({
 const sellerFieldsSchema = baseFieldsSchema.extend({
   businessDetails: z.object({
     businessName: z.string().min(1, "Business name is required"),
-    businessType: z.string().min(1, "Business type is required"),
-    registrationNumber: z.string().min(1, "Registration number is required"),
-    taxId: z.string().min(1, "Tax ID is required"),
+    businessType: z.string().min(1, "Business type is required")
   }),
   businessAddress: z.object({
     street: z.string().min(1, "Street is required"),
@@ -109,12 +108,6 @@ const sellerFieldsSchema = baseFieldsSchema.extend({
     state: z.string().min(1, "State is required"),
     postalCode: z.string().min(1, "Postal code is required"),
     country: z.string().min(1, "Country is required"),
-  }),
-  bankingDetails: z.object({
-    bankName: z.string().min(1, "Bank name is required"),
-    accountNumber: z.string().min(1, "Account number is required"),
-    routingNumber: z.string().min(1, "Routing number is required"),
-    accountType: z.string().min(1, "Account type is required"),
   }),
   productCategories: z
     .array(z.string())
@@ -138,10 +131,7 @@ const roleSpecificDocumentRequirements: DocumentRequirements = {
   ],
   [UserRole.WRITER]: ["portfolio", "language_certificates", "identity_proof"],
   [UserRole.SELLER]: [
-    "business_registration",
-    "tax_certificate",
-    "bank_statement",
-    "identity_proof",
+    "identity_proof"
   ],
 } as const;
 
@@ -273,3 +263,7 @@ export const updateApplicationSchema = z
   );
 
 export type UpdateApplicationInput = z.infer<typeof updateApplicationSchema>;
+
+export const withdrawApplicationSchema = z.object({}).strict();
+
+export type WithdrawApplicationInput = z.infer<typeof withdrawApplicationSchema>;

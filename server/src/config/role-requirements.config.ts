@@ -337,30 +337,6 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
     documents: [
       COMMON_DOCUMENTS.identityProof,
       {
-        type: "businessRegistration",
-        label: "Business Registration Certificate",
-        required: true,
-        formats: ["pdf"],
-        maxSize: 5 * 1024 * 1024,
-        description: "Valid business registration or trade license",
-      },
-      {
-        type: "taxCertificate",
-        label: "Tax Registration Certificate",
-        required: true,
-        formats: ["pdf"],
-        maxSize: 5 * 1024 * 1024,
-        description: "Tax registration or VAT certificate",
-      },
-      {
-        type: "bankStatement",
-        label: "Bank Statement",
-        required: true,
-        formats: ["pdf"],
-        maxSize: 5 * 1024 * 1024,
-        description: "Last 3 months bank statement",
-      },
-      {
         type: "productCatalog",
         label: "Product Catalog",
         required: false,
@@ -383,15 +359,7 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
           businessType: {
             type: "string",
             required: true,
-          },
-          registrationNumber: {
-            type: "string",
-            required: true,
-          },
-          taxId: {
-            type: "string",
-            required: true,
-          },
+          }
         },
       },
       {
@@ -422,53 +390,6 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
           },
         },
       },
-      {
-        name: "bankingDetails",
-        type: "object",
-        label: "Banking Information",
-        required: true,
-        schema: {
-          bankName: {
-            type: "string",
-            required: true,
-          },
-          accountNumber: {
-            type: "string",
-            required: true,
-          },
-          routingNumber: {
-            type: "string",
-            required: true,
-          },
-          accountType: {
-            type: "string",
-            required: true,
-          },
-        },
-      },
-      {
-        name: "productCategories",
-        type: "array",
-        label: "Product Categories",
-        required: true,
-        minItems: 1,
-        maxItems: 10,
-        validation: {
-          pattern: "^[a-zA-Z0-9\\s]{3,50}$",
-          message: "Each category must be 3-50 characters long",
-        },
-      },
-      {
-        name: "businessPlan",
-        type: "text",
-        label: "Business Plan Summary",
-        required: true,
-        validation: {
-          min: 300,
-          max: 2000,
-          message: "Business plan must be between 300 and 2000 characters",
-        },
-      },
     ],
     verificationSteps: [
       COMMON_VERIFICATION_STEPS.documentVerification,
@@ -477,20 +398,7 @@ export const ROLE_REQUIREMENTS: Record<UserRole, RoleRequirement> = {
         label: "Business Verification",
         type: "manual",
         required: true,
-      },
-      {
-        name: "bankVerification",
-        label: "Banking Details Verification",
-        type: "manual",
-        required: true,
-      },
-      {
-        name: "productReview",
-        label: "Product Catalog Review",
-        type: "manual",
-        required: true,
-      },
-      COMMON_VERIFICATION_STEPS.interview,
+      }
     ],
   },
   [UserRole.ADMIN]: {
