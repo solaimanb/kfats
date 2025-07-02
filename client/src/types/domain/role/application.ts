@@ -2,15 +2,7 @@
  * Role application domain types
  */
 
-import type { UserRole, ApplicationStatus } from './types';
-
-export interface Document {
-  type: string;
-  url: string;
-  name: string;
-  mimeType: string;
-  size: number;
-}
+import { Document } from "../common/types";
 
 export interface VerificationStep {
   name: string;
@@ -21,16 +13,11 @@ export interface VerificationStep {
 }
 
 export interface RoleApplication {
-  id: string;
-  userId: string;
-  role: UserRole;
-  status: ApplicationStatus;
+  _id: string;
+  role: string;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
   documents: Document[];
-  fields: Record<string, unknown>;
-  verificationSteps: VerificationStep[];
-  reviewedBy?: string;
-  reviewedAt?: string;
-  rejectionReason?: string;
+  feedback?: string;
   createdAt: string;
   updatedAt: string;
-} 
+}

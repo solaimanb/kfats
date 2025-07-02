@@ -2,7 +2,7 @@ import { api } from "../api-client";
 import type { ApiResponse } from "@/types";
 import type { ApplicationStatus } from "@/types";
 import type { RoleApplication } from "@/types";
-import type { RoleApplicationRequest } from "@/types";
+import type { RoleApplicationRequest } from "@/types/api/role/requests";
 
 export interface RoleApplicationFilters {
   status?: ApplicationStatus;
@@ -22,10 +22,9 @@ export interface RoleStatistics {
 class RoleApplicationService {
   // Application Submission
   async submitApplication(
-    application: RoleApplicationRequest
+    data: RoleApplicationRequest
   ): Promise<ApiResponse<void>> {
-    console.log("[RoleApplicationService] Submitting application");
-    return api.post("/role-applications", application);
+    return api.post("/role-applications", data);
   }
 
   async updateApplication(
@@ -35,12 +34,12 @@ class RoleApplicationService {
     return api.patch(`/role-applications/${id}`, data);
   }
 
-  async withdrawApplication(id: string): Promise<ApiResponse<void>> {
-    return api.delete(`/role-applications/${id}`);
+  async withdrawApplication(applicationId: string): Promise<ApiResponse<void>> {
+    return api.post(`/role-applications/${applicationId}/withdraw`);
   }
 
   // Application Status
-  async getMyApplications(): Promise<ApiResponse<RoleApplication[]>> {
+  async getUserApplications(): Promise<ApiResponse<RoleApplication[]>> {
     return api.get("/role-applications/my-applications");
   }
 

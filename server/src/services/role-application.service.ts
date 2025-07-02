@@ -50,9 +50,7 @@ export class RoleApplicationService {
         case UserRole.SELLER:
           return [
             ...baseSteps,
-            "business_verification",
-            "tax_verification",
-            "bank_account_verification",
+            "business_verification"
           ];
         case UserRole.WRITER:
           return [
@@ -257,13 +255,65 @@ export class RoleApplicationService {
   async getMyApplications(userId: string) {
     return RoleApplicationModel.find({
       user: userId,
+      status: { $ne: ApplicationStatus.WITHDRAWN }
     }).sort({ createdAt: -1 });
   }
 
+  async withdrawApplication(applicationId: string, userId: string) {
+    const session = await startSession();
+    try {
+      session.startTransaction({
+        readPreference: ReadPreference.PRIMARY,
+        readConcern: { level: 'local' },
+        writeConcern: { w: 'majority' }
+      });
+
+      // Find and delete the application
+      const application = await RoleApplicationModel.findOneAndDelete(
+        {
+          _id: applicationId,
+          user: userId,
+          status: { $in: [ApplicationStatus.PENDING, ApplicationStatus.IN_REVIEW] }
+        },
+        { session }
+      );
+
+      if (!application) {
+        throw new AppError(
+          "Application not found or cannot be withdrawn",
+          404
+        );
+      }
+
+      // Create audit log
+      await AuditLogModel.create([{
+        userId,
+        action: "APPLICATION_WITHDRAWN",
+        resource: `role-application/${applicationId}`,
+        status: "success",
+        details: {
+          role: application.role,
+          previousStatus: application.status
+        },
+        metadata: {
+          requestBody: { applicationId },
+          responseStatus: 200,
+          responseBody: { status: "deleted" }
+        }
+      }], { session });
+
+      await session.commitTransaction();
+      return { message: "Application withdrawn successfully" };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
   async getAllApplications() {
-    return RoleApplicationModel.find()
-      .populate("user", "firstName lastName email")
-      .sort({ createdAt: -1 });
+    return RoleApplicationModel.find();
   }
 
   async getApplication(id: string) {

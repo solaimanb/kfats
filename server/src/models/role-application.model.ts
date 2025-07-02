@@ -7,7 +7,8 @@ export enum ApplicationStatus {
   APPROVED = 'approved',
   REJECTED = 'rejected',
   CANCELLED = 'cancelled',
-  EXPIRED = 'expired'
+  EXPIRED = 'expired',
+  WITHDRAWN = 'withdrawn'
 }
 
 export interface IRoleApplication extends Document {
@@ -121,4 +122,4 @@ roleApplicationSchema.index({ createdAt: 1 });
 export const RoleApplicationModel = mongoose.model<IRoleApplication>(
   "RoleApplication",
   roleApplicationSchema
-); 
+);

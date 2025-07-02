@@ -42,13 +42,14 @@ const ROLE_ROUTES = {
   [UserRole.STUDENT]: ['/dashboard/my-courses', '/dashboard/courses'],
   [UserRole.WRITER]: ['/dashboard/articles'],
   [UserRole.SELLER]: ['/dashboard/products'],
-  [UserRole.USER]: ['/dashboard', '/dashboard/user']
+  [UserRole.USER]: ['/dashboard', '/dashboard/user', '/dashboard/user/role-applications']
 } as const;
 
 // Define protected routes that don't require specific roles
 const COMMON_PROTECTED_ROUTES = [
   '/profile',
-  '/dashboard'
+  '/dashboard',
+  '/dashboard/user/role-applications'
 ];
 
 export async function middleware(request: NextRequest) {
@@ -69,6 +70,11 @@ export async function middleware(request: NextRequest) {
 
   // Check if it's a public route
   if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
+
+  // Allow access to role applications page for any authenticated user
+  if (pathname === '/dashboard/user/role-applications' && token) {
     return NextResponse.next();
   }
 

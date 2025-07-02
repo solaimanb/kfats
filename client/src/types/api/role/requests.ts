@@ -3,17 +3,36 @@
  */
 
 import type { UserRole } from '../../domain/role/types';
-import type { Document } from '../../domain/role/application';
-import type { RoleApplicationData } from '../../domain/role/data';
 
 export interface RoleApplicationRequest {
   role: UserRole;
-  fields: RoleApplicationData[keyof RoleApplicationData];
-  documents?: Document[];
+  fields: {
+    reason: string;
+    qualifications: {
+      degree: string;
+      institution: string;
+      year: number;
+      field: string;
+    }[];
+    experience: {
+      years: number;
+      details: string;
+    };
+    specialization: string[];
+    teachingStyle: string;
+    availability: string[];
+  };
+  documents: {
+    type: string;
+    url: string;
+    name: string;
+    mimeType: string;
+    size: number;
+  }[];
 }
 
 export interface UpdateRoleApplicationRequest {
   status: "approved" | "rejected";
   notes?: string;
   rejectionReason?: string;
-} 
+}

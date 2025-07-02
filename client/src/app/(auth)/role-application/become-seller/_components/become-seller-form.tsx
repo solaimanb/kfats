@@ -1,7 +1,21 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { z } from "zod";
+import Image from "next/image";
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -11,29 +25,50 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { LoadingButton } from "@/components/ui/loading-button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { roleApplicationService } from "@/lib/api/services/role-application.service";
-import { RoleApplicationRequest } from "@/types/api/role/requests";
-import { UserRole } from "@/types/domain/role/types";
-import { zodResolver } from "@hookform/resolvers/zod";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { toast } from "sonner";
-import * as z from "zod";
+import { handleApiError } from '@/lib/utils/error';
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/auth/use-auth";
+import { UserRole } from "@/config/rbac/types";
+import type { RoleApplicationRequest } from "@/types/api/role/requests";
+
+interface Documents {
+  identityProof?: File;
+}
+
+interface DocumentTypes {
+  [key: string]: string[];
+}
+
+const ACCEPTED_DOCUMENT_TYPES: DocumentTypes = {
+  identity_proof: ['image/jpeg', 'image/png', 'application/pdf']
+};
+
+interface UploadedDocument {
+  type: string;
+  url: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  publicId?: string;
+}
 
 const formSchema = z.object({
-  // Basic Profile Info
+  // Basic Profile
+  businessName: z
+    .string()
+    .min(2, "Business name must be at least 2 characters")
+    .max(100, "Business name must not exceed 100 characters"),
+  businessType: z
+    .string()
+    .min(2, "Business type must be at least 2 characters")
+    .max(50, "Business type must not exceed 50 characters"),
   firstName: z
     .string()
     .min(2, "First name must be at least 2 characters")
@@ -42,24 +77,18 @@ const formSchema = z.object({
     .string()
     .min(2, "Last name must be at least 2 characters")
     .max(50),
-  email: z.string().email("Invalid email format"),
-  phone: z
-    .string()
-    .regex(/^\+?[\d\s-]{10,}$/, "Invalid phone number format")
-    .optional(),
-  avatar: z.string().optional(),
-  bio: z.string().max(500, "Bio cannot exceed 500 characters").optional(),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().regex(/^\+?[\d\s-]{10,}$/, "Invalid phone number format"),
+  bio: z.string()
+    .min(100, "Bio must be at least 100 characters")
+    .max(500)
+    .refine(
+      (value) => !/^(.)\1+$/.test(value),
+      "Please provide a meaningful bio"
+    ),
 
-  // Business Information
-  businessName: z
-    .string()
-    .min(2, "Business name must be at least 2 characters"),
-  businessType: z.string().min(2, "Business type is required"),
-  registrationNumber: z.string().min(1, "Registration number is required"),
-  taxId: z.string().min(1, "Tax ID is required"),
-
-  // Business Address
-  businessAddress: z.object({
+  // Address
+  address: z.object({
     street: z.string().min(1, "Street address is required"),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
@@ -67,110 +96,306 @@ const formSchema = z.object({
     country: z.string().min(1, "Country is required"),
   }),
 
-  // Banking Details
-  bankingDetails: z.object({
-    bankName: z.string().min(1, "Bank name is required"),
-    accountNumber: z.string().min(1, "Account number is required"),
-    routingNumber: z.string().min(1, "Routing number is required"),
-    accountType: z.string().min(1, "Account type is required"),
+  // Social Links (optional)
+  socialLinks: z.object({
+    website: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+    linkedin: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+    twitter: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+    facebook: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   }),
 
-  // Social Links (Optional)
-  socialLinks: z
-    .object({
-      website: z.string().url("Invalid website URL").optional(),
-      linkedin: z.string().url("Invalid LinkedIn URL").optional(),
-      twitter: z.string().url("Invalid Twitter URL").optional(),
-      facebook: z.string().url("Invalid Facebook URL").optional(),
-    })
-    .optional(),
+  // File uploads
+  avatar: z.any().optional(),
+  documents: z.any().array().optional(),
 
-  // Agreement
   agreement: z.boolean().refine((val) => val === true, {
-    message: "You must agree to the terms and conditions",
+    message: "You must agree to the terms",
   }),
 });
 
-type FormValues = z.infer<typeof formSchema>;
-
-const businessTypes = [
-  "Sole Proprietorship",
-  "Partnership",
-  "LLC",
-  "Corporation",
-  "Other",
-];
-
-const accountTypes = ["Checking", "Savings", "Business"];
-
 export function BecomeSellerForm() {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [documents, setDocuments] = useState<Documents>({});
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const router = useRouter();
+  const { user } = useAuth();
 
-  const form = useForm<FormValues>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      businessName: "",
+      businessType: "",
       firstName: "",
       lastName: "",
       email: "",
       phone: "",
-      avatar: "",
       bio: "",
-      businessName: "",
-      businessType: "",
-      registrationNumber: "",
-      taxId: "",
-      socialLinks: {
-        website: "",
-        linkedin: "",
-        twitter: "",
-        facebook: "",
-      },
-      businessAddress: {
+      address: {
         street: "",
         city: "",
         state: "",
         postalCode: "",
         country: "",
       },
-      bankingDetails: {
-        bankName: "",
-        accountNumber: "",
-        routingNumber: "",
-        accountType: "",
+      socialLinks: {
+        website: "",
+        linkedin: "",
+        twitter: "",
+        facebook: "",
       },
       agreement: false,
     },
+    mode: "onChange",
   });
 
-  const onSubmit = async (values: FormValues) => {
+  // Pre-fill form with user data
+  useEffect(() => {
+    if (user?.profile) {
+      form.setValue("firstName", user.profile.firstName || "");
+      form.setValue("lastName", user.profile.lastName || "");
+      form.setValue("email", user.email || "");
+      form.setValue("phone", user.profile.phone || "");
+      form.setValue("bio", user.profile.bio || "");
+
+      // Pre-fill address if available
+      if (user.profile.address) {
+        form.setValue("address.street", user.profile.address.street || "");
+        form.setValue("address.city", user.profile.address.city || "");
+        form.setValue("address.state", user.profile.address.state || "");
+        form.setValue("address.postalCode", user.profile.address.postalCode || "");
+        form.setValue("address.country", user.profile.address.country || "");
+      }
+
+      // Pre-fill social links if available
+      if (user.profile.socialLinks) {
+        form.setValue("socialLinks.website", user.profile.socialLinks.website || "");
+        form.setValue("socialLinks.linkedin", user.profile.socialLinks.linkedin || "");
+        form.setValue("socialLinks.twitter", user.profile.socialLinks.twitter || "");
+        form.setValue("socialLinks.facebook", user.profile.socialLinks.facebook || "");
+      }
+    }
+  }, [user, form]);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        setPreviewUrl(URL.createObjectURL(file));
+        form.setValue("avatar", file);
+      } catch (error) {
+        console.error('[handleImageChange] Error:', error);
+        const message = error instanceof Error ? error.message : 'Unknown error occurred';
+        toast.error(`Failed to upload image: ${message}`);
+      }
+    }
+  };
+
+  const handleFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    type: "identityProof"
+  ) => {
+    console.log(`[handleFileChange] Processing ${type} upload:`, event.target.files);
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!ACCEPTED_DOCUMENT_TYPES.identity_proof.includes(file.type)) {
+        toast.error(`Invalid file type for ${type}. Please upload a PDF or image file.`);
+        return;
+      }
+
+      setDocuments(prev => ({ ...prev, [type]: file }));
+      const currentDocs = form.getValues("documents") || [];
+      form.setValue("documents", [...currentDocs, file]);
+    }
+  };
+
+  const uploadDocument = async (
+    file: File,
+    type: "identity_proof"
+  ): Promise<UploadedDocument> => {
+    console.log("[uploadDocument] Starting upload for", type);
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new Error(`File size must be less than 5MB`);
+    }
+
+    const formData = new FormData();
+    formData.append('document', file);
+
     try {
-      setIsSubmitting(true);
+      const endpoint = `/api/v1/role-applications/upload/${type}`;
+      console.log('[uploadDocument] Sending request to:', endpoint);
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      console.log('[uploadDocument] Raw response:', responseText);
+
+      const { status, data } = JSON.parse(responseText);
+      console.log('[uploadDocument] Parsed response:', { status, data });
+
+      if (status !== 'success' || !data?.document) {
+        throw new Error('Invalid response from server');
+      }
+
+      const uploadedDoc = {
+        type,
+        url: data.document.url,
+        name: file.name,
+        mimeType: file.type,
+        size: file.size,
+        publicId: data.document.publicId
+      };
+      console.log('[uploadDocument] Created document object:', uploadedDoc);
+
+      return uploadedDoc;
+    } catch (error) {
+      console.error('[uploadDocument] Error:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Failed to upload ${type}: ${message}`);
+    }
+  };
+
+  const uploadDocuments = async (documents: Documents): Promise<UploadedDocument[]> => {
+    console.log('[uploadDocuments] Starting document uploads with:', documents);
+    const uploadedDocs: UploadedDocument[] = [];
+
+    try {
+      // Upload Identity Proof if exists
+      if (documents.identityProof) {
+        console.log('[uploadDocuments] Uploading Identity Proof...');
+        const idDoc = await uploadDocument(documents.identityProof, 'identity_proof');
+        uploadedDocs.push(idDoc);
+      }
+
+      console.log('[uploadDocuments] All documents uploaded:', uploadedDocs);
+      return uploadedDocs;
+    } catch (error) {
+      console.error('[uploadDocuments] Error:', error);
+      throw error;
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log('[onSubmit] Starting submission process');
+    console.log('[onSubmit] Form values:', values);
+    setIsSubmitting(true);
+
+    try {
+      console.log('[onSubmit] Starting document uploads...');
+      const uploadedDocs = await uploadDocuments(documents);
+      console.log('[onSubmit] All documents uploaded:', uploadedDocs);
 
       const applicationData: RoleApplicationRequest = {
         role: UserRole.SELLER,
         fields: {
           reason: values.bio || "Interested in becoming a seller",
-          businessName: values.businessName,
-          businessType: values.businessType,
-          categories: [],
+          qualifications: [],
           experience: {
             years: 0,
-            details: values.bio || ""
+            details: `Business Name: ${values.businessName}\nBusiness Type: ${values.businessType}\nBio: ${values.bio}`
           },
-          documents: []
+          specialization: [],
+          teachingStyle: "",
+          availability: []
         },
-        documents: []
+        documents: uploadedDocs.map(doc => ({
+          type: doc.type,
+          url: doc.url,
+          name: doc.name,
+          mimeType: doc.mimeType,
+          size: doc.size
+        }))
       };
 
+      console.log('[onSubmit] Submitting application with data:', JSON.stringify(applicationData, null, 2));
       await roleApplicationService.submitApplication(applicationData);
+      
       toast.success("Application submitted successfully!");
+      setIsSuccess(true);
       router.push("/role-application/success");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to submit application. Please try again.");
+    } catch (error) {
+      console.error("[onSubmit] Error:", error);
+      toast.error(handleApiError(error));
+      setError(error as Error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  useEffect(() => {
+    if (isSuccess) {
+      router.push("/role-application/success");
+    }
+  }, [isSuccess, router]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error.message);
+    }
+  }, [error]);
+
+  const renderDocumentUpload = (
+    type: "identityProof",
+    label: string,
+    required = false
+  ) => {
+    const file = documents[type];
+    console.log(`[renderDocumentUpload] Rendering ${type}:`, { file });
+
+    return (
+      <FormItem>
+        <FormLabel>
+          {label} {required && <span className="text-destructive">*</span>}
+        </FormLabel>
+        <FormControl>
+          <div className="flex items-center gap-4">
+            <Input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleFileChange(e, type)}
+              className={cn(
+                "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium",
+                "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              )}
+            />
+            {file && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {file.name}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    console.log(`[renderDocumentUpload] Removing ${type}`);
+                    setDocuments(prev => {
+                      const newState = { ...prev };
+                      delete newState[type];
+                      console.log('[renderDocumentUpload] Updated documents state:', newState);
+                      return newState;
+                    });
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+            )}
+          </div>
+        </FormControl>
+      </FormItem>
+    );
   };
 
   return (
@@ -196,7 +421,47 @@ export function BecomeSellerForm() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                {/* Basic Profile Information */}
+                {/* Profile Image Upload */}
+                <div className="flex flex-col items-center text-center space-y-6 p-8 bg-muted/30 rounded-lg">
+                  <div className="relative">
+                    {previewUrl ? (
+                      <Image
+                        src={previewUrl}
+                        alt="Preview"
+                        width={96}
+                        height={96}
+                        className="rounded-full object-cover w-24 h-24 border-2 border-muted"
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center text-2xl font-semibold text-muted-foreground border-2 border-muted">
+                        S
+                      </div>
+                    )}
+                    <Label
+                      htmlFor="profile"
+                      className="absolute bottom-0 right-0 size-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </Label>
+                    <Input
+                      id="profile"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </div>
+                  <div className="max-w-sm">
+                    <h3 className="text-sm font-medium mb-1">Business Logo</h3>
+                    <p className="text-xs text-muted-foreground">Upload your business logo or profile picture.</p>
+                  </div>
+                </div>
+
+                {/* Basic Profile */}
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
@@ -212,6 +477,7 @@ export function BecomeSellerForm() {
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="lastName"
@@ -241,6 +507,7 @@ export function BecomeSellerForm() {
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="phone"
@@ -261,11 +528,11 @@ export function BecomeSellerForm() {
                     name="bio"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Bio</FormLabel>
+                        <FormLabel>Business Description</FormLabel>
                         <FormControl>
-                          <textarea
-                            placeholder="Tell us about your business and experience"
-                            className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          <Textarea
+                            placeholder="Tell us about your business and what you sell..."
+                            className="min-h-[100px] resize-none"
                             {...field}
                           />
                         </FormControl>
@@ -275,12 +542,13 @@ export function BecomeSellerForm() {
                   />
                 </div>
 
-                <Separator />
+                <Separator className="my-8" />
 
-                {/* Business Information */}
+                {/* Business Details */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold">Business Information</h3>
-                  <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Business Details</h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="businessName"
@@ -288,82 +556,39 @@ export function BecomeSellerForm() {
                         <FormItem>
                           <FormLabel>Business Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="Your business name" {...field} />
+                            <Input placeholder="Enter your business name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={form.control}
                       name="businessType"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Business Type</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select business type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {businessTypes.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <Input placeholder="Enter your business type" {...field} />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="registrationNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Registration Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Business registration number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="taxId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tax ID</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Tax identification number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
                   </div>
                 </div>
 
-                <Separator />
-
-                {/* Business Address */}
-                <div className="space-y-6">
+                {/* Address */}
+                <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Business Address</h3>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="businessAddress.street"
+                      name="address.street"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Street Address</FormLabel>
+                          <FormLabel>Street</FormLabel>
                           <FormControl>
                             <Input placeholder="Street address" {...field} />
                           </FormControl>
@@ -371,135 +596,58 @@ export function BecomeSellerForm() {
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="businessAddress.city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <FormControl>
-                              <Input placeholder="City" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="businessAddress.state"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>State</FormLabel>
-                            <FormControl>
-                              <Input placeholder="State" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="businessAddress.postalCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Postal Code</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Postal code" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="businessAddress.country"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Country</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Country" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
 
-                <Separator />
-
-                {/* Banking Details */}
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold">Banking Details</h3>
-                  <div className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="bankingDetails.bankName"
+                      name="address.city"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Bank Name</FormLabel>
+                          <FormLabel>City</FormLabel>
                           <FormControl>
-                            <Input placeholder="Bank name" {...field} />
+                            <Input placeholder="City" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="bankingDetails.accountNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Account Number</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Account number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="bankingDetails.routingNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Routing Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Routing number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+
                     <FormField
                       control={form.control}
-                      name="bankingDetails.accountType"
+                      name="address.state"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Account Type</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select account type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {accountTypes.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormLabel>State</FormLabel>
+                          <FormControl>
+                            <Input placeholder="State" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="address.postalCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Postal Code</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Postal code" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="address.country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Country" {...field} />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -507,15 +655,13 @@ export function BecomeSellerForm() {
                   </div>
                 </div>
 
-                <Separator />
-
                 {/* Social Links */}
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold">Social Links</h3>
+                    <h3 className="text-lg font-medium">Social Links</h3>
                     <span className="text-sm text-muted-foreground">(Optional)</span>
                   </div>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="socialLinks.website"
@@ -523,40 +669,41 @@ export function BecomeSellerForm() {
                         <FormItem>
                           <FormLabel>Website</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://" {...field} />
+                            <Input placeholder="Your website URL" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="socialLinks.linkedin"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>LinkedIn</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="socialLinks.twitter"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Twitter</FormLabel>
-                            <FormControl>
-                              <Input placeholder="https://" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="socialLinks.linkedin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>LinkedIn</FormLabel>
+                          <FormControl>
+                            <Input placeholder="LinkedIn profile URL" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="socialLinks.twitter"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Twitter</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Twitter profile URL" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="socialLinks.facebook"
@@ -564,7 +711,7 @@ export function BecomeSellerForm() {
                         <FormItem>
                           <FormLabel>Facebook</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://" {...field} />
+                            <Input placeholder="Facebook profile URL" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -573,7 +720,11 @@ export function BecomeSellerForm() {
                   </div>
                 </div>
 
-                <Separator />
+                {/* Document Upload */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Required Documents</h3>
+                  {renderDocumentUpload("identityProof", "Identity Proof", true)}
+                </div>
 
                 {/* Agreement */}
                 <FormField
@@ -589,23 +740,33 @@ export function BecomeSellerForm() {
                       </FormControl>
                       <div className="space-y-1 leading-none">
                         <FormLabel>
-                          I confirm all information is accurate and I agree to the
-                          terms and conditions
+                          I agree to the terms and conditions
                         </FormLabel>
                       </div>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="text-center">
+                <div className="pt-6 space-y-2">
                   <LoadingButton
                     type="submit"
                     className="w-full"
                     loading={isSubmitting}
+                    disabled={isSubmitting || !form.formState.isValid}
+                    onClick={() => {
+                      if (!form.formState.isValid) {
+                        console.log('[Submit Button] Form is invalid. Current errors:', form.formState.errors);
+                        toast.error("Please fill in all required fields correctly");
+                      }
+                    }}
                   >
-                    Submit Application
+                    {isSubmitting ? "Submitting Application..." : "Submit Application"}
                   </LoadingButton>
+                  {!form.formState.isValid && (
+                    <p className="text-xs text-destructive/50 text-center">
+                      Please fill in all required fields correctly to enable submission
+                    </p>
+                  )}
                 </div>
               </form>
             </Form>

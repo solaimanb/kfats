@@ -114,6 +114,18 @@ export class RoleApplicationController {
       data: stats,
     });
   });
+
+  withdrawApplication = catchAsync(async (req: Request, res: Response) => {
+    const application = await this.roleApplicationService.withdrawApplication(
+      req.params.id,
+      req.user!.id
+    );
+
+    return res.status(200).json({
+      status: "success",
+      data: application,
+    });
+  });
 }
 
 export default new RoleApplicationController();
