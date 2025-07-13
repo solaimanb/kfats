@@ -6,7 +6,9 @@ export const registerSchema = z.object({
   profile: z.object({
     firstName: z.string().min(1, "First name is required"),
     lastName: z.string().min(1, "Last name is required"),
-    phone: z.string().optional(),
+    phone: z.string()
+      .regex(/^\d{11}$/, "Phone number must be exactly 11 digits")
+      .optional(),
   }),
 });
 
