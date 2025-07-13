@@ -67,7 +67,11 @@ class AuthService {
         throw new AuthError(apiError.response.data.message);
       }
 
-      throw new AuthError(apiError.message || 'Registration failed');
+      if (apiError.message) {
+        throw new AuthError(apiError.message);
+      }
+
+      throw new AuthError('Registration failed. Please try again.');
     }
   }
 

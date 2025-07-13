@@ -50,7 +50,15 @@ export default function SignupForm() {
       return;
     }
 
-    await register(formData);
+    try {
+      await register(formData);
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
+    }
   };
 
   const handleGoogleSignup = () => {
