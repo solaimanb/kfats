@@ -22,7 +22,7 @@ export default function RoleApplicationsPage() {
     try {
       setIsLoading(true);
       const response = await roleApplicationService.getUserApplications();
-      setApplications(response.data || []);
+      setApplications(response.status === 'success' ? response.data : []);
     } catch (error) {
       toast.error(handleApiError(error));
     } finally {

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { UserRole } from '../../config/rbac/types';
-import { inheritsRole, getInheritedRoles, canTransitionToRole, getPossibleTransitions } from '../../lib/rbac/role';
-import { useAuth } from '../auth/use-auth';
+import { UserRole } from '@/types';
+import { inheritsRole, getInheritedRoles, canTransitionToRole, getPossibleTransitions } from '@/lib/rbac/role';
+import { useAuth } from '@/hooks/auth/use-auth';
 
 export function useRoles() {
   const { user } = useAuth();

@@ -17,6 +17,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+// Common navigation items visible to all roles
+const commonNavItems = [
+  { href: "/dashboard/profile", label: "👤 My Profile" },
+];
+
 // Define navigation items for each role
 const navigationConfig = {
   admin: [
@@ -72,7 +77,7 @@ export function SidebarNav() {
 
   const primaryRole = user?.roles[0] || "user";
 
-  const navItems = navigationConfig[primaryRole as keyof typeof navigationConfig] || navigationConfig.user;
+  const roleSpecificNavItems = navigationConfig[primaryRole as keyof typeof navigationConfig] || navigationConfig.user;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -94,13 +99,41 @@ export function SidebarNav() {
       </SidebarHeader>
 
       <SidebarContent className="px-4">
+                {/* Common navigation items */}
+                <SidebarGroup>
+          <SidebarGroupLabel className="px-2 text-sidebar-foreground/70">
+            Account
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {commonNavItems.map((link) => (
+                <SidebarMenuItem key={link.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === link.href}
+                    tooltip={link.label}
+                    className="transition-colors duration-200"
+                  >
+                    <Link href={link.href}>
+                      <span className="flex items-center gap-2 text-sm">
+                        {link.label}
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Role-specific navigation */}
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-sidebar-foreground/70">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((link) => (
+              {roleSpecificNavItems.map((link) => (
                 <SidebarMenuItem key={link.href}>
                   <SidebarMenuButton
                     asChild

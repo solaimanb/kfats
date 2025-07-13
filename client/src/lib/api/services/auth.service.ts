@@ -1,53 +1,112 @@
 import type { ApiResponse } from "@/types";
-import type { LoginRequest, RegisterRequest } from "@/types";
+import type {
+  LoginRequest,
+  RegisterRequest,
+} from "@/types/api/auth/requests";
 import type {
   LoginResponse,
   RegisterResponse,
   ValidateTokenResponse,
   RefreshTokenResponse,
-} from "@/types";
-import type { RoleApplicationRequest } from "@/types";
+} from "@/types/api/auth/responses";
+import type { RoleApplicationRequest } from "@/types/api/role/requests";
+import type { ApiErrorResponse } from "@/types/api/common/types";
 import { api } from "../api-client";
-import { setCookie, deleteCookie } from "@/lib/utils/cookie";
+import { AuthError, NetworkError, AuthStorage } from "@/lib/auth/utils";
 
 class AuthService {
   async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
-    console.log("[AuthService] Making login request");
-    const response = await api.post<LoginResponse>("/auth/login", credentials);
-    console.log("[AuthService] Login response:", {
-      status: response.status,
-      hasData: !!response.data,
-      hasAccessToken: !!response.data?.accessToken
-    });
+    try {
+      console.log("[AuthService] Making login request");
+      const response = await api.post<LoginResponse>("/auth/login", credentials);
+      console.log("[AuthService] API Response:", response);
 
-    if (response.status === "success" && response.data?.accessToken) {
-      setCookie("accessToken", response.data.accessToken);
+      if (response.status === 'success' && response.data?.user) {
+        AuthStorage.setUser(response.data.user);
+        return response;
+      }
+
+      throw new AuthError(response.message || 'Login failed');
+
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      console.log("[AuthService] Error details:", {
+        response: apiError.response?.data,
+        status: apiError.response?.status,
+        message: apiError.message,
+        error: apiError
+      });
+
+      throw new AuthError(apiError.message || 'Login failed');
     }
-
-    return response;
   }
 
-  async register(
-    data: RegisterRequest
-  ): Promise<ApiResponse<RegisterResponse>> {
-    console.log("[AuthService] Making register request");
-    return api.post("/auth/register", data);
+  async register(data: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
+    try {
+      console.log("[AuthService] Making register request");
+      const response = await api.post<RegisterResponse>("/auth/register", data);
+      console.log("[AuthService] API Response:", response);
+
+      if (response.status === 'success' && response.data?.user) {
+        AuthStorage.setUser(response.data.user);
+        return response;
+      }
+
+      throw new AuthError(response.message || 'Registration failed');
+
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      console.log("[AuthService] Error details:", {
+        response: apiError.response?.data,
+        status: apiError.response?.status,
+        message: apiError.response?.data?.message || apiError.message,
+        error: apiError
+      });
+
+      if (apiError.response?.data?.message) {
+        throw new AuthError(apiError.response.data.message);
+      }
+
+      throw new AuthError(apiError.message || 'Registration failed');
+    }
   }
 
   async logout(): Promise<ApiResponse<void>> {
-    console.log("[AuthService] Making logout request");
-    deleteCookie("accessToken");
-    return api.post("/auth/logout");
+    try {
+      const response = await api.post<void>("/auth/logout");
+      AuthStorage.clearAuth();
+      return response;
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      if (!apiError.response) {
+        throw new NetworkError();
+      }
+      throw new AuthError(apiError.response?.data?.message || 'Logout failed');
+    }
   }
 
-  async validateToken(): Promise<ApiResponse<ValidateTokenResponse>> {
-    console.log("[AuthService] Validating token");
-    return api.get("/auth/validate");
+  async validateSession(): Promise<ApiResponse<ValidateTokenResponse>> {
+    try {
+      return await api.get<ValidateTokenResponse>("/auth/validate");
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      if (!apiError.response) {
+        throw new NetworkError();
+      }
+      throw new AuthError(apiError.response?.data?.message || 'Session validation failed');
+    }
   }
 
   async forgotPassword(email: string): Promise<ApiResponse<void>> {
-    console.log("[AuthService] Making forgot password request");
-    return api.post("/auth/forgot-password", { email });
+    try {
+      return await api.post<void>("/auth/forgot-password", { email });
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      if (!apiError.response) {
+        throw new NetworkError();
+      }
+      throw new AuthError(apiError.response?.data?.message || 'Failed to process forgot password request');
+    }
   }
 
   async resetPassword(
@@ -55,24 +114,57 @@ class AuthService {
     password: string,
     confirmPassword: string
   ): Promise<ApiResponse<void>> {
-    console.log("[AuthService] Making reset password request");
-    return api.post("/auth/reset-password", {
-      token,
-      password,
-      confirmPassword,
-    });
+    try {
+      return await api.post<void>("/auth/reset-password", {
+        token,
+        password,
+        confirmPassword,
+      });
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      if (!apiError.response) {
+        throw new NetworkError();
+      }
+      throw new AuthError(apiError.response?.data?.message || 'Password reset failed');
+    }
+  }
+
+  async refreshToken(): Promise<ApiResponse<RefreshTokenResponse>> {
+    try {
+      return await api.post<RefreshTokenResponse>("/auth/refresh-token");
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      if (!apiError.response) {
+        throw new NetworkError();
+      }
+      throw new AuthError(apiError.response?.data?.message || 'Token refresh failed');
+    }
   }
 
   async applyForRole(
     application: RoleApplicationRequest
   ): Promise<ApiResponse<void>> {
-    console.log("[AuthService] Making role application request");
-    return api.post("/auth/role-application", application);
+    try {
+      return await api.post<void>("/auth/role-application", application);
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      if (!apiError.response) {
+        throw new NetworkError();
+      }
+      throw new AuthError(apiError.response?.data?.message || 'Role application failed');
+    }
   }
 
-  async refreshToken(): Promise<ApiResponse<RefreshTokenResponse>> {
-    console.log("[AuthService] Making refresh token request");
-    return api.post("/auth/refresh-token");
+  async resendVerificationEmail(email: string): Promise<ApiResponse<void>> {
+    try {
+      return await api.post<void>("/auth/resend-verification", { email });
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      if (!apiError.response) {
+        throw new NetworkError();
+      }
+      throw new AuthError(apiError.response?.data?.message || 'Failed to resend verification email');
+    }
   }
 }
 

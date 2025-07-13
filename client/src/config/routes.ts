@@ -2,7 +2,7 @@
 export const ROUTES = {
   auth: ["/login", "/register", "/forgot-password", "/reset-password"],
   roleApplication: ["/role-application/become-mentor", "/role-application/become-seller", "/role-application/become-writer"],
-  protected: ["/dashboard", "/profile", "/settings"],
+  protected: ["/dashboard", "/dashboard/profile", "/settings"],
   admin: ["/dashboard/admin"]
 } as const;
 

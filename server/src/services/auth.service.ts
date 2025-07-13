@@ -34,26 +34,6 @@ export class AuthService {
     userId: string,
     deviceInfo: { ip: string; userAgent: string; deviceId?: string }
   ): Promise<string> {
-    // Limit active refresh tokens per user (e.g., max 5 devices)
-    const activeTokenCount = await RefreshTokenModel.countDocuments({
-      user: userId,
-      isRevoked: false,
-      expiresAt: { $gt: new Date() },
-    });
-
-    if (activeTokenCount >= 5) {
-      // Revoke oldest token if limit reached
-      const oldestToken = await RefreshTokenModel.findOne({
-        user: userId,
-        isRevoked: false,
-      }).sort({ issuedAt: 1 });
-
-      if (oldestToken) {
-        oldestToken.isRevoked = true;
-        await oldestToken.save();
-      }
-    }
-
     const token = crypto.randomBytes(40).toString("hex");
     await RefreshTokenModel.create({
       user: userId,
@@ -142,10 +122,14 @@ export class AuthService {
     password: string,
     deviceInfo: { ip: string; userAgent: string; deviceId?: string }
   ): Promise<{
-    user: Partial<IUser>;
+    user: {
+      id: string;
+      email: string;
+      roles: string[];
+      status: string;
+    };
     accessToken: string;
     refreshToken: string;
-    rbacVersion: string;
   }> {
     const user = await UserModel.findOne({ email }).select("+password");
     if (!user || !(await user.comparePassword(password))) {
@@ -162,19 +146,16 @@ export class AuthService {
       deviceInfo
     );
 
-    // Remove sensitive data before sending response
-    const sanitizedUser = user.toObject();
-    const {
-      password: pwd,
-      security,
-      ...userWithoutSensitiveData
-    } = sanitizedUser;
-
+    // Return minimal user data
     return {
-      user: userWithoutSensitiveData,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        roles: user.roles,
+        status: user.status
+      },
       accessToken,
-      refreshToken,
-      rbacVersion: RBAC_VERSION.toString(),
+      refreshToken
     };
   }
 
@@ -316,7 +297,8 @@ export class AuthService {
 
   static async resetPassword(
     token: string,
-    newPassword: string
+    newPassword: string,
+    revokeAllSessions: boolean = false
   ): Promise<void> {
     // Hash the token for comparison
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
@@ -351,17 +333,21 @@ export class AuthService {
 
     await user.save();
 
-    // Revoke all existing sessions for security
-    await this.revokeAllUserSessions(user._id.toString());
+    // Only revoke all sessions if explicitly requested
+    if (revokeAllSessions) {
+      await this.revokeAllUserSessions(user._id.toString());
+    }
 
-    // Send notification email
-    try {
-      await emailService.sendPasswordChangeNotification(
-        user.email,
-        user.profile?.firstName || user.email.split("@")[0]
-      );
-    } catch (error) {
-      console.error("Failed to send password change notification:", error);
+    // Send notification email only for non-reset password changes
+    if (!token) {
+      try {
+        await emailService.sendPasswordChangeNotification(
+          user.email,
+          user.profile?.firstName || user.email.split("@")[0]
+        );
+      } catch (error) {
+        console.error("Failed to send password change notification:", error);
+      }
     }
   }
 

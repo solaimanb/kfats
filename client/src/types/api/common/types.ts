@@ -2,22 +2,24 @@
  * Common API types
  */
 
-export interface ApiResponse<T = unknown> {
-  status: "success" | "fail" | "error";
+export interface SuccessResponse<T> {
+  status: 'success';
+  data: T;
   message?: string;
-  data?: T;
-  error?: ApiError;
-  pagination?: PaginationInfo;
 }
 
-export interface PaginationInfo {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+export interface ErrorResponse {
+  status: 'error';
+  message: string;
+  error?: ApiError;
 }
+
+export interface FailResponse {
+  status: 'fail';
+  message: string;
+}
+
+export type ApiResponse<T = void> = SuccessResponse<T> | ErrorResponse | FailResponse;
 
 export interface ApiError {
   message: string;
@@ -25,7 +27,26 @@ export interface ApiError {
   status?: number;
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  totalPages: number;
+  totalResults: number;
+}
+
 export interface ValidationError {
   field: string;
+  message: string;
+}
+
+export interface ApiErrorResponse {
+  response?: {
+    data?: {
+      status?: "success" | "error" | "fail";
+      message: string;
+      error?: ApiError;
+    };
+    status?: number;
+  };
   message: string;
 } 

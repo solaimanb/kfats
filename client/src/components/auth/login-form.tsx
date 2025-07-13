@@ -4,20 +4,75 @@ import { motion } from "framer-motion";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { z } from "zod";
+import { useRouter } from "next/navigation";
 
 import { LoginRequest } from "@/types";
 import { useAuth } from '@/hooks/auth/use-auth';
+import { authService } from "@/lib/api/services";
+import { ApiErrorResponse } from "@/types/api/common/types";
+
+// Validation schema
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+type ValidationErrors = {
+  email?: string;
+  password?: string;
+};
+
+const RATE_LIMIT = {
+  MAX_ATTEMPTS: 15,  // Match server config
+  RESET_TIME: 15 * 60 * 1000, // 15 minutes
+};
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
   const { login, isLoading } = useAuth();
+  const router = useRouter();
   const [formData, setFormData] = useState<LoginRequest>({
     email: "",
     password: "",
   });
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [attempts, setAttempts] = useState({
+    count: 0,
+    lastAttempt: 0,
+  });
+
+  // Reset rate limit after timeout
+  useEffect(() => {
+    if (attempts.count >= RATE_LIMIT.MAX_ATTEMPTS) {
+      const timeoutId = setTimeout(() => {
+        setAttempts({ count: 0, lastAttempt: 0 });
+      }, RATE_LIMIT.RESET_TIME);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [attempts]);
+
+  const validateForm = (): boolean => {
+    try {
+      loginSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: ValidationErrors = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0] as keyof ValidationErrors] = err.message;
+          }
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -25,15 +80,102 @@ export default function LoginForm() {
       ...prev,
       [name]: value,
     }));
+    if (errors[name as keyof ValidationErrors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      toast.loading('Sending verification email...');
+      await authService.resendVerificationEmail(formData.email);
+      toast.success('Verification Email Sent', {
+        description: 'Please check your inbox and follow the instructions.',
+        duration: 4000
+      });
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      toast.error('Failed to Send Email', {
+        description: apiError?.response?.data?.message || 'Please try again later.',
+        duration: 4000
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await login(formData);
+
+    // Check rate limiting
+    if (attempts.count >= RATE_LIMIT.MAX_ATTEMPTS) {
+      const timeRemaining = Math.ceil(
+        (RATE_LIMIT.RESET_TIME - (Date.now() - attempts.lastAttempt)) / 1000
+      );
+      toast.error('Too Many Login Attempts', {
+        description: `Please wait ${Math.ceil(timeRemaining / 60)} minutes before trying again.`,
+        duration: 5000,
+        action: {
+          label: 'Reset Password?',
+          onClick: () => router.push('/forgot-password')
+        }
+      });
+      return;
+    }
+
+    // Validate form
+    if (!validateForm()) {
+      toast.error('Invalid Input', {
+        description: 'Please check your email and password format.',
+        duration: 3000
+      });
+      return;
+    }
+
+    try {
+      setAttempts(prev => ({
+        count: prev.count + 1,
+        lastAttempt: Date.now(),
+      }));
+
+      await login(formData);
+
+    } catch (error: unknown) {
+      const apiError = error as ApiErrorResponse;
+      console.log('Login error:', apiError);
+      const errorMessage = apiError.response?.data?.message || apiError.message || 'An unexpected error occurred';
+      
+      if (errorMessage.toLowerCase().includes('credentials')) {
+        toast.error(errorMessage, {
+          action: {
+            label: 'Reset Password',
+            onClick: () => router.push('/forgot-password')
+          }
+        });
+      } else if (errorMessage.toLowerCase().includes('verify')) {
+        toast.error(errorMessage, {
+          action: {
+            label: 'Resend Email',
+            onClick: handleResendVerification
+          }
+        });
+      } else if (errorMessage.toLowerCase().includes('blocked') || errorMessage.toLowerCase().includes('suspended')) {
+        toast.error(errorMessage, {
+          description: 'Please contact support to resolve this.',
+          duration: 5000
+        });
+      } else {
+        toast.error(errorMessage);
+      }
+    }
   };
 
   const handleGoogleLogin = () => {
-    toast.error("Google login not implemented yet");
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
+    toast.loading('Redirecting to Google...', {
+      duration: 2000
+    });
   };
 
   return (
@@ -63,10 +205,14 @@ export default function LoginForm() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="you@example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange"
+                  className={`w-full px-4 py-2 border rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange ${errors.email ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   required
-                  disabled={isLoading}
+                  disabled={isLoading || attempts.count >= RATE_LIMIT.MAX_ATTEMPTS}
                 />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                )}
               </div>
               <div>
                 <label className="text-sm text-gray-600">Password</label>
@@ -76,10 +222,14 @@ export default function LoginForm() {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange"
+                  className={`w-full px-4 py-2 border rounded-md hover:shadow-kc-green hover:shadow-md focus:ring-2 focus:ring-kc-orange ${errors.password ? 'border-red-500' : 'border-gray-300'
+                    }`}
                   required
-                  disabled={isLoading}
+                  disabled={isLoading || attempts.count >= RATE_LIMIT.MAX_ATTEMPTS}
                 />
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                )}
                 <div className="flex justify-end mt-1">
                   <Link
                     href="/forgot-password"
@@ -91,7 +241,7 @@ export default function LoginForm() {
               </div>
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || attempts.count >= RATE_LIMIT.MAX_ATTEMPTS}
                 className="w-full bg-kc-orange text-white py-2 font-bold rounded-md hover:bg-kc-green transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Logging in..." : "Login"}
@@ -101,11 +251,10 @@ export default function LoginForm() {
             <p className="text-sm text-center text-gray-500">
               Don&apos;t have an account?{" "}
               <Link
-                href={`/register${
-                  searchParams.get("from")
-                    ? `?from=${searchParams.get("from")}`
-                    : ""
-                }`}
+                href={`/register${searchParams.get("from")
+                  ? `?from=${searchParams.get("from")}`
+                  : ""
+                  }`}
                 className="text-orange-600 font-medium hover:underline"
               >
                 Sign up
@@ -119,7 +268,7 @@ export default function LoginForm() {
 
             <button
               onClick={handleGoogleLogin}
-              disabled={isLoading}
+              disabled={isLoading || attempts.count >= RATE_LIMIT.MAX_ATTEMPTS}
               className="flex items-center justify-center w-full border border-gray-300 py-2 px-4 rounded-lg hover:bg-gray-700 transition mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FcGoogle className="mr-2 text-xl" />

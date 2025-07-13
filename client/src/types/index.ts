@@ -5,25 +5,34 @@
 
 // API Types
 export * from "./api/common/types";
-export * from "./api/auth/requests";
-export * from "./api/auth/responses";
-export * from "./api/role/requests";
-export * from "./api/role/responses";
+export type { 
+  AuthUser, 
+  AuthResponse
+} from "./api/auth";
+
+// Auth Types
+export type {
+  LoginRequest,
+  RegisterRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest
+} from "./api/auth/requests";
+export type {
+  LoginResponse,
+  RegisterResponse,
+  ValidateTokenResponse,
+  RefreshTokenResponse
+} from "./api/auth/responses";
+export type { RoleApplicationRequest } from "./api/role/requests";
 
 // Domain Types
 export * from "./domain/user/types";
 export * from "./domain/user/auth";
-export * from "./domain/role/types";
-export * from "./domain/role/application";
-export * from "./domain/role/data";
-export * from "./domain/permission/types";
-export * from "./domain/permission/config";
-
-// Validation Types
-export * from "./validation/auth";
-export * from "./validation/role";
 
 // Component Types
 export * from "./components/auth";
 export * from "./components/common";
 export * from "./components/features";
+
+// RBAC Types
+export * from "@/config/rbac/types";

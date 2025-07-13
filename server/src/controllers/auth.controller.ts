@@ -26,7 +26,8 @@ export class AuthController {
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
+        path: "/",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
@@ -60,7 +61,8 @@ export class AuthController {
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
+        path: "/",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
 
@@ -69,6 +71,7 @@ export class AuthController {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
+        path: "/",
         maxAge: 60 * 60 * 1000, // 1 hour
       });
 
@@ -77,6 +80,7 @@ export class AuthController {
         httpOnly: false, // Allow JavaScript access
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
+        path: "/",
         maxAge: 60 * 60 * 1000, // 1 hour
       });
 
@@ -149,10 +153,28 @@ export class AuthController {
         deviceId: req.body.deviceId,
       };
 
-      const { accessToken } = await AuthService.refreshToken(
+      const { accessToken, refreshToken: newRefreshToken } = await AuthService.refreshToken(
         refreshToken,
         deviceInfo
       );
+
+      // Set new refresh token in HTTP-only cookie
+      res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+
+      // Set new access token in cookie
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 1000, // 1 hour
+      });
 
       res.status(200).json({
         status: "success",
@@ -189,6 +211,7 @@ export class AuthController {
         httpOnly: false, // Allow JavaScript access
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
+        path: "/",
         maxAge: 60 * 60 * 1000, // 1 hour
       });
 

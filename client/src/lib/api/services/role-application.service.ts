@@ -1,8 +1,8 @@
 import { api } from "../api-client";
 import type { ApiResponse } from "@/types";
-import type { ApplicationStatus } from "@/types";
-import type { RoleApplication } from "@/types";
 import type { RoleApplicationRequest } from "@/types/api/role/requests";
+import type { ApplicationStatus } from "@/types/domain/role/types";
+import type { RoleApplication } from "@/types/domain/role/application";
 
 export interface RoleApplicationFilters {
   status?: ApplicationStatus;

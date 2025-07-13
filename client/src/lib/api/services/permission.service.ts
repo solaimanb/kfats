@@ -1,7 +1,7 @@
 import { api } from "../api-client";
 import type { ApiResponse } from "@/types";
 import type { Permission } from "@/types";
-import type { IRole } from "@/types";
+import type { IRole } from "@/types/domain/role/types";
 
 export interface PermissionFilters {
   role?: string;
