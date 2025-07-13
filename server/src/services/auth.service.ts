@@ -13,6 +13,7 @@ import {
 } from "../config/rbac/validators";
 import { AppError } from "../utils/error.util";
 import { emailService } from "../utils/email.util";
+import { logger } from "../utils/logger.util";
 
 export class AuthService {
   private static generateAccessToken(userId: string, roles: string[]): string {
@@ -67,54 +68,78 @@ export class AuthService {
     refreshToken: string;
     rbacVersion: string;
   }> {
-    const existingUser = await UserModel.findOne({ email: userData.email });
-    if (existingUser) {
-      throw new AppError("Email already registered", 400);
-    }
+    try {
+      const existingUser = await UserModel.findOne({ email: userData.email });
+      if (existingUser) {
+        throw new AppError("Email already registered", 400);
+      }
 
-    const user = await UserModel.create({
-      email: userData.email,
-      password: userData.password,
-      profile: {
-        firstName: userData.profile.firstName,
-        lastName: userData.profile.lastName,
-        phone: userData.profile.phone,
-      },
-      roles: [UserRole.USER],
-      status:
-        process.env.NODE_ENV === "development"
-          ? UserStatus.ACTIVE
-          : UserStatus.PENDING_VERIFICATION,
-      roleSpecificData: {
-        user: {
-          lastActiveAt: new Date(),
-          interests: userData.interests || [],
-          preferences: {
-            contentLanguages: userData.contentPreferences?.languages || [],
-            contentTypes: userData.contentPreferences?.types || [],
-            notificationFrequency: "immediate",
+      const user = await UserModel.create({
+        email: userData.email,
+        password: userData.password,
+        profile: {
+          firstName: userData.profile.firstName,
+          lastName: userData.profile.lastName,
+          phone: userData.profile.phone,
+        },
+        roles: [UserRole.USER],
+        status:
+          process.env.NODE_ENV === "development"
+            ? UserStatus.ACTIVE
+            : UserStatus.PENDING_VERIFICATION,
+        roleSpecificData: {
+          user: {
+            lastActiveAt: new Date(),
+            interests: userData.interests || [],
+            preferences: {
+              contentLanguages: userData.contentPreferences?.languages || [],
+              contentTypes: userData.contentPreferences?.types || [],
+              notificationFrequency: "immediate",
+            },
           },
         },
-      },
-    });
+        emailVerified: false,
+        verificationStatus: {
+          email: false,
+        },
+        security: {
+          twoFactorEnabled: false,
+          loginAttempts: 0,
+          passwordResetAttempts: 0,
+        },
+        preferences: {
+          language: "en",
+          timezone: "UTC",
+          emailNotifications: true,
+          pushNotifications: true,
+          theme: "light",
+        },
+      });
 
-    const accessToken = this.generateAccessToken(user._id.toString(), user.roles);
-    const refreshToken = await this.generateRefreshToken(
-      user._id.toString(),
-      deviceInfo
-    );
+      const accessToken = this.generateAccessToken(user._id.toString(), user.roles);
+      const refreshToken = await this.generateRefreshToken(
+        user._id.toString(),
+        deviceInfo
+      );
 
-    // Skip email verification in development
-    if (process.env.NODE_ENV !== "development") {
-      await this.sendVerificationEmail(user.email, accessToken);
+      if (process.env.NODE_ENV !== "development") {
+        await this.sendVerificationEmail(user.email, accessToken);
+      }
+
+      return {
+        user,
+        accessToken,
+        refreshToken,
+        rbacVersion: RBAC_VERSION.toString(),
+      };
+    } catch (error) {
+      logger.error("Registration error:", {
+        error,
+        email: userData.email,
+        deviceInfo,
+      });
+      throw error;
     }
-
-    return {
-      user,
-      accessToken,
-      refreshToken,
-      rbacVersion: RBAC_VERSION.toString(),
-    };
   }
 
   static async login(

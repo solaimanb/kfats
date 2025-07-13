@@ -18,7 +18,8 @@ const createLimiter = (options: {
     },
     skipSuccessfulRequests: false,
     keyGenerator: (req) => {
-      return req.ip + ':' + req.originalUrl;
+      const realIp = req.headers['x-forwarded-for'] || req.ip;
+      return (Array.isArray(realIp) ? realIp[0] : realIp) + ':' + req.originalUrl;
     }
   });
 };

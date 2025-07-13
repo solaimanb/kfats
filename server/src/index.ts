@@ -40,6 +40,9 @@ import permissionRoutes from "./routes/permission.route";
 
 const app: Express = express();
 
+// Trust proxy - required when running behind a reverse proxy like Render
+app.set('trust proxy', 1);
+
 // Basic middleware setup
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));

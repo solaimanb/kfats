@@ -235,12 +235,12 @@ export const api = {
       }
 
       if (!apiError.response) {
-        throw new NetworkError();
+        throw new NetworkError('Network error. Please check your connection.');
       }
 
       return {
         status: 'error',
-        message: apiError.message || 'An error occurred'
+        message: apiError.message || 'An unexpected error occurred'
       };
     }
   },
