@@ -13,10 +13,8 @@ import passport from "passport";
 import cookieParser from "cookie-parser";
 import { config } from "./config";
 
-// Load environment variables first
 dotenv.config();
 
-// Configuration imports
 import "./config/passport.config";
 import { swaggerSpec } from "./config/swagger.config";
 import { swaggerConfig } from "./config/api.config";
@@ -29,7 +27,6 @@ import {
 import { cacheMiddleware } from "./middleware/cache.middleware";
 import { API_PREFIX } from "./config/api.config";
 
-// Route imports
 import userRoutes from "./routes/user.route";
 import authRoutes from "./routes/auth.route";
 import courseRoutes from "./routes/course.route";
@@ -43,25 +40,22 @@ const app: Express = express();
 // Trust proxy - required when running behind a reverse proxy like Render
 app.set('trust proxy', 1);
 
-// Basic middleware setup
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(cookieParser());
 
-// Configure CORS
-app.use(
-  cors({
-    origin: config.cors.origin,
-    credentials: config.cors.credentials,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-    exposedHeaders: ['set-cookie'],
-  })
-);
+// CORS configuration
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'https://kfats.vercel.app',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+// Cookie parser
+app.use(cookieParser());
 
 app.use(compression());
 
-// Security middleware
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -80,11 +74,9 @@ app.use(
   })
 );
 
-// Request tracking and timeout
 app.use(requestTracker);
-app.use(requestTimeout(30000)); // 30 seconds timeout
+app.use(requestTimeout(30000)); 
 
-// Session setup for OAuth
 app.use(
   session({
     secret: config.session.secret,
@@ -109,7 +101,6 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,

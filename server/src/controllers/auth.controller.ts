@@ -22,11 +22,10 @@ export class AuthController {
         deviceInfo
       );
 
-      // Set refresh token in HTTP-only cookie
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true,
+        sameSite: "none",
         path: "/",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
@@ -60,8 +59,8 @@ export class AuthController {
       // Set refresh token in HTTP-only cookie
       res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true, // Always use secure in production
+        sameSite: "none", // Required for cross-domain
         path: "/",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
@@ -69,8 +68,8 @@ export class AuthController {
       // Set access token in cookie
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true, // Always use secure in production
+        sameSite: "none", // Required for cross-domain
         path: "/",
         maxAge: 60 * 60 * 1000, // 1 hour
       });
@@ -78,8 +77,8 @@ export class AuthController {
       // Set user cache in cookie
       res.cookie("auth_user_cache", JSON.stringify(user), {
         httpOnly: false, // Allow JavaScript access
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true, // Always use secure in production
+        sameSite: "none", // Required for cross-domain
         path: "/",
         maxAge: 60 * 60 * 1000, // 1 hour
       });
@@ -161,8 +160,8 @@ export class AuthController {
       // Set new refresh token in HTTP-only cookie
       res.cookie("refreshToken", newRefreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true, // Always use secure in production
+        sameSite: "none", // Required for cross-domain
         path: "/",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
@@ -170,8 +169,8 @@ export class AuthController {
       // Set new access token in cookie
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true, // Always use secure in production
+        sameSite: "none", // Required for cross-domain
         path: "/",
         maxAge: 60 * 60 * 1000, // 1 hour
       });
@@ -209,8 +208,8 @@ export class AuthController {
       // Set user cache in cookie
       res.cookie("auth_user_cache", JSON.stringify(user), {
         httpOnly: false, // Allow JavaScript access
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true, // Always use secure in production
+        sameSite: "none", // Required for cross-domain
         path: "/",
         maxAge: 60 * 60 * 1000, // 1 hour
       });
