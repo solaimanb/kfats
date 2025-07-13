@@ -45,13 +45,14 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'https://kfats.vercel.app',
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],
 }));
 
-// Cookie parser
+// Cookie parser middleware
 app.use(cookieParser());
 
 app.use(compression());
