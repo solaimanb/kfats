@@ -218,9 +218,9 @@ const userSchema = new Schema<IUser>(
         type: String,
         validate: {
           validator: function (v: string) {
-            return /^\+?[\d\s-]{10,}$/.test(v);
+            return /^\d{11,}$/.test(v);
           },
-          message: "Invalid phone number format",
+          message: "Phone number must be at least 10 digits"
         },
       },
       avatar: String,
