@@ -135,6 +135,8 @@ export class AuthService {
     } catch (error) {
       logger.error("Registration error:", {
         error,
+        errorMessage: error instanceof Error ? error.message : "Unknown error",
+        errorStack: error instanceof Error ? error.stack : undefined,
         email: userData.email,
         deviceInfo,
       });
