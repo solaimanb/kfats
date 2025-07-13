@@ -22,9 +22,9 @@ export class AuthService {
     };
 
     return jwt.sign(
-      { 
+      {
         id: userId,
-        roles: roles 
+        roles: roles
       },
       process.env.JWT_SECRET || "default-secret",
       signOptions
@@ -84,9 +84,11 @@ export class AuthService {
         },
         roles: [UserRole.USER],
         status:
-          process.env.NODE_ENV === "development"
-            ? UserStatus.ACTIVE
-            : UserStatus.PENDING_VERIFICATION,
+          // TODO: Temporarily setting all users to ACTIVE since email verification is disabled
+          UserStatus.ACTIVE,
+        // process.env.NODE_ENV === "development"
+        //   ? UserStatus.ACTIVE
+        //   : UserStatus.PENDING_VERIFICATION,
         roleSpecificData: {
           user: {
             lastActiveAt: new Date(),
@@ -122,9 +124,10 @@ export class AuthService {
         deviceInfo
       );
 
-      if (process.env.NODE_ENV !== "development") {
-        await this.sendVerificationEmail(user.email, accessToken);
-      }
+      // TODO: Email verification temporarily disabled due to SMTP configuration issues
+      // if (process.env.NODE_ENV !== "development") {
+      //   await this.sendVerificationEmail(user.email, accessToken);
+      // }
 
       return {
         user,
