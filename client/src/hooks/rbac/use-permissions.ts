@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
-import { Permission, PermissionAction } from '../../config/rbac/types';
-import { hasPermission, hasAllPermissions, hasAnyPermission } from '../../lib/rbac/permission';
-import { useAuth } from '../auth/use-auth';
+import { Permission, PermissionAction, ResourceType } from '@/types';
+import { hasPermission, hasAllPermissions, hasAnyPermission } from '@/lib/rbac/permission';
+import { useAuth } from '@/hooks/auth/use-auth';
 
 export function usePermissions() {
   const { user } = useAuth();
 
   const checkPermission = useCallback((
-    resource: string,
+    resource: ResourceType,
     action: PermissionAction
   ): boolean => {
     if (!user?.permissions) {
@@ -17,7 +17,7 @@ export function usePermissions() {
   }, [user]);
 
   const checkAllPermissions = useCallback((
-    permissions: Array<{ resource: string; action: PermissionAction }>
+    permissions: Array<{ resource: ResourceType; action: PermissionAction }>
   ): boolean => {
     if (!user?.permissions) {
       return false;
@@ -26,7 +26,7 @@ export function usePermissions() {
   }, [user]);
 
   const checkAnyPermission = useCallback((
-    permissions: Array<{ resource: string; action: PermissionAction }>
+    permissions: Array<{ resource: ResourceType; action: PermissionAction }>
   ): boolean => {
     if (!user?.permissions) {
       return false;

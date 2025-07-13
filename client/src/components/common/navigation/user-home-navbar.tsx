@@ -3,7 +3,7 @@
 // import SearchInput from "@/components/SearchInput";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AiOutlineShoppingCart,
   AiOutlineUser,
@@ -26,7 +26,23 @@ import { Input } from "@/components/ui/input";
 export default function UserHomeNavbar() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const { user, logout, isLoading } = useAuth();
-  console.log("USER at navbar", user);
+  
+  useEffect(() => {
+    if (user) {
+      console.log("Complete user object:", {
+        _id: user._id,
+        email: user.email,
+        roles: user.roles,
+        permissions: user.permissions,
+        status: user.status,
+        profile: user.profile,
+        emailVerified: user.emailVerified,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      });
+    }
+  }, [user]);
 
   // Role-based dashboard link
   const getDashboardLink = () => {
@@ -144,12 +160,12 @@ export default function UserHomeNavbar() {
                   className="flex items-center gap-2 text-black hover:text-kc-green hover:bg-transparent"
                 >
                   <AiOutlineUser size={20} />
-                  <span className="text-sm">{user.profile.firstName}</span>
+                  <span className="text-sm">{user.profile?.firstName || user.email.split('@')[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-white">
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" className="hover:text-kc-green w-full">
+                  <Link href="/dashboard/profile" className="hover:text-kc-green w-full">
                     Profile
                   </Link>
                 </DropdownMenuItem>
@@ -238,7 +254,7 @@ export default function UserHomeNavbar() {
                         variant="ghost"
                         className="justify-start text-black hover:text-kc-green hover:bg-transparent w-full"
                       >
-                        👤 {user.profile.firstName}
+                        👤 {user.profile?.firstName || user.email.split('@')[0]}
                       </Button>
                     </Link>
                     <Link href="/dashboard/user/role-applications" className="w-full">
@@ -252,17 +268,16 @@ export default function UserHomeNavbar() {
                     <Button
                       variant="ghost"
                       onClick={handleLogout}
-                      className="justify-start text-red-600 hover:text-red-700 hover:bg-transparent"
+                      className="justify-start text-red-600 hover:text-red-700 hover:bg-transparent w-full"
                     >
-                      <AiOutlineLogout size={16} className="mr-2" />
-                      Logout
+                      🚪 Logout
                     </Button>
                   </>
                 ) : (
-                  <Link href="/login">
+                  <Link href="/login" className="w-full">
                     <Button
                       variant="default"
-                      className="bg-kc-orange hover:bg-kc-orange/90 text-white border-none"
+                      className="bg-kc-orange hover:bg-kc-orange/90 text-white border-none w-full"
                     >
                       Login
                     </Button>

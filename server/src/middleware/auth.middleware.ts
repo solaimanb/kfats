@@ -9,45 +9,32 @@ import { roleHasPermission, isValidRoleTransition } from "../config/rbac/roles";
 import {
   AuthenticationError,
   AuthorizationError,
-  RateLimitError,
   catchAsync,
 } from "../utils/error.util";
-import rateLimit from "express-rate-limit";
 import passport from "passport";
 import {
   AuthenticatedRequest,
   RateLimitRequest,
   AuthUser,
-  RateLimitOptions,
 } from "../types/auth.types";
-
-// Rate Limiters
-const createLimiter = (options: RateLimitOptions) =>
-  rateLimit({
-    windowMs: options.windowMs,
-    max: options.max,
-    message: options.message || "Too many requests",
-    handler: (_req, _res, next) => {
-      next(new RateLimitError(options.message));
-    },
-  });
-
-const authRateLimiter = createLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  message: "Too many authentication attempts, please try again later",
-});
+import { loginLimiter } from "./rate-limit.middleware";
 
 // Authentication Middleware
 export const protect = catchAsync(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    // Apply rate limiter
-    await new Promise((resolve) =>
-      authRateLimiter(req as RateLimitRequest, res, resolve as NextFunction)
-    );
+    // Apply rate limiter only for login attempts
+    if (req.path === '/api/v1/auth/login') {
+      await new Promise((resolve) =>
+        loginLimiter(req as RateLimitRequest, res, resolve as NextFunction)
+      );
+    }
 
-    // Check for access token in cookie
-    if (!req.cookies.accessToken && !req.headers.authorization) {
+    // Check for access token in cookie or header
+    const token = req.cookies.accessToken || 
+      (req.headers.authorization?.startsWith('Bearer') ? 
+        req.headers.authorization.split(' ')[1] : null);
+
+    if (!token) {
       return next(new AuthenticationError("Not authenticated"));
     }
 
@@ -69,7 +56,7 @@ export const protect = catchAsync(
 // Role Authorization Middleware
 export const restrictTo = (...roles: UserRole[]) => {
   return [
-    authRateLimiter,
+    loginLimiter,
     catchAsync(
       async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
         if (!req.user) {
@@ -108,7 +95,7 @@ export const requirePermission = (
   action: PermissionAction
 ) => {
   return [
-    authRateLimiter,
+    loginLimiter,
     catchAsync(
       async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
         if (!req.user) {
@@ -146,7 +133,7 @@ export const requirePermission = (
 // Multiple Permissions Check Middleware
 export const requireAllPermissions = (permissions: Permission[]) => {
   return [
-    authRateLimiter,
+    loginLimiter,
     catchAsync(
       async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
         if (!req.user) {
@@ -173,7 +160,7 @@ export const requireAllPermissions = (permissions: Permission[]) => {
 // Any Permission Check Middleware
 export const requireAnyPermission = (permissions: Permission[]) => {
   return [
-    authRateLimiter,
+    loginLimiter,
     catchAsync(
       async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
         if (!req.user) {
@@ -200,7 +187,7 @@ export const requireAnyPermission = (permissions: Permission[]) => {
 // Role Transition Check Middleware
 export const checkRoleTransition = (fromRole: UserRole, toRole: UserRole) => {
   return [
-    authRateLimiter,
+    loginLimiter,
     catchAsync(async (_req: Request, _res: Response, next: NextFunction) => {
       if (!isValidRoleTransition(fromRole, toRole)) {
         throw new AuthorizationError("Invalid role transition");
@@ -216,12 +203,5 @@ export const createRateLimit = (
   max: number = 100, // limit each IP to 100 requests per windowMs
   message: string = "Too many requests. Please try again later."
 ) => {
-  return rateLimit({
-    windowMs,
-    max,
-    message,
-    handler: (_req, _res, next) => {
-      next(new RateLimitError(message));
-    },
-  });
+  return loginLimiter;
 };

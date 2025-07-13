@@ -103,6 +103,11 @@ export const hasPermission = (
     permissionsLimiter,
     async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
       try {
+        // Skip permission checks for auth routes
+        if (req.originalUrl.includes('/auth/')) {
+          return next();
+        }
+
         if (!req.user) {
           throw new AppError("Authentication required", 401);
         }

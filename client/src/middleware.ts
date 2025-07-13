@@ -13,7 +13,7 @@ const PUBLIC_ROUTES = [
 
 // Define protected routes and their required permissions
 const PROTECTED_ROUTES = {
-  '/profile': {
+  '/dashboard/profile': {
     resource: ResourceType.USER,
     action: PermissionAction.READ
   },
@@ -47,7 +47,7 @@ const ROLE_ROUTES = {
 
 // Define protected routes that don't require specific roles
 const COMMON_PROTECTED_ROUTES = [
-  '/profile',
+  '/dashboard/profile',
   '/dashboard',
   '/dashboard/user/role-applications'
 ];
@@ -125,7 +125,7 @@ export async function middleware(request: NextRequest) {
       }
 
       // Check role-specific routes
-      if (pathname !== '/profile') {
+      if (pathname !== '/dashboard/profile') {
         const isRoleRoute = (Object.entries(ROLE_ROUTES) as [string, readonly string[]][]).some(
           ([role, routes]) =>
             routes.includes(pathname) && user.roles.includes(role as UserRole)

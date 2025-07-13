@@ -1,6 +1,6 @@
 import { api } from "../api-client";
 import type { ApiResponse } from "@/types";
-import type { IRole, UserRole } from "@/types";
+import type { IRole, UserRole } from "@/types/domain/role/types";
 
 export interface RoleFilters {
   name?: string;

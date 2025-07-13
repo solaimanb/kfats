@@ -31,37 +31,59 @@ export const auditLog = (options: AuditOptions) => {
       // Restore original end function
       res.end = originalEnd;
 
-      // Get response body
-      const body = Buffer.concat(chunks).toString("utf8");
-
       try {
         const metadata = options.getMetadata ? options.getMetadata(req) : {};
 
-        if (req.user?._id) {
-          // Create audit log entry
-          const logData: Omit<IAuditLog, keyof Document | "timestamp"> = {
-            userId: req.user._id,
-            action: options.action,
-            resource: req.originalUrl ?? "",
-            roles: req.user.roles,
-            details: {},
-            metadata: {
-              ...metadata,
-              ip: req.ip ?? "unknown",
-              userAgent: req.get("user-agent") ?? "unknown",
+        // For auth operations, only log essential info
+        if (options.action.startsWith('AUTH_')) {
+          if (req.user?._id) {
+            const logData: Omit<IAuditLog, keyof Document | "timestamp"> = {
+              userId: req.user._id,
+              action: options.action,
+              resource: req.originalUrl ?? "",
               roles: req.user.roles,
-              requestBody: req.body,
-              responseStatus: res.statusCode,
-              responseBody: res.statusCode >= 400 ? JSON.parse(body) : undefined,
-            },
-            status: res.statusCode >= 400 ? "failure" : "success",
-            errorMessage:
-              res.statusCode >= 400 ? JSON.parse(body).message : undefined,
-          };
+              details: {},
+              metadata: {
+                ip: req.ip ?? "unknown",
+                userAgent: req.get("user-agent") ?? "unknown",
+                responseStatus: res.statusCode,
+              },
+              status: res.statusCode >= 400 ? "failure" : "success",
+              errorMessage:
+                res.statusCode >= 400 ? JSON.parse(Buffer.concat(chunks).toString("utf8")).message : undefined,
+            };
 
-          AuditLogModel.create(logData).catch(() => {
-            // Silently handle audit log creation errors
-          });
+            AuditLogModel.create(logData).catch(() => {
+              // Silently handle audit log creation errors
+            });
+          }
+        } else {
+          // For non-auth operations, keep existing detailed logging
+          if (req.user?._id) {
+            const logData: Omit<IAuditLog, keyof Document | "timestamp"> = {
+              userId: req.user._id,
+              action: options.action,
+              resource: req.originalUrl ?? "",
+              roles: req.user.roles,
+              details: {},
+              metadata: {
+                ...metadata,
+                ip: req.ip ?? "unknown",
+                userAgent: req.get("user-agent") ?? "unknown",
+                roles: req.user.roles,
+                requestBody: req.body,
+                responseStatus: res.statusCode,
+                responseBody: res.statusCode >= 400 ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : undefined,
+              },
+              status: res.statusCode >= 400 ? "failure" : "success",
+              errorMessage:
+                res.statusCode >= 400 ? JSON.parse(Buffer.concat(chunks).toString("utf8")).message : undefined,
+            };
+
+            AuditLogModel.create(logData).catch(() => {
+              // Silently handle audit log creation errors
+            });
+          }
         }
       } catch (error: unknown) {
         // Silently handle audit errors to not affect the main request flow

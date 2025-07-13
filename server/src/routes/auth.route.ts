@@ -1,6 +1,7 @@
 import express from "express";
 import { protect } from "../middleware/auth.middleware";
 import { validateRequest } from "../middleware/validation.middleware";
+import { loginLimiter } from "../middleware/rate-limit.middleware";
 import {
   loginSchema,
   registerSchema,
@@ -122,7 +123,12 @@ router.post(
  *       422:
  *         description: Validation error
  */
-router.post("/login", validateRequest(loginSchema), AuthController.login);
+router.post(
+  "/login",
+  loginLimiter,
+  validateRequest(loginSchema),
+  AuthController.login
+);
 
 /**
  * @swagger

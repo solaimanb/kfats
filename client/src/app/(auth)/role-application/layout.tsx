@@ -39,11 +39,11 @@ export default function RoleApplicationLayout({
       try {
         setIsCheckingApplication(true);
         const response = await roleApplicationService.getUserApplications();
-        const applications = response.data || [];
+        const applications = response.status === 'success' ? response.data : [];
         const pendingApplications = applications.filter(
           (app: RoleApplication) => app.status === 'pending'
         );
-        
+
         if (pendingApplications.length > 0) {
           setExistingApplicationRole(pendingApplications[0].role);
           setHasExistingApplication(true);

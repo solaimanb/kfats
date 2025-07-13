@@ -1,30 +1,18 @@
-import { UserRole, Permission } from '../../config/rbac/types';
+import { User } from '../domain/user/types';
 
 export interface AuthResponse {
-  user: {
-    id: string;
-    roles: UserRole[];
-    permissions: Permission[];
-  };
+  user: User;
   token: string;
   rbacVersion: string;
 }
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  roles: UserRole[];
-  permissions: Permission[];
-}
+// Simplified user type for auth context
+export type AuthUser = User;
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-} 
+// Re-export request types
+export type { 
+  LoginRequest,
+  RegisterRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest 
+} from './auth/requests'; 
