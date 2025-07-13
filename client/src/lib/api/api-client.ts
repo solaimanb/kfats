@@ -33,8 +33,12 @@ class ApiClient {
         "Content-Type": "application/json",
       },
       withCredentials: true,
-      xsrfCookieName: 'XSRF-TOKEN',
-      xsrfHeaderName: 'X-XSRF-TOKEN',
+      timeout: 30000, // 30 seconds timeout
+    });
+
+    this.axiosInstance.interceptors.request.use((config) => {
+      config.headers['X-Requested-With'] = 'XMLHttpRequest';
+      return config;
     });
 
     this.setupInterceptors();
