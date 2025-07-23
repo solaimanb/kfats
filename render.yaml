@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: kushtia-charukola-server
+    env: node
+    region: singapore
+    plan: free
+    buildCommand: cd server && npm ci && npm run build
+    startCommand: cd server/dist && node index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+    healthCheckPath: /api/v1/health
+    rootDir: server
+    nodeVersion: 20.11.1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+      - key: PORT
+        value: "10000"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: "7d"
+      - key: JWT_COOKIE_EXPIRES_IN
+        value: "7"
+      - key: CORS_ORIGIN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false 
