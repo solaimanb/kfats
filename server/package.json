@@ -4,11 +4,9 @@
   "description": "Server for Kushtia Charukola",
   "main": "index.js",
   "scripts": {
-    "start": "node dist/index.js",
+    "start": "node index.js",
     "dev": "NODE_ENV=development nodemon",
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
-    "postbuild": "cp -r src/templates dist/ && mkdir -p dist/routes dist/models && cp src/routes/* dist/routes/ && cp src/models/* dist/models/ && cp package.json dist/",
-    "watch": "tsc -w",
+    "build": "echo 'No build needed - using JavaScript'",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
