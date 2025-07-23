@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
 const Course = require("../models/Course");
 const User = require("../models/User");
 const { HTTP_STATUS } = require('../constants');
+const tokenService = require('../services/tokenService');
 
 // Helper function to create error response
 const createError = (statusCode, message) => {
@@ -11,14 +11,25 @@ const createError = (statusCode, message) => {
   return error;
 };
 
+// Extract token from request header
+const extractToken = (req) => {
+  const authHeader = req.header("Authorization");
+  if (!authHeader) return null;
+  
+  const [type, token] = authHeader.split(' ');
+  if (type !== 'Bearer' || !token) return null;
+  
+  return token;
+};
+
 exports.auth = async (req, res, next) => {
   try {
-    const token = req.header("Authorization")?.replace("Bearer ", "");
+    const token = extractToken(req);
     if (!token) {
       return next(createError(HTTP_STATUS.UNAUTHORIZED, "No authentication token, access denied"));
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = await tokenService.verifyAccessToken(token);
     const user = await User.findOne({ _id: decoded.id });
     if (!user) {
       return next(createError(HTTP_STATUS.UNAUTHORIZED, "User not found"));
@@ -27,7 +38,37 @@ exports.auth = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    next(createError(HTTP_STATUS.UNAUTHORIZED, "Token is invalid or expired"));
+    if (error.statusCode === 401 && error.message === 'Access token has expired') {
+      return next(createError(HTTP_STATUS.UNAUTHORIZED, "Token has expired, please refresh"));
+    }
+    next(createError(HTTP_STATUS.UNAUTHORIZED, "Authentication failed"));
+  }
+};
+
+exports.refreshAuth = async (req, res, next) => {
+  try {
+    const refreshToken = req.body.refreshToken;
+    if (!refreshToken) {
+      return next(createError(HTTP_STATUS.UNAUTHORIZED, "Refresh token required"));
+    }
+
+    const decoded = await tokenService.verifyRefreshToken(refreshToken);
+    const user = await User.findOne({ _id: decoded.id });
+    
+    if (!user || !user.validateRefreshToken(refreshToken)) {
+      return next(createError(HTTP_STATUS.UNAUTHORIZED, "Invalid refresh token"));
+    }
+
+    const tokens = await tokenService.generateTokenPair(user._id);
+    await user.addRefreshToken(
+      tokens.refreshToken,
+      tokenService.parseExpiry(process.env.REFRESH_TOKEN_EXPIRY || '7d'),
+      req.get('User-Agent')
+    );
+
+    res.json(tokens);
+  } catch (error) {
+    next(createError(HTTP_STATUS.UNAUTHORIZED, "Refresh token invalid or expired"));
   }
 };
 
