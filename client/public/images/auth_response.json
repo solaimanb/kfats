@@ -1,0 +1,1 @@
+{"status":"error","error":{"statusCode":500,"status":"error","isOperational":true,"errors":[]},"message":"Login failed","stack":"Error: Login failed\n    at createError (/home/solo/JUNK/CLN/KFATS/kushtia-charukola/server/utils/errorHandler.js:108:5)\n    at /home/solo/JUNK/CLN/KFATS/kushtia-charukola/server/routes/auth.js:61:10","errors":[]}

@@ -21,7 +21,9 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const session = require("express-session");
 const passport = require("passport");
+const cookieParser = require("cookie-parser");
 const { setupLogger } = require("./utils/logger");
+const config = require("./config");
 
 /**
  * Route Handlers
@@ -40,9 +42,24 @@ const app = express();
  * Configure application middleware
  * @description Sets up CORS, JSON parsing, and security headers
  */
+// CORS Configuration
+const corsOptions = {
+  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Accept", "Cookie"],
+  exposedHeaders: ["set-cookie"],
+  maxAge: 86400,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+// Apply middleware
+app.set('trust proxy', 1); // trust first proxy
+app.use(cookieParser());
+app.use(cors(config.cors));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
-app.use(cors());
 app.use(compression());
 
 app.use(
@@ -53,28 +70,13 @@ app.use(
 );
 
 // OAUTH
-app.use(
-  session({
-    secret: process.env.JWT_SECRET || "kushtia_charukola_fallback_secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-    },
-  })
-);
+app.use(session(config.session));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
 // Rate limiting configuration
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later",
-});
+const limiter = rateLimit(config.rateLimit);
 app.use("/api/", limiter);
 
 // Request logger
@@ -97,13 +99,13 @@ app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-      "img-src 'self' data: blob:; " +
-      "font-src 'self' data:; " +
-      "connect-src 'self'; " +
-      "frame-ancestors 'none'; " +
-      "form-action 'self';"
+    "style-src 'self' 'unsafe-inline'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "img-src 'self' data: blob:; " +
+    "font-src 'self' data:; " +
+    "connect-src 'self'; " +
+    "frame-ancestors 'none'; " +
+    "form-action 'self';"
   );
 
   res.setHeader("X-Content-Type-Options", "nosniff");
