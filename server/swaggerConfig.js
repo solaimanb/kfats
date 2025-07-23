@@ -208,17 +208,22 @@ const options = {
               minimum: COURSE.LIMITS.PRICE.MIN,
               maximum: COURSE.LIMITS.PRICE.MAX,
             },
-            instructor: {
-              oneOf: [
-                {
+            mentor: {
+              type: "object",
+              description: "Mentor details",
+              properties: {
+                _id: {
                   type: "string",
-                  description: "ID of the course instructor",
+                  format: "objectId",
                 },
-                {
-                  $ref: "#/components/schemas/User",
-                  description: "Instructor details",
+                name: {
+                  type: "string",
                 },
-              ],
+                email: {
+                  type: "string",
+                  format: "email",
+                },
+              },
             },
             category: {
               oneOf: [

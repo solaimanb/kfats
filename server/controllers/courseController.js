@@ -10,7 +10,7 @@ class CourseController extends BaseController {
     try {
       const course = await courseService.createCourse({
         ...req.body,
-        instructor: req.user._id,
+        mentor: req.user._id,
       });
       res.status(201).json({
         status: "success",
@@ -97,9 +97,9 @@ class CourseController extends BaseController {
     }
   };
 
-  getInstructorCourses = async (req, res, next) => {
+  getMentorCourses = async (req, res, next) => {
     try {
-      const courses = await courseService.getInstructorCourses(
+      const courses = await courseService.getMentorCourses(
         req.user._id,
         req.query
       );

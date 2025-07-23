@@ -6,19 +6,19 @@ import { AiOutlineDoubleRight } from "react-icons/ai";
 import { motion, AnimatePresence } from "framer-motion";
 import courseData from "@/data/courses.json" assert { type: "json" };
 
-interface Instructor {
+interface Mentor {
   name: string;
   image: string;
 }
 
-const extractUniqueInstructors = () => {
-  const seen = new Set<string>();
-  return courseData.courses.reduce<Instructor[]>((acc, course) => {
-    if (!seen.has(course.instructor)) {
-      seen.add(course.instructor);
+const extractUniqueMentors = () => {
+  const seen = new Set();
+  return courseData.courses.reduce<Mentor[]>((acc, course) => {
+    if (!seen.has(course.mentor)) {
+      seen.add(course.mentor);
       acc.push({
-        name: course.instructor,
-        image: course.instructorImage,
+        name: course.mentor,
+        image: course.mentorImage,
       });
     }
     return acc;
@@ -27,7 +27,7 @@ const extractUniqueInstructors = () => {
 
 export default function MentorsSection() {
     const targetRef = useRef(null);
-  const allMentors = extractUniqueInstructors();
+  const allMentors = extractUniqueMentors();
   const [startIndex, setStartIndex] = useState(0);
   const [direction, setDirection] = useState(1); // 1 = forward
 

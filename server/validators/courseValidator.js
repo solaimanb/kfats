@@ -135,6 +135,7 @@ const courseSchemas = {
       .messages({
         'any.only': 'Invalid course status',
       }),
+    mentor: baseSchemas.objectId,
   }),
 
   update: Joi.object({
@@ -273,7 +274,7 @@ const courseSchemas = {
         'any.only': 'Invalid course status',
       }),
 
-    instructor: baseSchemas.objectId,
+    mentor: baseSchemas.objectId,
   }),
 };
 

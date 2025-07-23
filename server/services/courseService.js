@@ -8,7 +8,7 @@ class CourseService extends BaseService {
   constructor() {
     super(Course);
     this.defaultPopulate = [
-      { path: "instructor", select: "name email" },
+      { path: "mentor", select: "name email" },
       { path: "category", select: "name" },
     ];
   }
@@ -45,15 +45,15 @@ class CourseService extends BaseService {
       throw createError(404, "Course not found");
     }
 
-    // Convert instructor to string if it's an ObjectId or populated object
-    const instructorId = typeof course.instructor === 'object' && course.instructor !== null 
-      ? course.instructor.toString() 
-      : course.instructor;
+    // Convert mentor to string if it's an ObjectId or populated object
+    const mentorId = typeof course.mentor === 'object' && course.mentor !== null
+      ? course.mentor.toString()
+      : course.mentor;
 
-    // Check if user is the instructor or admin
-    if (instructorId !== userId.toString() && 
+    // Check if user is the mentor or admin
+    if (mentorId !== userId.toString() &&
         !["admin", "superAdmin"].includes(userRole)) {
-      throw createError(403, "Not authorized to update this course");
+      throw createError(403, "You are not authorized to perform this action");
     }
 
     await this.validateUpdateData(updateData);
@@ -68,13 +68,13 @@ class CourseService extends BaseService {
       throw createError(404, "Course not found");
     }
 
-    // Convert instructor to string if it's an ObjectId or populated object
-    const instructorId = typeof course.instructor === 'object' && course.instructor !== null 
-      ? course.instructor.toString() 
-      : course.instructor;
+    // Convert mentor to string if it's an ObjectId or populated object
+    const mentorId = typeof course.mentor === 'object' && course.mentor !== null
+      ? course.mentor.toString()
+      : course.mentor;
 
-    // Check if user is the instructor or admin
-    if (instructorId !== userId.toString() && 
+    // Check if user is the mentor or admin
+    if (mentorId !== userId.toString() &&
         !["admin", "superAdmin"].includes(userRole)) {
       throw createError(403, "Not authorized to delete this course");
     }
@@ -112,29 +112,27 @@ class CourseService extends BaseService {
     return { message: "Rating submitted successfully" };
   }
 
-  async getInstructorCourses(instructorId, query = {}) {
-    const filter = this.buildInstructorFilter(instructorId, query);
-    return this.findWithPagination(filter, {
-      populate: this.defaultPopulate,
-    });
+  async getMentorCourses(mentorId, query = {}) {
+    const filter = this.buildMentorFilter(mentorId, query);
+    return this.find(filter);
   }
 
   // Private helper methods
   buildCourseFilter(query) {
-    const { category, level, search, instructor } = query;
+    const { category, level, search, mentor } = query;
     const filter = { isPublished: true };
 
     if (category) filter.category = category;
     if (level) filter.level = level;
-    if (instructor) filter.instructor = instructor;
+    if (mentor) filter.mentor = mentor;
     if (search) filter.$text = { $search: search };
 
     return filter;
   }
 
-  buildInstructorFilter(instructorId, query) {
+  buildMentorFilter(mentorId, query) {
     const { isPublished } = query;
-    const filter = { instructor: instructorId };
+    const filter = { mentor: mentorId };
 
     if (isPublished !== undefined) {
       filter.isPublished = isPublished === "true";
@@ -188,7 +186,7 @@ class CourseService extends BaseService {
 
   async validateUpdateData(updateData) {
     const protectedFields = [
-      "instructor",
+      "mentor",
       "enrolledStudents",
       "ratings",
       "averageRating",

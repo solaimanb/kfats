@@ -31,7 +31,7 @@ const User = require('../models/User');
  *           type: string
  *         role:
  *           type: string
- *           enum: [admin, superAdmin, instructor, student]
+ *           enum: [admin, superAdmin, mentor, student]
  *           default: student
  *       example:
  *         name: Raihanul Islam Sharif

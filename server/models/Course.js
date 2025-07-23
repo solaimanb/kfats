@@ -33,7 +33,7 @@ const courseSchema = new mongoose.Schema(
       ...commonFields.positiveNumber,
       required: [true, VALIDATION.REQUIRED_FIELDS],
     },
-    instructor: commonFields.objectId("User"),
+    mentor: commonFields.objectId("User"),
     category: commonFields.objectId("Category"),
     level: {
       type: String,
@@ -128,8 +128,8 @@ Object.entries(COURSE.INDEXES).forEach(([key, index]) => {
 });
 
 // Static methods
-courseSchema.statics.findByInstructor = function (instructorId) {
-  return this.find({ instructor: instructorId });
+courseSchema.statics.findByMentor = function (mentorId) {
+  return this.find({ mentor: mentorId });
 };
 
 courseSchema.statics.findPublished = function () {

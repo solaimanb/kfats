@@ -142,7 +142,7 @@ router.get("/:id", validateId, courseController.getById);
 router.post(
   "/",
   auth,
-  checkRole(["instructor", "admin", "superAdmin"]),
+  checkRole(["mentor", "admin", "superAdmin"]),
   validateCourse,
   courseController.createCourse
 );
@@ -193,7 +193,7 @@ router.post(
 router.patch(
   "/:id",
   auth,
-  checkRole(["instructor", "admin", "superAdmin"]),
+  checkRole(["mentor", "admin", "superAdmin"]),
   checkCourseOwnership,
   validateId,
   validateCourseUpdate,
@@ -228,7 +228,7 @@ router.patch(
 router.delete(
   "/:id",
   auth,
-  checkRole(["instructor", "admin", "superAdmin"]),
+  checkRole(["mentor", "admin", "superAdmin"]),
   checkCourseOwnership,
   validateId,
   courseController.deleteCourse

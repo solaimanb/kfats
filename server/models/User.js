@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   password: String,
   googleId: { type: String, unique: true, sparse: true },
-  role: { type: String, enum: ['admin', 'superAdmin', 'instructor', 'student'], default: 'student' }
+  role: { type: String, enum: ['admin', 'superAdmin', 'mentor', 'student'], default: 'student' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

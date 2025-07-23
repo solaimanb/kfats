@@ -31,7 +31,7 @@ const COURSE = {
   INDEXES: {
     TEXT: { title: "text", description: "text" },
     CATEGORY_LEVEL: { category: 1, level: 1 },
-    INSTRUCTOR: { instructor: 1 },
+    MENTOR: { mentor: 1 },
     PUBLISHED: { isPublished: 1 },
     SLUG: { slug: 1, unique: true },
   },
@@ -63,7 +63,7 @@ const CATEGORY = {
 const ROLES = {
   ADMIN: "admin",
   SUPER_ADMIN: "superAdmin",
-  INSTRUCTOR: "instructor",
+  MENTOR: "mentor",
   STUDENT: "student",
 };
 

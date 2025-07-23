@@ -51,7 +51,7 @@ exports.checkCourseOwnership = async (req, res, next) => {
     }
 
     if (
-      course.instructor.toString() !== req.user._id.toString() &&
+      course.mentor.toString() !== req.user._id.toString() &&
       !["admin", "superAdmin"].includes(req.user.role)
     ) {
       return next(createError(HTTP_STATUS.FORBIDDEN, "Not authorized to perform this action"));
