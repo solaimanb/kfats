@@ -1,21 +1,23 @@
 #!/bin/bash
 
-# KFATS COMPREHENSIVE AUTHENTICATION TEST SCRIPT - IMPROVED VERSION
+# KFATS COMPREHENSIVE AUTHENTICATION TEST SUITE - ENHANCED VERSION
 # Tests ALL authentication endpoints and authorization scenarios A-Z
-# Fixed token extraction, test logic, and response parsing issues
+# Enhanced with better error handling, debugging, and comprehensive coverage
 
-set +e  # Don't exit on errors
+set +e  # Don't exit on errors - we want to see all test results
 
 # Configuration
 API_BASE="http://127.0.0.1:8000/api/v1"
 HEALTH_ENDPOINT="http://127.0.0.1:8000/health"
 TEST_TIMESTAMP=$(date +%s)
-LOG_FILE="test_auth_improved_${TEST_TIMESTAMP}.log"
+LOG_FILE="kfats_auth_test_${TEST_TIMESTAMP}.log"
+VERBOSE_MODE="${VERBOSE:-false}"
+SKIP_CLEANUP="${SKIP_CLEANUP:-false}"
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
+YIGHLLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
@@ -252,7 +254,7 @@ test_create_resource() {
         test_pass "$description succeeded (HTTP $status_code)"
         
         # Extract resource ID if this was a successful creation
-        if [[ "$status_code" == "200" && -n "$resource_id_field" ]]; then
+        if [[ ("$status_code" == "200" || "$status_code" == "201") && -n "$resource_id_field" ]]; then
             local resource_id=""
             if command -v jq &> /dev/null; then
                 resource_id=$(echo "$body" | jq -r ".$resource_id_field" 2>/dev/null)
@@ -267,6 +269,34 @@ test_create_resource() {
                 return 0
             fi
         fi
+        return 0
+    else
+        test_fail "$description failed: expected $expected_status, got $status_code"
+        test_info "Response: $body"
+        return 1
+    fi
+}
+
+# Test updating a resource with PUT/PATCH
+test_update_resource() {
+    local user_key="$1"
+    local endpoint="$2"
+    local data="$3"
+    local expected_status="$4"
+    local description="$5"
+    local method="${6:-PUT}"
+    
+    test_start "$description"
+    
+    local token="${USER_TOKENS[$user_key]}"
+    local result=$(make_request "$method" "$endpoint" "$data" "$token")
+    local status_code=$(echo "$result" | cut -d'|' -f1)
+    local body=$(echo "$result" | cut -d'|' -f2-)
+    
+    test_info "Request: $method $endpoint -> Status: $status_code"
+    
+    if [[ "$status_code" == "$expected_status" ]]; then
+        test_pass "$description succeeded (HTTP $status_code)"
         return 0
     else
         test_fail "$description failed: expected $expected_status, got $status_code"
@@ -481,11 +511,13 @@ main() {
             \"description\": \"A comprehensive test course\",
             \"level\": \"beginner\",
             \"price\": 99.99,
-            \"duration_hours\": 10
+            \"duration_hours\": 10,
+            \"status\": \"published\"
         }"
         
         test_create_resource "mentor" "/courses/" "$course_data" "200" "Mentor creating course"
         TEST_COURSE_ID="$LAST_CREATED_RESOURCE_ID"
+        test_info "Created course with ID: ${TEST_COURSE_ID:-NO_ID_EXTRACTED}"
     fi
     
     # Test non-mentor course creation
@@ -502,7 +534,10 @@ main() {
     
     # Test course enrollment
     if [[ -n "${USER_TOKENS['testuser1']}" && -n "$TEST_COURSE_ID" ]]; then
+        test_info "Attempting to enroll in course ID: $TEST_COURSE_ID"
         test_create_resource "testuser1" "/courses/$TEST_COURSE_ID/enroll" "{}" "200" "Student enrolling in course"
+    else
+        test_warning "Skipping course enrollment test - testuser1 token: ${USER_TOKENS['testuser1']:+PRESENT}, course ID: ${TEST_COURSE_ID:-MISSING}"
     fi
     
     # ==========================================
@@ -580,17 +615,23 @@ main() {
         test_create_resource "testuser2" "/role-applications/apply" "$application_data" "200" "User applying for mentor role" "application_id"
         if [[ -n "$LAST_CREATED_RESOURCE_ID" ]]; then
             TEST_APPLICATION_ID="$LAST_CREATED_RESOURCE_ID"
+            test_info "Created role application with ID: $TEST_APPLICATION_ID"
+        else
+            test_warning "No application ID extracted from response"
         fi
     fi
     
     # Test admin reviewing application
     if [[ -n "${USER_TOKENS['admin']}" && -n "$TEST_APPLICATION_ID" ]]; then
+        test_info "Attempting to review application ID: $TEST_APPLICATION_ID"
         local review_data="{
             \"status\": \"approved\",
             \"admin_notes\": \"Application approved for testing purposes.\"
         }"
         
-        test_create_resource "admin" "/role-applications/$TEST_APPLICATION_ID/review" "$review_data" "200" "Admin reviewing role application"
+        test_update_resource "admin" "/role-applications/$TEST_APPLICATION_ID/review" "$review_data" "200" "Admin reviewing role application"
+    else
+        test_warning "Skipping application review test - admin token: ${USER_TOKENS['admin']:+PRESENT}, application ID: ${TEST_APPLICATION_ID:-MISSING}"
     fi
     
     # ==========================================
