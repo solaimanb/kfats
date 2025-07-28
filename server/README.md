@@ -1,151 +1,247 @@
-# KFATS Server
+# KFATS LMS Server
 
-A FastAPI backend server for the KFATS application.
+FastAPI backend for **Kushtia Finearts and Technology School** Learning Management System.
 
-## Overview
+## 🏗️ Architecture Overview
 
-This is the backend API server built with FastAPI that provides RESTful endpoints for the KFATS application.
+This is a comprehensive LMS backend built with FastAPI that supports multiple user roles and educational platform features:
 
-## Features
+### User Roles & Permissions
 
-- FastAPI framework for high-performance API development
-- Automatic interactive API documentation
-- Hot reload during development
-- Type hints and validation with Pydantic
+- **👤 User** (default/visitor) - Basic access, can browse content
+- **🎓 Student** - Can enroll in courses, track progress
+- **👨‍🏫 Mentor** - Can create and manage courses
+- **🛒 Seller** - Can create and sell art products
+- **✍️ Writer** - Can create and publish articles/blogs
+- **👑 Admin** - Full system access and management
 
-## Prerequisites
+### Key Features
+
+- 🔐 **JWT Authentication** with role-based access control
+- 👥 **Dynamic Role Upgrades** (e.g., user → student when enrolling)
+- 📚 **Course Management** with enrollment system
+- 📝 **Content Management** for articles/blogs
+- 🛍️ **Marketplace** for art products
+- 📊 **Progress Tracking** for student enrollments
+- 🔒 **Secure API** with proper validation and error handling
+
+## 🚀 Quick Start
+
+### Prerequisites
 
 - Python 3.8+
-- pip (Python package installer)
+- pip or poetry
 
-## Installation
+### Installation
 
-1. Navigate to the server directory:
-   ```bash
-   cd server
-   ```
-
-2. Create a virtual environment:
-   ```bash
-   python3 -m venv venv
-   ```
-
-3. Activate the virtual environment:
-   ```bash
-   source venv/bin/activate  # On Linux/Mac
-   # or
-   venv\Scripts\activate     # On Windows
-   ```
-
-4. Install dependencies:
+1. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-## Running the Server
+2. **Set up environment variables:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
-### Development Mode
-```bash
-fastapi dev main.py
-```
+3. **Initialize database:**
+   ```bash
+   python seed_db.py
+   ```
 
-This will start the server at `http://127.0.0.1:8000` with hot reload enabled.
+4. **Run the server:**
+   ```bash
+   uvicorn main:app --reload
+   ```
 
-### Production Mode
-```bash
-fastapi run main.py
-```
+The API will be available at `http://localhost:8000`
 
-Or using uvicorn directly:
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
+### API Documentation
 
-## API Documentation
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-Once the server is running, you can access:
-
-- **Interactive API Docs (Swagger UI)**: http://127.0.0.1:8000/docs
-- **Alternative API Docs (ReDoc)**: http://127.0.0.1:8000/redoc
-- **OpenAPI Schema**: http://127.0.0.1:8000/openapi.json
-
-## API Endpoints
-
-### Root Endpoint
-- **GET** `/` - Returns a welcome message
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 server/
-├── main.py              # FastAPI application entry point
+├── app/
+│   ├── __init__.py
+│   ├── config.py          # Configuration settings
+│   ├── database.py        # Database models and connection
+│   ├── models.py          # Pydantic models
+│   ├── auth.py           # Authentication utilities
+│   ├── dependencies.py   # FastAPI dependencies
+│   └── routers/          # API route handlers
+│       ├── auth.py       # Authentication endpoints
+│       ├── users.py      # User management
+│       ├── courses.py    # Course management
+│       ├── articles.py   # Article/blog management
+│       └── products.py   # Product marketplace
+├── main.py               # FastAPI application
+├── seed_db.py           # Database seeding script
 ├── requirements.txt     # Python dependencies
-├── README.md           # This file
-└── venv/               # Virtual environment (created after setup)
+└── .env.example        # Environment variables template
 ```
 
-## Development
+## 🔑 API Endpoints
 
-### Adding New Dependencies
+### Authentication
+- `POST /api/v1/auth/register` - Register new user
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/login/oauth` - OAuth2 compatible login
+- `POST /api/v1/auth/role-upgrade` - Upgrade user role
 
-1. Install the package:
-   ```bash
-   pip install package-name
-   ```
+### Users
+- `GET /api/v1/users/me` - Get current user profile
+- `PUT /api/v1/users/me` - Update current user profile
+- `GET /api/v1/users/` - List users (Admin only)
+- `PUT /api/v1/users/{user_id}/role` - Update user role (Admin only)
 
-2. Update requirements.txt:
-   ```bash
-   pip freeze > requirements.txt
-   ```
+### Courses
+- `POST /api/v1/courses/` - Create course (Mentor/Admin)
+- `GET /api/v1/courses/` - List published courses
+- `GET /api/v1/courses/my-courses` - Get mentor's courses
+- `POST /api/v1/courses/{course_id}/enroll` - Enroll in course
+- `GET /api/v1/courses/{course_id}/enrollments` - Get course enrollments
 
-### Code Style
+### Articles
+- `POST /api/v1/articles/` - Create article (Writer/Admin)
+- `GET /api/v1/articles/` - List published articles
+- `GET /api/v1/articles/my-articles` - Get writer's articles
+- `PUT /api/v1/articles/{article_id}` - Update article
 
-- Follow PEP 8 style guidelines
-- Use type hints for better code documentation
-- Add docstrings to functions and classes
+### Products
+- `POST /api/v1/products/` - Create product (Seller/Admin)
+- `GET /api/v1/products/` - List active products
+- `GET /api/v1/products/my-products` - Get seller's products
+- `PUT /api/v1/products/{product_id}` - Update product
 
-## Environment Variables
+## 🛡️ Security Features
 
-Create a `.env` file in the server directory for environment-specific configurations:
+- **JWT Token Authentication** with configurable expiration
+- **Password Hashing** using bcrypt
+- **Role-based Access Control** with dependency injection
+- **Input Validation** using Pydantic models
+- **CORS Configuration** for frontend integration
+- **SQL Injection Protection** through SQLAlchemy ORM
+
+## 🗄️ Database Schema
+
+The system uses SQLAlchemy ORM with the following main entities:
+
+- **Users** - User accounts with roles and authentication
+- **Courses** - Educational courses with mentor relationships
+- **Enrollments** - Student course enrollments with progress tracking
+- **Articles** - Blog posts and articles with authorship
+- **Products** - Marketplace items with seller relationships
+
+## 🔧 Configuration
+
+Key environment variables in `.env`:
 
 ```env
-# Example environment variables
-DEBUG=True
-DATABASE_URL=sqlite:///./test.db
-SECRET_KEY=your-secret-key-here
+# Security
+SECRET_KEY="your-secret-key"
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Database
+DATABASE_URL="sqlite:///./kfats.db"
+
+# CORS
+CORS_ORIGINS="http://localhost:3000"
 ```
 
-## Testing
+## 📊 Default Users (Development)
 
-To run tests (when test files are added):
+After running `seed_db.py`:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@kfats.edu | admin123 |
+| Mentor | mentor@kfats.edu | mentor123 |
+| Student | student@kfats.edu | student123 |
+| Writer | writer@kfats.edu | writer123 |
+| Seller | seller@kfats.edu | seller123 |
+
+⚠️ **Change these passwords in production!**
+
+## 🚀 Deployment
+
+### Using Render
+
+1. Connect your GitHub repository to Render
+2. Set environment variables in Render dashboard
+3. Deploy with build command: `pip install -r requirements.txt`
+4. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+
+### Using Docker
+
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+## 🔄 Development Workflow
+
+1. **Role Assignment Flow:**
+   - Users register with default "user" role
+   - Automatic role upgrade when performing role-specific actions
+   - Admin can manually assign roles
+
+2. **Course Enrollment Flow:**
+   - Student browses published courses
+   - Enrolls in course (auto-upgrades from "user" to "student")
+   - Progress tracking throughout course
+
+3. **Content Creation Flow:**
+   - Writers create draft articles
+   - Mentors create course content
+   - Sellers list products
+   - Admin oversight and management
+
+## 🛠️ Development Commands
 
 ```bash
+# Run server with auto-reload
+uvicorn main:app --reload
+
+# Reset and seed database
+python seed_db.py
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Format code (if using black)
+black app/ main.py
+
+# Run tests (when implemented)
 pytest
 ```
 
-## Deployment
+## 📈 Future Enhancements
 
-For production deployment, consider:
+- [ ] File upload system for course materials
+- [ ] Payment integration for course purchases
+- [ ] Email notifications and newsletters
+- [ ] Advanced analytics and reporting
+- [ ] Real-time chat/messaging system
+- [ ] Mobile API optimizations
+- [ ] Comprehensive testing suite
 
-1. Using a production WSGI server like Gunicorn
-2. Setting up environment variables
-3. Configuring a reverse proxy (nginx)
-4. Setting up SSL certificates
-5. Using a proper database instead of SQLite
-
-Example production command:
-```bash
-gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
-```
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
+3. Make your changes following the existing patterns
+4. Test thoroughly
 5. Submit a pull request
 
-## License
+## 📄 License
 
-[Add your license information here]
+This project is part of the KFATS educational platform.
