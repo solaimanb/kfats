@@ -1,9 +1,13 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from app.database import get_db, Product as DBProduct
-from app.models import Product, ProductCreate, ProductUpdate, ProductStatus, ProductCategory, User, UserRole, SuccessResponse
-from app.dependencies import get_current_active_user, get_seller_or_admin
+from app.core.database import get_db
+from app.models.product import Product as DBProduct
+from app.models.user import User as DBUser
+from app.schemas.product import Product, ProductCreate, ProductUpdate
+from app.schemas.common import ProductStatus, ProductCategory, UserRole, SuccessResponse
+from app.schemas.user import User
+from app.core.dependencies import get_current_active_user, get_seller_or_admin
 
 router = APIRouter(prefix="/products", tags=["Products"])
 

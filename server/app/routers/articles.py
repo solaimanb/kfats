@@ -1,9 +1,13 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from app.database import get_db, Article as DBArticle
-from app.models import Article, ArticleCreate, ArticleUpdate, ArticleStatus, User, UserRole, SuccessResponse
-from app.dependencies import get_current_active_user, get_writer_or_admin
+from app.core.database import get_db
+from app.models.article import Article as DBArticle
+from app.models.user import User as DBUser
+from app.schemas.article import Article, ArticleCreate, ArticleUpdate
+from app.schemas.common import ArticleStatus, UserRole, SuccessResponse
+from app.schemas.user import User
+from app.core.dependencies import get_current_active_user, get_writer_or_admin
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 

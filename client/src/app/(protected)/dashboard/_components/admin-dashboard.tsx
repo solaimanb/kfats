@@ -6,6 +6,7 @@ import { useUsers } from "@/lib/hooks/useUsers"
 import { useCourses } from "@/lib/hooks/useCourses"
 import { useArticles } from "@/lib/hooks/useArticles"
 import { useProducts } from "@/lib/hooks/useProducts"
+import { RoleApplicationReview } from "./role-application-review"
 import {
   Users,
   BookOpen,
@@ -14,7 +15,8 @@ import {
   Shield,
   BarChart3,
   Settings,
-  AlertCircle
+  AlertCircle,
+  UserCheck
 } from "lucide-react"
 
 interface AdminDashboardProps {
@@ -176,6 +178,19 @@ export function AdminDashboard({}: AdminDashboardProps) {
               <span className="text-xs text-muted-foreground">6 hours ago</span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Role Application Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserCheck className="h-5 w-5" />
+            Role Applications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RoleApplicationReview onlyPending={true} />
         </CardContent>
       </Card>
     </div>

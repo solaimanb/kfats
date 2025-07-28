@@ -52,28 +52,30 @@ export function useRoleUpgrade() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (newRole: UserRole) => AuthAPI.upgradeRole(newRole),
+    mutationFn: (targetRole: UserRole) => AuthAPI.upgradeRole(targetRole),
     onSuccess: () => {
-      // Refetch user data
+      // Invalidate user data to refetch updated role
       queryClient.invalidateQueries({ queryKey: authKeys.me() })
     },
   })
 }
 
 /**
- * Hook for logout mutation
+ * Combined auth hook for convenience
  */
-export function useLogout() {
-  const queryClient = useQueryClient()
+export function useAuth() {
+  const { data: user, isLoading, error } = useMe()
+  const login = useLogin()
+  const register = useRegister()
+  const roleUpgrade = useRoleUpgrade()
 
-  return useMutation({
-    mutationFn: () => {
-      AuthAPI.logout()
-      return Promise.resolve()
-    },
-    onSuccess: () => {
-      // Clear all caches
-      queryClient.clear()
-    },
-  })
+  return {
+    user,
+    isLoading,
+    error,
+    isAuthenticated: !!user,
+    login,
+    register,
+    roleUpgrade,
+  }
 }

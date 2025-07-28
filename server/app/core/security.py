@@ -3,8 +3,8 @@ from typing import Optional
 from jose import jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
-from app.config import settings
-from app.models import TokenData
+from app.core.config import settings
+from app.schemas import TokenData
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -48,6 +48,13 @@ def verify_token(token: str) -> TokenData:
             )
         
         return TokenData(username=username, user_id=user_id)
+    
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except jwt.JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

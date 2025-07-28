@@ -7,7 +7,14 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('kfats_token')?.value
   
   // Protected routes that require authentication
-  const protectedPaths = ['/dashboard', '/courses/create', '/articles/create', '/products/create', '/profile']
+  const protectedPaths = [
+    '/dashboard', 
+    '/courses/create', 
+    '/articles/create', 
+    '/products/create', 
+    '/profile',
+    '/role-application'  // Role application page requires authentication
+  ]
   
   // Admin only routes
   const adminPaths = ['/admin']

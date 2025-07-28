@@ -98,9 +98,11 @@ cp .env.example .env
 ```bash
 # Ensure PostgreSQL is running, then:
 cd server
-source venv/bin/activate
 
-# Create database tables and seed initial data
+# Run the role management system migration
+python migrate_role_system.py
+
+# Or run manual database setup
 python test/seed_db.py
 ```
 
@@ -187,11 +189,47 @@ bash test/test_api.sh       # Run API endpoint tests
 
 ### User Roles & Permissions
 - **👤 User**: Basic access, can browse content
-- **🎓 Student**: Enroll in courses, track progress, view materials
-- **👨‍🏫 Mentor**: Create and manage courses, track student progress
-- **✍️ Writer**: Create and publish articles, manage content
-- **🛒 Seller**: List and manage products in marketplace
-- **👨‍💼 Admin**: Full system access, user management, analytics
+- **🎓 Student**: Auto-assigned on course enrollment, can access enrolled courses
+- **👨‍🏫 Mentor**: Admin-approved role, create and manage courses, teach students
+- **✍️ Writer**: Admin-approved role, create and publish articles, manage content
+- **🛒 Seller**: Admin-approved role, list and manage products in marketplace
+- **👨‍💼 Admin**: Full system access, user management, role applications, analytics
+
+### Role Management System
+
+#### **Role Upgrade Workflows**
+
+**🔄 Automatic Upgrades:**
+- **User → Student**: Triggered automatically when enrolling in any course
+- **Implementation**: Backend automatically updates role during course enrollment
+- **No approval required**: Seamless user experience
+
+**📝 Application-Based Upgrades:**
+- **User/Student → Mentor/Writer/Seller**: Requires formal application and admin approval
+- **Application Process**: 
+  1. User submits application with detailed reason and supporting information
+  2. Admin reviews application in dashboard
+  3. Admin approves or rejects with feedback notes
+  4. User receives notification of decision
+- **Security Features**:
+  - 30-day cooldown period after rejection before reapplication
+  - Duplicate application prevention
+  - Complete audit trail of all role changes
+
+#### **Role Application API Endpoints (`/api/v1/role-applications/`)**
+- `POST /apply` - Submit new role application
+- `GET /my-applications` - Get current user's applications  
+- `GET /` - Get all applications (admin only, with pagination)
+- `PUT /{id}/review` - Review application (admin only)
+- `DELETE /{id}` - Withdraw pending application
+- `GET /stats` - Get application statistics (admin only)
+
+#### **Access Control & Security**
+- **Route Protection**: Role-based middleware on both frontend and backend
+- **JWT Validation**: Secure token-based authentication with automatic refresh
+- **Permission Hierarchy**: Admin role has access to all features
+- **Audit Logging**: Complete tracking of role changes and admin actions
+- **Input Validation**: Comprehensive sanitization and schema validation
 
 ## 📖 API Documentation & Testing
 
@@ -356,24 +394,13 @@ For production, ensure your PostgreSQL instance is configured with:
 - **Error Handling**: Centralized error responses
 - **Documentation**: Auto-generated API documentation
 
-### Database Schema
-```sql
--- Core tables implemented:
-users              # User accounts and authentication
-courses            # Course management
-enrollments        # Student-course relationships
-articles           # Blog/article content
-products           # Marketplace items
+#### **Database Guidelines**
+- Use SQLAlchemy ORM patterns
+- Implement proper foreign key relationships
+- Use database migrations for schema changes
+- Follow PostgreSQL best practices
 
--- Relationships:
-- Users can have multiple roles
-- Mentors can create multiple courses
-- Students can enroll in multiple courses
-- Writers can publish multiple articles
-- Sellers can list multiple products
-```
-
-### Testing Strategy
+#### **Testing Strategy**
 ```bash
 # Backend testing
 cd server
@@ -455,6 +482,26 @@ npm run type-check              # TypeScript validation
 - Offline functionality
 - Push notifications
 
+## 📋 Documentation
+
+### Core Guides
+- **[Role Management System](./ROLE_MANAGEMENT.md)** - Comprehensive guide to user roles, applications, and access control
+- **[API Integration Guide](./client/API_INTEGRATION_STATUS.md)** - Frontend API integration patterns and best practices
+- **[Database Schema](./server/README.md)** - Database models, relationships, and migration guides
+- **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment instructions and configurations
+
+### Quick References
+- **[Backend API Docs](http://127.0.0.1:8000/docs)** - Interactive Swagger/OpenAPI documentation
+- **[Frontend Component Library](http://localhost:3000/components)** - UI component showcase and examples
+- **[Authentication Flow](./docs/auth-flow.md)** - JWT authentication implementation details
+- **[Role-Based Access Control](./docs/rbac.md)** - Permissions matrix and security model
+
+### Testing Documentation
+- **Role Management Testing**: `./test_role_system.sh` - Complete role upgrade workflow testing
+- **API Endpoint Testing**: `./server/test/test_api.sh` - Backend API functionality verification
+- **Frontend Testing**: Component tests and E2E testing with Playwright
+- **Database Testing**: Migration scripts and data integrity verification
+
 ## 🤝 Contributing
 
 We welcome contributions to KFATS! Here's how to get started:
@@ -500,13 +547,7 @@ We welcome contributions to KFATS! Here's how to get started:
 - Use Pydantic models for request/response validation
 - Follow RESTful API design principles
 
-#### **Database Guidelines**
-- Use SQLAlchemy ORM patterns
-- Implement proper foreign key relationships
-- Use database migrations for schema changes
-- Follow PostgreSQL best practices
-
-### Commit Message Convention
+#### **Commit Message Convention**
 ```
 feat: add new feature
 fix: bug fix
@@ -517,7 +558,7 @@ test: adding tests
 chore: maintenance tasks
 ```
 
-### Pull Request Process
+#### **Pull Request Process**
 
 1. **Update documentation** if needed
 2. **Add tests** for new functionality

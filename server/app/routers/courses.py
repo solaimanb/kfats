@@ -1,12 +1,13 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from app.database import get_db, Course as DBCourse, Enrollment as DBEnrollment, User as DBUser
-from app.models import (
-    Course, CourseCreate, CourseUpdate, CourseStatus, 
-    Enrollment, EnrollmentCreate, User, UserRole, SuccessResponse
-)
-from app.dependencies import get_current_active_user, get_mentor_or_admin
+from app.core.database import get_db
+from app.models.course import Course as DBCourse, Enrollment as DBEnrollment
+from app.models.user import User as DBUser
+from app.schemas.course import Course, CourseCreate, CourseUpdate, Enrollment, EnrollmentCreate
+from app.schemas.common import CourseStatus, UserRole, SuccessResponse
+from app.schemas.user import User
+from app.core.dependencies import get_current_active_user, get_mentor_or_admin
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
@@ -21,8 +22,7 @@ async def create_course(
     
     db_course = DBCourse(
         **course_data.model_dump(),
-        mentor_id=current_user.id,
-        status=CourseStatus.DRAFT
+        mentor_id=current_user.id
     )
     
     db.add(db_course)
@@ -184,28 +184,31 @@ async def enroll_in_course(
             detail="Course is full"
         )
     
-    # Create enrollment
-    enrollment = DBEnrollment(
-        student_id=current_user.id,
-        course_id=course_id
-    )
-    
-    db.add(enrollment)
-    
-    # Update enrolled count
-    course.enrolled_count += 1
-    
-    # Upgrade user role to student if they're just a user
-    if current_user.role == UserRole.USER:
-        user = db.query(DBUser).filter(DBUser.id == current_user.id).first()
-        user.role = UserRole.STUDENT
-    
-    db.commit()
-    
-    return SuccessResponse(
-        message="Successfully enrolled in course",
-        data={"course_id": course_id, "enrollment_id": enrollment.id}
-    )
+    # Create enrollment with explicit field values to avoid any issues
+    try:
+        enrollment = DBEnrollment(
+            student_id=current_user.id,
+            course_id=course_id
+        )
+        
+        db.add(enrollment)
+        db.flush()  # Flush to get the ID
+        
+        # Update enrolled count
+        course.enrolled_count += 1
+        
+        db.commit()
+        
+        return SuccessResponse(
+            message="Successfully enrolled in course",
+            data={"course_id": course_id, "enrollment_id": enrollment.id}
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Enrollment failed: {str(e)}"
+        )
 
 
 @router.get("/{course_id}/enrollments", response_model=List[Enrollment])

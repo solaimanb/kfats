@@ -30,6 +30,47 @@ export enum UserStatus {
   PENDING = "pending"
 }
 
+// Role Application Types
+export enum ApplicationableRole {
+  MENTOR = "mentor",
+  SELLER = "seller",
+  WRITER = "writer"
+}
+
+export enum RoleApplicationStatus {
+  PENDING = "pending",
+  APPROVED = "approved",
+  REJECTED = "rejected"
+}
+
+export interface RoleApplicationCreate {
+  requested_role: ApplicationableRole
+  reason: string
+  application_data?: Record<string, any>
+}
+
+export interface RoleApplicationUpdate {
+  status?: RoleApplicationStatus
+  admin_notes?: string
+}
+
+export interface RoleApplication {
+  id: number
+  user_id: number
+  requested_role: ApplicationableRole
+  status: RoleApplicationStatus
+  reason: string
+  application_data?: Record<string, any>
+  admin_notes?: string
+  reviewed_by?: number
+  applied_at: string
+  reviewed_at?: string
+  created_at: string
+  updated_at: string
+  user?: User
+  reviewed_by_user?: User
+}
+
 // Authentication Types
 export interface LoginRequest {
   email: string

@@ -4,9 +4,10 @@ Creates initial admin user and sample data.
 """
 
 from sqlalchemy.orm import Session
-from app.database import SessionLocal, create_tables, User as DBUser
-from app.models import UserRole, UserStatus
-from app.auth import get_password_hash
+from app.core.database import SessionLocal, create_tables
+from app.models.user import User as DBUser
+from app.schemas.common import UserRole, UserStatus
+from app.core.security import get_password_hash
 
 
 def create_admin_user(db: Session):

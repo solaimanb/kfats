@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import settings
-from app.database import create_tables
-from app.routers import auth, users, courses, articles, products
+from app.core.config import settings
+from app.core.database import create_tables
+from app.routers import auth, users, courses, articles, products, role_applications
 
 # Create FastAPI application
 app = FastAPI(
@@ -28,6 +28,7 @@ app.include_router(users.router, prefix="/api/v1")
 app.include_router(courses.router, prefix="/api/v1")
 app.include_router(articles.router, prefix="/api/v1")
 app.include_router(products.router, prefix="/api/v1")
+app.include_router(role_applications.router, prefix="/api/v1")
 
 
 @app.on_event("startup")
