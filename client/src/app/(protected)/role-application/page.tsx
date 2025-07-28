@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { useRoleApplications } from "@/lib/hooks/useRoleApplications"
+import { useRoleApplications, useMyApplications } from "@/lib/hooks/useRoleApplications"
 import { ApplicationableRole, RoleApplication } from "@/lib/types/api"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -28,8 +28,8 @@ type ApplicationFormData = z.infer<typeof applicationSchema>
 
 export default function RoleApplicationPage() {
     const { user } = useAuth()
-    const { applyForRole, getMyApplications } = useRoleApplications()
-    const { data: myApplications, isLoading: loadingApplications } = getMyApplications()
+    const { applyForRole } = useRoleApplications()
+    const { data: myApplications, isLoading: loadingApplications } = useMyApplications()
     const router = useRouter()
 
     const form = useForm<ApplicationFormData>({
@@ -59,8 +59,14 @@ export default function RoleApplicationPage() {
             toast.success("Application submitted successfully!")
             form.reset()
             router.refresh()
-        } catch (error: any) {
-            toast.error(error.response?.data?.detail || "Failed to submit application")
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error && 'response' in error && 
+                typeof error.response === 'object' && error.response !== null &&
+                'data' in error.response && typeof error.response.data === 'object' &&
+                error.response.data !== null && 'detail' in error.response.data
+                ? String(error.response.data.detail)
+                : "Failed to submit application"
+            toast.error(errorMessage)
         }
     }
 
@@ -164,7 +170,7 @@ export default function RoleApplicationPage() {
                 <CardHeader>
                     <CardTitle>Submit New Application</CardTitle>
                     <CardDescription>
-                        Choose the role you'd like to apply for and provide relevant information
+                        Choose the role you&apos;d like to apply for and provide relevant information
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -277,7 +283,7 @@ export default function RoleApplicationPage() {
                                         <FormLabel>Additional Information (Optional)</FormLabel>
                                         <FormControl>
                                             <Textarea
-                                                placeholder="Any other information you'd like to share..."
+                                                placeholder="Any other information you&apos;d like to share..."
                                                 {...field}
                                             />
                                         </FormControl>

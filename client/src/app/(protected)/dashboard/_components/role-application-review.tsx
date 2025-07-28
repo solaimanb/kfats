@@ -1,24 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, ReactNode } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useRoleApplications } from "@/lib/hooks/useRoleApplications"
-import { RoleApplication, RoleApplicationStatus, ApplicationableRole } from "@/lib/types/api"
-import { 
-  Check, 
-  X, 
-  Eye, 
-  Clock, 
-  Users, 
-  FileText, 
+import { useRoleApplications, useAllApplications, useApplicationStats } from "@/lib/hooks/useRoleApplications"
+import { RoleApplicationStatus, ApplicationableRole } from "@/lib/types/api"
+import {
+  Check,
+  X,
+  Eye,
+  Clock,
+  Users,
+  FileText,
   ShoppingBag,
   Loader2,
-  AlertCircle 
+  AlertCircle
 } from "lucide-react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -30,17 +30,21 @@ interface RoleApplicationReviewProps {
 export function RoleApplicationReview({ onlyPending = false }: RoleApplicationReviewProps) {
   const [selectedStatus, setSelectedStatus] = useState<RoleApplicationStatus | "all">("all")
   const [selectedRole, setSelectedRole] = useState<ApplicationableRole | "all">("all")
-  const [reviewingApp, setReviewingApp] = useState<RoleApplication | null>(null)
   const [adminNotes, setAdminNotes] = useState("")
+  const { reviewApplication } = useRoleApplications()
 
-  const { getAllApplications, reviewApplication, getApplicationStats } = useRoleApplications()
-  
-  const { data: applications, isLoading } = getAllApplications(
+  const { data: applications, isLoading } = useAllApplications(
     selectedStatus === "all" ? undefined : selectedStatus,
     selectedRole === "all" ? undefined : selectedRole
   )
-  
-  const { data: stats } = getApplicationStats()
+
+  const { data: stats } = useApplicationStats()
+
+  // Helper function to safely get string values from application_data
+  const getApplicationDataString = (data: Record<string, unknown>, key: string): string | null => {
+    const value = data[key]
+    return typeof value === 'string' ? value : null
+  }
 
   const handleReview = async (applicationId: number, status: RoleApplicationStatus) => {
     try {
@@ -51,16 +55,21 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
           admin_notes: adminNotes.trim() || undefined
         }
       })
-      
+
       toast.success(`Application ${status === "approved" ? "approved" : "rejected"} successfully`)
-      setReviewingApp(null)
       setAdminNotes("")
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || `Failed to ${status} application`)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error && 'response' in error &&
+        typeof error.response === 'object' && error.response !== null &&
+        'data' in error.response && typeof error.response.data === 'object' &&
+        error.response.data !== null && 'detail' in error.response.data
+        ? String(error.response.data.detail)
+        : `Failed to ${status} application`
+      toast.error(errorMessage)
     }
   }
 
-  const getRoleIcon = (role: string) => {
+  const getRoleIcon = (role: string): ReactNode => {
     switch (role) {
       case "mentor":
         return <Users className="h-4 w-4" />
@@ -69,7 +78,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
       case "writer":
         return <FileText className="h-4 w-4" />
       default:
-        return null
+        return <FileText className="h-4 w-4" />
     }
   }
 
@@ -94,8 +103,8 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
     )
   }
 
-  const filteredApplications = onlyPending 
-    ? applications?.filter(app => app.status === "pending") 
+  const filteredApplications = onlyPending
+    ? applications?.filter(app => app.status === "pending")
     : applications
 
   return (
@@ -112,7 +121,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
               <div className="text-2xl font-bold">{stats.total_applications}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
@@ -122,7 +131,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
               <div className="text-2xl font-bold text-yellow-600">{stats.pending_applications}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Approved</CardTitle>
@@ -132,7 +141,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
               <div className="text-2xl font-bold text-green-600">{stats.approved_applications}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Rejected</CardTitle>
@@ -155,7 +164,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
             <div className="flex space-x-4">
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as any)}>
+                <Select value={selectedStatus} onValueChange={(value) => setSelectedStatus(value as RoleApplicationStatus | "all")}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
@@ -167,10 +176,10 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as any)}>
+                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as ApplicationableRole | "all")}>
                   <SelectTrigger className="w-40">
                     <SelectValue />
                   </SelectTrigger>
@@ -194,8 +203,8 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
             {onlyPending ? "Pending Applications" : "Role Applications"}
           </CardTitle>
           <CardDescription>
-            {onlyPending 
-              ? "Applications waiting for your review" 
+            {onlyPending
+              ? "Applications waiting for your review"
               : "All role applications submitted by users"
             }
           </CardDescription>
@@ -224,10 +233,9 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
                       {getStatusBadge(app.status)}
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => setReviewingApp(app)}
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Review
@@ -243,51 +251,61 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
                               Review and approve or reject this role application
                             </DialogDescription>
                           </DialogHeader>
-                          
+
                           <div className="space-y-4">
                             <div>
                               <Label className="text-sm font-medium">User ID</Label>
                               <p className="text-sm">{app.user_id}</p>
                             </div>
-                            
+
                             <div>
                               <Label className="text-sm font-medium">Reason</Label>
                               <p className="text-sm bg-muted p-3 rounded-md">{app.reason}</p>
                             </div>
-                            
+
                             {app.application_data && (
                               <div>
                                 <Label className="text-sm font-medium">Additional Information</Label>
                                 <div className="space-y-2 text-sm">
-                                  {app.application_data.experience && (
-                                    <div>
-                                      <span className="font-medium">Experience:</span>
-                                      <p className="bg-muted p-2 rounded">{app.application_data.experience}</p>
-                                    </div>
-                                  )}
-                                  {app.application_data.portfolio_url && (
-                                    <div>
-                                      <span className="font-medium">Portfolio:</span>
-                                      <a 
-                                        href={app.application_data.portfolio_url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 hover:underline ml-2"
-                                      >
-                                        {app.application_data.portfolio_url}
-                                      </a>
-                                    </div>
-                                  )}
-                                  {app.application_data.additional_info && (
-                                    <div>
-                                      <span className="font-medium">Additional Info:</span>
-                                      <p className="bg-muted p-2 rounded">{app.application_data.additional_info}</p>
-                                    </div>
-                                  )}
+                                  {(() => {
+                                    const experience = getApplicationDataString(app.application_data, 'experience')
+                                    const portfolioUrl = getApplicationDataString(app.application_data, 'portfolio_url')
+                                    const additionalInfo = getApplicationDataString(app.application_data, 'additional_info')
+
+                                    return (
+                                      <>
+                                        {experience && (
+                                          <div>
+                                            <span className="font-medium">Experience:</span>
+                                            <p className="bg-muted p-2 rounded">{experience}</p>
+                                          </div>
+                                        )}
+                                        {portfolioUrl && (
+                                          <div>
+                                            <span className="font-medium">Portfolio:</span>
+                                            <a
+                                              href={portfolioUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:underline ml-2"
+                                            >
+                                              {portfolioUrl}
+                                            </a>
+                                          </div>
+                                        )}
+                                        {additionalInfo && (
+                                          <div>
+                                            <span className="font-medium">Additional Info:</span>
+                                            <p className="bg-muted p-2 rounded">{additionalInfo}</p>
+                                          </div>
+                                        )}
+                                      </>
+                                    )
+                                  })()}
                                 </div>
                               </div>
                             )}
-                            
+
                             {app.status === "pending" && (
                               <div>
                                 <Label className="text-sm font-medium">Admin Notes (Optional)</Label>
@@ -299,7 +317,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
                                 />
                               </div>
                             )}
-                            
+
                             {app.admin_notes && (
                               <div>
                                 <Label className="text-sm font-medium">Admin Notes</Label>
@@ -307,18 +325,18 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
                               </div>
                             )}
                           </div>
-                          
+
                           {app.status === "pending" && (
                             <DialogFooter>
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 onClick={() => handleReview(app.id, RoleApplicationStatus.REJECTED)}
                                 disabled={reviewApplication.isPending}
                               >
                                 <X className="h-4 w-4 mr-1" />
                                 Reject
                               </Button>
-                              <Button 
+                              <Button
                                 onClick={() => handleReview(app.id, RoleApplicationStatus.APPROVED)}
                                 disabled={reviewApplication.isPending}
                               >
@@ -335,7 +353,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
                       </Dialog>
                     </div>
                   </div>
-                  
+
                   <p className="text-sm text-muted-foreground line-clamp-2">
                     {app.reason}
                   </p>

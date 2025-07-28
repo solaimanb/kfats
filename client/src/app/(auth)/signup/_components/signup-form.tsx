@@ -57,6 +57,7 @@ export function SignupForm({
         try {
             toast.loading(TOAST_MESSAGES.AUTH.SIGNUP.LOADING, { id: TOAST_IDS.AUTH.SIGNUP })
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { confirmPassword: _, ...registrationData } = data
 
             await register(registrationData)

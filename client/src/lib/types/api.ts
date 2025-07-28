@@ -46,7 +46,7 @@ export enum RoleApplicationStatus {
 export interface RoleApplicationCreate {
   requested_role: ApplicationableRole
   reason: string
-  application_data?: Record<string, any>
+  application_data?: Record<string, unknown>
 }
 
 export interface RoleApplicationUpdate {
@@ -60,7 +60,7 @@ export interface RoleApplication {
   requested_role: ApplicationableRole
   status: RoleApplicationStatus
   reason: string
-  application_data?: Record<string, any>
+  application_data?: Record<string, unknown>
   admin_notes?: string
   reviewed_by?: number
   applied_at: string

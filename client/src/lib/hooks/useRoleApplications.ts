@@ -71,21 +71,6 @@ export const useRoleApplications = () => {
     }
   })
 
-  const getMyApplications = () => useQuery({
-    queryKey: ['roleApplications', 'my'],
-    queryFn: roleApplicationsApi.getMyApplications
-  })
-
-  const getAllApplications = (
-    status?: RoleApplicationStatus,
-    role?: ApplicationableRole,
-    skip = 0,
-    limit = 20
-  ) => useQuery({
-    queryKey: ['roleApplications', 'all', status, role, skip, limit],
-    queryFn: () => roleApplicationsApi.getAllApplications(status, role, skip, limit)
-  })
-
   const reviewApplication = useMutation({
     mutationFn: ({ applicationId, data }: { applicationId: number; data: RoleApplicationUpdate }) =>
       roleApplicationsApi.review(applicationId, data),
@@ -104,17 +89,35 @@ export const useRoleApplications = () => {
     }
   })
 
-  const getApplicationStats = () => useQuery({
+  return {
+    applyForRole,
+    reviewApplication,
+    withdrawApplication,
+  }
+}
+
+export const useMyApplications = () => {
+  return useQuery({
+    queryKey: ['roleApplications', 'my'],
+    queryFn: roleApplicationsApi.getMyApplications
+  })
+}
+
+export const useAllApplications = (
+  status?: RoleApplicationStatus,
+  role?: ApplicationableRole,
+  skip = 0,
+  limit = 20
+) => {
+  return useQuery({
+    queryKey: ['roleApplications', 'all', status, role, skip, limit],
+    queryFn: () => roleApplicationsApi.getAllApplications(status, role, skip, limit)
+  })
+}
+
+export const useApplicationStats = () => {
+  return useQuery({
     queryKey: ['roleApplications', 'stats'],
     queryFn: roleApplicationsApi.getStats
   })
-
-  return {
-    applyForRole,
-    getMyApplications,
-    getAllApplications,
-    reviewApplication,
-    withdrawApplication,
-    getApplicationStats
-  }
 }
