@@ -5,16 +5,29 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { useAuth } from "@/providers/auth-provider"
+import { TOAST_IDS, TOAST_MESSAGES } from "@/lib/constants/toast"
 
 const signupSchema = z.object({
     email: z.string().email("Please enter a valid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+    username: z.string()
+        .min(3, "Username must be at least 3 characters")
+        .max(50, "Username must be less than 50 characters")
+        .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+    full_name: z.string()
+        .min(2, "Full name must be at least 2 characters")
+        .max(100, "Full name must be less than 100 characters"),
+    password: z.string()
+        .min(6, "Password must be at least 6 characters")
+        .max(128, "Password must be less than 128 characters"),
+    confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
@@ -26,10 +39,15 @@ export function SignupForm({
     className,
     ...props
 }: React.ComponentProps<"div">) {
+    const router = useRouter()
+    const { register } = useAuth()
+
     const form = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema),
         defaultValues: {
             email: "",
+            username: "",
+            full_name: "",
             password: "",
             confirmPassword: "",
         },
@@ -37,12 +55,21 @@ export function SignupForm({
 
     const onSubmit = async (data: SignupFormData) => {
         try {
-            console.log("Signup data:", data)
-            // TODO: Implement actual signup logic here
-            // Example: await signup(data.email, data.password)
+            toast.loading(TOAST_MESSAGES.AUTH.SIGNUP.LOADING, { id: TOAST_IDS.AUTH.SIGNUP })
+
+            const { confirmPassword: _, ...registrationData } = data
+
+            await register(registrationData)
+
+            toast.success(TOAST_MESSAGES.AUTH.SIGNUP.SUCCESS, { id: TOAST_IDS.AUTH.SIGNUP })
+
+            setTimeout(() => {
+                router.push('/dashboard')
+            }, 1000)
         } catch (error) {
             console.error("Signup failed:", error)
-            // TODO: Handle signup errors
+            const errorMessage = error instanceof Error ? error.message : TOAST_MESSAGES.AUTH.SIGNUP.ERROR
+            toast.error(errorMessage, { id: TOAST_IDS.AUTH.SIGNUP })
         }
     }
 
@@ -50,7 +77,6 @@ export function SignupForm({
         // TODO: Implement Google OAuth signup
         console.log("Google signup clicked")
     }
-
 
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -76,6 +102,42 @@ export function SignupForm({
                                                 <Input
                                                     type="email"
                                                     placeholder="user@kfats.com"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="username"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Username</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="johndoe"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="full_name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Full Name</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="John Doe"
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -112,9 +174,9 @@ export function SignupForm({
                                     )}
                                 />
 
-                                <Button 
-                                    type="submit" 
-                                    className="w-full" 
+                                <Button
+                                    type="submit"
+                                    className="w-full"
                                     disabled={form.formState.isSubmitting}
                                 >
                                     {form.formState.isSubmitting ? "Creating account..." : "Create account"}
@@ -127,11 +189,12 @@ export function SignupForm({
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-4">
-                                    <Button 
-                                        variant="outline" 
-                                        type="button" 
+                                    <Button
+                                        variant="outline"
+                                        type="button"
                                         className="w-full"
                                         onClick={handleGoogleSignup}
+                                        disabled={form.formState.isSubmitting}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
                                             <path

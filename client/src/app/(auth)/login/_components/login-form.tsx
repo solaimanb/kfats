@@ -5,11 +5,15 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { useAuth } from "@/providers/auth-provider"
+import { TOAST_IDS, TOAST_MESSAGES } from "@/lib/constants/toast"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -22,6 +26,11 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/dashboard'
+  const { login } = useAuth()
+
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -32,12 +41,16 @@ export function LoginForm({
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      console.log("Login data:", data)
-      // TODO: Implement actual login logic here
-      // Example: await login(data.email, data.password)
+      toast.loading(TOAST_MESSAGES.AUTH.LOGIN.LOADING, { id: TOAST_IDS.AUTH.LOGIN })
+      
+      await login(data.email, data.password)
+      
+      toast.success(TOAST_MESSAGES.AUTH.LOGIN.SUCCESS, { id: TOAST_IDS.AUTH.LOGIN })
+      router.push(redirectTo)
     } catch (error) {
       console.error("Login failed:", error)
-      // TODO: Handle login errors
+      const errorMessage = error instanceof Error ? error.message : TOAST_MESSAGES.AUTH.LOGIN.ERROR
+      toast.error(errorMessage, { id: TOAST_IDS.AUTH.LOGIN })
     }
   }
 
