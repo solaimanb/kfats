@@ -6,7 +6,6 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 from app.schemas import TokenData
 
-# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -39,6 +38,8 @@ def verify_token(token: str) -> TokenData:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         username: str = payload.get("sub")
         user_id: int = payload.get("user_id")
+        role: str = payload.get("role")
+        email: str = payload.get("email")
         
         if username is None or user_id is None:
             raise HTTPException(
@@ -47,7 +48,7 @@ def verify_token(token: str) -> TokenData:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        return TokenData(username=username, user_id=user_id)
+        return TokenData(username=username, user_id=user_id, role=role, email=email)
     
     except jwt.ExpiredSignatureError:
         raise HTTPException(

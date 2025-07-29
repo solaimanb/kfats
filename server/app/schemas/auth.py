@@ -4,17 +4,18 @@ from pydantic import BaseModel, EmailStr
 from .common import UserRole
 
 
-# Authentication Models
 class Token(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
-    user: "User"  # Forward reference
+    user: "User"
 
 
 class TokenData(BaseModel):
     username: Optional[str] = None
     user_id: Optional[int] = None
+    role: Optional[str] = None
+    email: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -34,6 +35,6 @@ class RegisterRequest(BaseModel):
     role: UserRole = UserRole.USER
 
 
-# Import User schema to resolve forward reference
+# Resolve forward reference
 from .user import User
 Token.model_rebuild()

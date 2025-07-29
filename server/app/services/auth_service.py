@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.models import User as DBUser
-from app.schemas import User, LoginRequest, RegisterRequest, Token, UserRole
+from app.schemas import User, LoginRequest, RegisterRequest, Token
 from app.core.security import verify_password, create_access_token
 from app.services.user_service import UserService
 from app.core.config import settings
@@ -39,14 +39,17 @@ class AuthService:
                 detail="Account is not active"
             )
         
-        # Update last login
         user.last_login = datetime.utcnow()
         db.commit()
         
-        # Create access token
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = create_access_token(
-            data={"sub": user.username, "user_id": user.id},
+            data={
+                "sub": user.username, 
+                "user_id": user.id,
+                "role": user.role,
+                "email": user.email
+            },
             expires_delta=access_token_expires
         )
         
@@ -60,16 +63,14 @@ class AuthService:
     @staticmethod
     def register_user(db: Session, register_data: RegisterRequest) -> dict:
         """Register a new user."""
-        # Validate password confirmation
         if register_data.password != register_data.confirm_password:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Passwords do not match"
             )
         
-        # Create user
         user_data = register_data.model_dump()
-        user_data.pop('confirm_password')  # Remove confirm_password field
+        user_data.pop('confirm_password') 
         
         from app.schemas import UserCreate
         user_create = UserCreate(**user_data)
