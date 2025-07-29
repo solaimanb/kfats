@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from "@/providers/auth-provider"
 import { TOAST_IDS, TOAST_MESSAGES } from "@/lib/constants/toast"
+import { getPostAuthRedirectPath } from "@/lib/utils/auth-redirect"
 
 const signupSchema = z.object({
     email: z.string().email("Please enter a valid email address"),
@@ -60,12 +61,14 @@ export function SignupForm({
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { confirmPassword: _, ...registrationData } = data
 
-            await register(registrationData)
+            const user = await register(registrationData)
 
             toast.success(TOAST_MESSAGES.AUTH.SIGNUP.SUCCESS, { id: TOAST_IDS.AUTH.SIGNUP })
 
+            const redirectPath = getPostAuthRedirectPath(user)
+            
             setTimeout(() => {
-                router.push('/dashboard')
+                router.push(redirectPath)
             }, 1000)
         } catch (error) {
             console.error("Signup failed:", error)

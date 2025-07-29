@@ -9,9 +9,9 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<User>
   logout: () => void
-  register: (userData: RegisterFormData) => Promise<void>
+  register: (userData: RegisterFormData) => Promise<User>
   upgradeRole: (newRole: UserRole) => Promise<void>
   refetchUser: () => Promise<void>
 }
@@ -28,7 +28,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const isAuthenticated = !!user
 
-  // Initialize auth state on mount
   useEffect(() => {
     initializeAuth()
   }, [])
@@ -39,12 +38,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const storedUser = tokenUtils.getUser()
 
       if (token && storedUser) {
-        // Verify token is still valid
         const currentUser = await AuthAPI.verifyToken()
         setUser(currentUser)
-        tokenUtils.setUser(currentUser) // Update stored user
+        tokenUtils.setUser(currentUser)
       } else {
-        // No valid auth data
         tokenUtils.clearAuth()
       }
     } catch (error) {
@@ -56,15 +53,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     try {
       setIsLoading(true)
       const authResponse = await AuthAPI.login({ email, password })
-      
-      // Store token and user data
+
       tokenUtils.setToken(authResponse.access_token)
       tokenUtils.setUser(authResponse.user)
       setUser(authResponse.user)
+
+      return authResponse.user
     } catch (error) {
       tokenUtils.clearAuth()
       throw error
@@ -73,13 +71,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const register = async (userData: RegisterFormData) => {
+  const register = async (userData: RegisterFormData): Promise<User> => {
     try {
       setIsLoading(true)
       await AuthAPI.register(userData)
-      
-      // After successful registration, automatically log the user in
-      await login(userData.email, userData.password)
+
+      const user = await login(userData.email, userData.password)
+      return user
     } catch (error) {
       throw error
     } finally {
@@ -91,14 +89,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(null)
     tokenUtils.clearAuth()
     toast.success("Logged out successfully")
-    // Redirect will be handled by AuthAPI.logout
     AuthAPI.logout()
   }
 
   const upgradeRole = async (newRole: UserRole) => {
     try {
       await AuthAPI.upgradeRole(newRole)
-      // Refetch user data to get updated role
       await refetchUser()
     } catch (error) {
       throw error
@@ -134,7 +130,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   )
 }
 
-// Custom hook to use auth context
+/**
+ *-----------------------------------
+ * Custom hook to use the AuthContext
+ *-----------------------------------
+*/
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)
   if (context === undefined) {
@@ -143,11 +143,15 @@ export function useAuth(): AuthContextType {
   return context
 }
 
-// Hook for checking specific roles
+/**
+ *---------------------------------
+ * Hook for checking specific roles
+ *---------------------------------
+*/
 export function useRequireAuth(requiredRole?: UserRole) {
   const { user, isAuthenticated, isLoading } = useAuth()
 
-  const hasRequiredRole = requiredRole 
+  const hasRequiredRole = requiredRole
     ? user?.role === requiredRole || user?.role === UserRole.ADMIN
     : isAuthenticated
 
@@ -160,7 +164,11 @@ export function useRequireAuth(requiredRole?: UserRole) {
   }
 }
 
-// Hook for role-based access
+/*
+ *-----------------------------------
+ * Hook for role-based access control
+ *-----------------------------------
+*/
 export function useRoleAccess() {
   const { user } = useAuth()
 

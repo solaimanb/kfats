@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from "@/providers/auth-provider"
 import { TOAST_IDS, TOAST_MESSAGES } from "@/lib/constants/toast"
+import { getPostAuthRedirectPath } from "@/lib/utils/auth-redirect"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -28,7 +29,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') || '/dashboard'
+  const redirectTo = searchParams.get('redirect')
   const { login } = useAuth()
 
   const form = useForm<LoginFormData>({
@@ -43,10 +44,12 @@ export function LoginForm({
     try {
       toast.loading(TOAST_MESSAGES.AUTH.LOGIN.LOADING, { id: TOAST_IDS.AUTH.LOGIN })
       
-      await login(data.email, data.password)
+      const user = await login(data.email, data.password)
       
       toast.success(TOAST_MESSAGES.AUTH.LOGIN.SUCCESS, { id: TOAST_IDS.AUTH.LOGIN })
-      router.push(redirectTo)
+      
+      const finalRedirectPath = redirectTo || getPostAuthRedirectPath(user)
+      router.push(finalRedirectPath)
     } catch (error) {
       console.error("Login failed:", error)
       const errorMessage = error instanceof Error ? error.message : TOAST_MESSAGES.AUTH.LOGIN.ERROR
