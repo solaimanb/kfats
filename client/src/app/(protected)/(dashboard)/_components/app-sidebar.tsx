@@ -43,7 +43,6 @@ import {
   Shield,
   UserPlus,
   Plus,
-  Eye,
   LogOut,
   ChevronUp,
   Home,
@@ -93,11 +92,6 @@ const getNavigationData = (userRole: UserRole) => {
         url: "/courses/create",
         icon: Plus,
       },
-      {
-        title: "Analytics",
-        url: "/dashboard/analytics",
-        icon: BarChart3,
-      },
     ],
     [UserRole.WRITER]: [
       {
@@ -109,11 +103,6 @@ const getNavigationData = (userRole: UserRole) => {
         title: "Write Article",
         url: "/articles/create",
         icon: Plus,
-      },
-      {
-        title: "Analytics",
-        url: "/dashboard/analytics",
-        icon: Eye,
       },
     ],
     [UserRole.SELLER]: [
@@ -132,11 +121,6 @@ const getNavigationData = (userRole: UserRole) => {
         url: "/dashboard/orders",
         icon: FileText,
       },
-      {
-        title: "Analytics",
-        url: "/dashboard/analytics",
-        icon: BarChart3,
-      },
     ],
     [UserRole.ADMIN]: [
       {
@@ -153,11 +137,6 @@ const getNavigationData = (userRole: UserRole) => {
         title: "Content Review",
         url: "/dashboard/content-review",
         icon: FileText,
-      },
-      {
-        title: "System Analytics",
-        url: "/dashboard/analytics",
-        icon: BarChart3,
       },
       {
         title: "Settings",
