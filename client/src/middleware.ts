@@ -31,7 +31,13 @@ export function middleware(request: NextRequest) {
     '/role-application'
   ]
 
-  const adminOnlyPaths = ['/admin']
+  const adminOnlyPaths = [
+    '/admin',
+    '/dashboard/role-applications',
+    '/dashboard/users',
+    '/dashboard/content-review',
+    '/dashboard/settings'
+  ]
 
   const authPaths = ['/login', '/signup']
 

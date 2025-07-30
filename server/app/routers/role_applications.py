@@ -1,18 +1,17 @@
 import json
 from datetime import datetime, timedelta
-from typing import List, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from typing import Optional, List
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_db
 from app.models.user import User as DBUser, RoleApplication as DBRoleApplication
 from app.schemas.user import RoleApplication, RoleApplicationCreate, RoleApplicationUpdate, User
 from app.schemas.common import (
-    RoleApplicationStatus, ApplicationableRole, UserRole, SuccessResponse, ErrorResponse,
+    RoleApplicationStatus, ApplicationableRole, UserRole, SuccessResponse,
     PaginatedResponse
 )
 from app.core.dependencies import get_current_active_user, require_role
-from app.core.config import settings
 
 router = APIRouter(prefix="/role-applications", tags=["Role Applications"])
 
@@ -28,7 +27,6 @@ async def apply_for_role(
     Only authenticated users can apply.
     """
     
-    # Check if user already has the requested role or higher
     if current_user.role == application_data.requested_role:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -41,7 +39,6 @@ async def apply_for_role(
             detail="Administrators cannot apply for other roles"
         )
     
-    # Check if user has a pending application for this role
     existing_application = db.query(DBRoleApplication).filter(
         and_(
             DBRoleApplication.user_id == current_user.id,
@@ -56,7 +53,6 @@ async def apply_for_role(
             detail=f"You already have a pending application for {application_data.requested_role} role"
         )
     
-    # Check if user was recently rejected (within 30 days)
     recent_rejection = db.query(DBRoleApplication).filter(
         and_(
             DBRoleApplication.user_id == current_user.id,
@@ -119,29 +115,77 @@ async def get_all_applications(
     Supports filtering by status and role.
     """
     
-    query = db.query(DBRoleApplication)
+    query = db.query(DBRoleApplication).options(
+        joinedload(DBRoleApplication.applicant),
+        joinedload(DBRoleApplication.reviewer)
+    )
     
-    # Apply filters
     if status:
         query = query.filter(DBRoleApplication.status == status)
     if role:
         query = query.filter(DBRoleApplication.requested_role == role)
     
-    # Get total count
     total = query.count()
-    
-    # Apply pagination
     applications = query.order_by(
         DBRoleApplication.applied_at.desc()
     ).offset((page - 1) * size).limit(size).all()
     
+    result = []
+    for app in applications:
+        app_data = RoleApplication.model_validate(app)
+        if app.applicant:
+            app_data.user = app.applicant
+        if app.reviewer:
+            app_data.reviewed_by_user = app.reviewer
+        result.append(app_data)
+    
     return PaginatedResponse(
-        items=applications,
+        items=result,
         total=total,
         page=page,
         size=size,
         pages=(total + size - 1) // size
     )
+
+
+@router.get("/all", response_model=List[RoleApplication])
+async def get_all_applications_simple(
+    status: Optional[RoleApplicationStatus] = Query(None, description="Filter by status"),
+    role: Optional[ApplicationableRole] = Query(None, description="Filter by requested role"),
+    skip: int = Query(0, ge=0, description="Number of applications to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Number of applications to return"),
+    current_user: DBUser = Depends(require_role(UserRole.ADMIN)),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all role applications with skip/limit pagination (Admin only).
+    This endpoint matches the client API expectations.
+    """
+    
+    query = db.query(DBRoleApplication).options(
+        joinedload(DBRoleApplication.applicant),
+        joinedload(DBRoleApplication.reviewer)
+    )
+    
+    if status:
+        query = query.filter(DBRoleApplication.status == status)
+    if role:
+        query = query.filter(DBRoleApplication.requested_role == role)
+    
+    applications = query.order_by(
+        DBRoleApplication.applied_at.desc()
+    ).offset(skip).limit(limit).all()
+    
+    result = []
+    for app in applications:
+        app_data = RoleApplication.model_validate(app)
+        if app.applicant:
+            app_data.user = app.applicant
+        if app.reviewer:
+            app_data.reviewed_by_user = app.reviewer
+        result.append(app_data)
+    
+    return result
 
 
 @router.put("/{application_id}/review", response_model=SuccessResponse)
@@ -156,7 +200,6 @@ async def review_application(
     Approve or reject with optional notes.
     """
     
-    # Get the application
     application = db.query(DBRoleApplication).filter(
         DBRoleApplication.id == application_id
     ).first()
@@ -173,13 +216,11 @@ async def review_application(
             detail="This application has already been reviewed"
         )
     
-    # Update application status
     application.status = review_data.status
     application.admin_notes = review_data.admin_notes
     application.reviewed_by = current_user.id
     application.reviewed_at = datetime.utcnow()
     
-    # If approved, update user role
     if review_data.status == RoleApplicationStatus.APPROVED:
         user = db.query(DBUser).filter(DBUser.id == application.user_id).first()
         if user:
@@ -200,49 +241,41 @@ async def review_application(
 
 
 @router.get("/stats", response_model=dict)
-async def get_application_stats(
+async def get_applications_stats(
     current_user: DBUser = Depends(require_role(UserRole.ADMIN)),
     db: Session = Depends(get_db)
 ):
     """Get role application statistics (Admin only)."""
     
-    # Count applications by status
-    pending_count = db.query(DBRoleApplication).filter(
+    total_applications = db.query(DBRoleApplication).count()
+    pending_applications = db.query(DBRoleApplication).filter(
         DBRoleApplication.status == RoleApplicationStatus.PENDING
     ).count()
-    
-    approved_count = db.query(DBRoleApplication).filter(
+    approved_applications = db.query(DBRoleApplication).filter(
         DBRoleApplication.status == RoleApplicationStatus.APPROVED
     ).count()
-    
-    rejected_count = db.query(DBRoleApplication).filter(
+    rejected_applications = db.query(DBRoleApplication).filter(
         DBRoleApplication.status == RoleApplicationStatus.REJECTED
     ).count()
     
-    # Count by role type
-    mentor_applications = db.query(DBRoleApplication).filter(
-        DBRoleApplication.requested_role == ApplicationableRole.MENTOR
-    ).count()
-    
-    seller_applications = db.query(DBRoleApplication).filter(
-        DBRoleApplication.requested_role == ApplicationableRole.SELLER
-    ).count()
-    
-    writer_applications = db.query(DBRoleApplication).filter(
-        DBRoleApplication.requested_role == ApplicationableRole.WRITER
-    ).count()
+    role_stats = {}
+    for role in ApplicationableRole:
+        count = db.query(DBRoleApplication).filter(
+            DBRoleApplication.requested_role == role
+        ).count()
+        role_stats[role.value] = count
     
     return {
+        "total_applications": total_applications,
+        "pending_applications": pending_applications,
+        "approved_applications": approved_applications,
+        "rejected_applications": rejected_applications,
+        "by_role": role_stats,
         "by_status": {
-            "pending": pending_count,
-            "approved": approved_count,
-            "rejected": rejected_count,
-            "total": pending_count + approved_count + rejected_count
-        },
-        "by_role": {
-            "mentor": mentor_applications,
-            "seller": seller_applications,
-            "writer": writer_applications
+            "pending": pending_applications,
+            "approved": approved_applications,
+            "rejected": rejected_applications,
+            "total": total_applications
         }
     }
 

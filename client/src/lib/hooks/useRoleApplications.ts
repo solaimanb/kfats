@@ -1,14 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../api/client'
-import { 
-  RoleApplication, 
-  RoleApplicationCreate, 
+import {
+  RoleApplication,
+  RoleApplicationCreate,
   RoleApplicationUpdate,
   ApplicationableRole,
   RoleApplicationStatus
 } from '../types/api'
 
-// API functions
 const roleApplicationsApi = {
   apply: async (data: RoleApplicationCreate): Promise<{ message: string; data: { application_id: number } }> => {
     const response = await apiClient.post('/role-applications/apply', data)
@@ -31,7 +30,7 @@ const roleApplicationsApi = {
     if (role) params.append('role', role)
     params.append('skip', skip.toString())
     params.append('limit', limit.toString())
-    
+
     const response = await apiClient.get(`/role-applications/all?${params}`)
     return response.data
   },
@@ -51,14 +50,19 @@ const roleApplicationsApi = {
     pending_applications: number
     approved_applications: number
     rejected_applications: number
-    applications_by_role: Record<string, number>
+    by_role: Record<string, number>
+    by_status?: {
+      pending: number
+      approved: number
+      rejected: number
+      total: number
+    }
   }> => {
     const response = await apiClient.get('/role-applications/stats')
     return response.data
   }
 }
 
-// Hooks
 export const useRoleApplications = () => {
   const queryClient = useQueryClient()
 

@@ -1,7 +1,6 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query'
 import { AnalyticsAPI, OverviewAnalytics, UserAnalytics, CourseAnalytics, ArticleAnalytics, ProductAnalytics, ActivityData } from '../api/analytics'
 
-// Analytics Query Hooks
 export function useOverviewAnalytics(): UseQueryResult<OverviewAnalytics> {
   return useQuery({
     queryKey: ['analytics', 'overview'],
@@ -51,12 +50,11 @@ export function useActivityData(): UseQueryResult<ActivityData> {
   return useQuery({
     queryKey: ['analytics', 'activity'],
     queryFn: () => AnalyticsAPI.getRecentActivity(50),
-    staleTime: 2 * 60 * 1000, // 2 minutes (more frequent for activity feed)
+    staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
   })
 }
 
-// Combined analytics hook for dashboard overview
 export const useAnalyticsDashboard = () => {
   const overview = useOverviewAnalytics()
   const users = useUserAnalytics()
