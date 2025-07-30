@@ -1,10 +1,11 @@
-from typing import List, Optional
+from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, String
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_db
 from app.models.user import User as DBUser
 from app.schemas.user import User, UserUpdate
-from app.schemas.common import UserRole, SuccessResponse
+from app.schemas.common import UserRole, SuccessResponse, PaginatedResponse
 from app.core.dependencies import get_current_active_user, get_admin_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -26,7 +27,6 @@ async def update_current_user_profile(
     
     db_user = db.query(DBUser).filter(DBUser.id == current_user.id).first()
     
-    # Check for username uniqueness if being updated
     if user_update.username and user_update.username != current_user.username:
         existing_user = db.query(DBUser).filter(
             DBUser.username == user_update.username,
@@ -38,7 +38,6 @@ async def update_current_user_profile(
                 detail="Username already taken"
             )
     
-    # Update fields
     update_data = user_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_user, field, value)
@@ -49,23 +48,50 @@ async def update_current_user_profile(
     return User.model_validate(db_user)
 
 
-@router.get("/", response_model=List[User])
+@router.get("/", response_model=PaginatedResponse[User])
 async def get_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     role: Optional[UserRole] = None,
+    status: Optional[str] = None,
+    email: Optional[str] = None,
     admin_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
-    """Get list of users (Admin only)."""
+    """Get paginated list of users (Admin only)."""
     
     query = db.query(DBUser)
     
     if role:
         query = query.filter(DBUser.role == role)
     
+    if status:
+        query = query.filter(DBUser.status == status)
+    
+    if email:
+        search_term = f"%{email}%"
+        query = query.filter(
+            or_(
+                DBUser.email.ilike(search_term),
+                DBUser.full_name.ilike(search_term),
+                DBUser.username.ilike(search_term),
+                DBUser.role.cast(String).ilike(search_term)
+            )
+        )
+    
+    total = query.count()
     users = query.offset(skip).limit(limit).all()
-    return [User.model_validate(user) for user in users]
+    
+    page = (skip // limit) + 1
+    pages = (total + limit - 1) // limit
+    
+    return PaginatedResponse(
+        items=[User.model_validate(user) for user in users],
+        total=total,
+        page=page,
+        size=limit,
+        pages=pages
+    )
 
 
 @router.get("/{user_id}", response_model=User)
@@ -127,7 +153,6 @@ async def delete_user(
             detail="User not found"
         )
     
-    # Don't allow deleting admin users
     if user.role == UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
