@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_db
@@ -20,10 +21,14 @@ async def create_article(
 ):
     """Create a new article (Writer/Admin only)."""
     
+    # Default to published for approved writers, unless explicitly set as draft
+    default_status = article_data.status if hasattr(article_data, 'status') and article_data.status else ArticleStatus.PUBLISHED
+    
     db_article = DBArticle(
-        **article_data.model_dump(),
+        **article_data.model_dump(exclude={'status'}),
         author_id=current_user.id,
-        status=ArticleStatus.DRAFT
+        status=default_status,
+        published_at=datetime.utcnow() if default_status == ArticleStatus.PUBLISHED else None
     )
     
     db.add(db_article)

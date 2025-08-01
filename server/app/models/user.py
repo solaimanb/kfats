@@ -23,8 +23,8 @@ class User(BaseModel):
     # Relationships
     courses_created = relationship("Course", back_populates="mentor", foreign_keys="Course.mentor_id")
     enrollments = relationship("Enrollment", back_populates="student")
-    articles = relationship("Article", back_populates="author")
-    products = relationship("Product", back_populates="seller")
+    articles = relationship("Article", back_populates="author", foreign_keys="Article.author_id")
+    products = relationship("Product", back_populates="seller", foreign_keys="Product.seller_id")
     role_applications = relationship("RoleApplication", foreign_keys="RoleApplication.user_id", back_populates="applicant")
     reviewed_applications = relationship("RoleApplication", foreign_keys="RoleApplication.reviewed_by")
 

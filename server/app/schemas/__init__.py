@@ -5,6 +5,7 @@ from .auth import *
 from .course import *
 from .article import *
 from .product import *
+from .content_management import *
 
 # Export commonly used items
 __all__ = [
@@ -33,4 +34,8 @@ __all__ = [
     
     # Product schemas  
     "Product", "ProductBase", "ProductCreate", "ProductUpdate",
+    
+    # Content Management schemas
+    "ContentActionRequest", "AdminNotesRequest", "ContentOverviewItem", 
+    "ContentStats", "ContentActivityItem",
 ]

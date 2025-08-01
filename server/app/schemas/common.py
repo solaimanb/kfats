@@ -22,8 +22,8 @@ class UserStatus(str, Enum):
 
 # Course Enums
 class CourseStatus(str, Enum):
-    DRAFT = "draft"
-    PUBLISHED = "published"
+    DRAFT = "draft"  
+    PUBLISHED = "published" 
     ARCHIVED = "archived"
 
 
@@ -49,8 +49,8 @@ class ArticleStatus(str, Enum):
 
 # Product Enums
 class ProductStatus(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
+    DRAFT = "draft"           # Seller working on it
+    ACTIVE = "active"         # Available for purchase (published)
     OUT_OF_STOCK = "out_of_stock"
 
 

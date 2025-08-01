@@ -20,8 +20,13 @@ async def create_course(
 ):
     """Create a new course (Mentor/Admin only)."""
     
+    # Default to published for approved mentors, unless explicitly set as draft
+    course_dict = course_data.model_dump()
+    if 'status' not in course_dict or course_dict['status'] is None:
+        course_dict['status'] = CourseStatus.PUBLISHED
+    
     db_course = DBCourse(
-        **course_data.model_dump(),
+        **course_dict,
         mentor_id=current_user.id
     )
     

@@ -134,8 +134,8 @@ const getNavigationData = (userRole: UserRole) => {
         icon: UserPlus,
       },
       {
-        title: "Content Review",
-        url: "/dashboard/content-review",
+        title: "Content Management",
+        url: "/dashboard/content-management",
         icon: FileText,
       },
       {

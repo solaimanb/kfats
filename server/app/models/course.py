@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Enum as SQLEnum, Float, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Text, Enum as SQLEnum, Float, Integer, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from .base import BaseModel, Base
@@ -21,9 +21,16 @@ class Course(BaseModel):
     mentor_id = Column(ForeignKey("users.id"), nullable=False)
     enrolled_count = Column(Integer, default=0)
     
+    # Admin oversight fields
+    admin_notes = Column(Text, nullable=True)
+    admin_action_by = Column(ForeignKey("users.id"), nullable=True)
+    admin_action_at = Column(DateTime(timezone=True), nullable=True)
+    is_featured = Column(Boolean, default=False)
+    
     # Relationships
     mentor = relationship("User", back_populates="courses_created", foreign_keys=[mentor_id])
     enrollments = relationship("Enrollment", back_populates="course")
+    admin_reviewer = relationship("User", foreign_keys=[admin_action_by])
 
 
 class Enrollment(Base):
