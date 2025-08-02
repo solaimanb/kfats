@@ -138,11 +138,6 @@ const getNavigationData = (userRole: UserRole) => {
         url: "/dashboard/content-management",
         icon: FileText,
       },
-      {
-        title: "Settings",
-        url: "/dashboard/settings",
-        icon: Settings,
-      },
     ],
     [UserRole.USER]: [
       {
