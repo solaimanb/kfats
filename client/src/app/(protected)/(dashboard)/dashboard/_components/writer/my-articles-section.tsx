@@ -21,6 +21,8 @@ interface MyArticlesSectionProps {
     onCreateArticle?: () => void
     onEditArticle?: (articleId: number) => void
     onViewArticle?: (articleId: number) => void
+    onViewAllArticles?: () => void
+    maxDisplay?: number
 }
 
 export function MyArticlesSection({
@@ -28,7 +30,9 @@ export function MyArticlesSection({
     isLoading,
     onCreateArticle,
     onEditArticle,
-    onViewArticle
+    onViewArticle,
+    onViewAllArticles,
+    maxDisplay = 6
 }: MyArticlesSectionProps) {
     if (isLoading) {
         return (
@@ -56,22 +60,10 @@ export function MyArticlesSection({
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                        <PenTool className="h-5 w-5 text-blue-600" />
-                        My Articles ({articles.length})
-                    </span>
-                    <Button size="sm" onClick={onCreateArticle}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Write Article
-                    </Button>
-                </CardTitle>
-            </CardHeader>
             <CardContent>
                 {sortedArticles.length > 0 ? (
                     <div className="space-y-4">
-                        {sortedArticles.slice(0, 6).map((article) => (
+                        {sortedArticles.slice(0, maxDisplay).map((article) => (
                             <div
                                 key={article.id}
                                 className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors"
@@ -142,9 +134,14 @@ export function MyArticlesSection({
                             </div>
                         ))}
 
-                        {sortedArticles.length > 6 && (
+                        {sortedArticles.length > maxDisplay && (
                             <div className="text-center pt-4 border-t">
-                                <Button variant="outline" size="sm">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={onViewAllArticles}
+                                    className="w-full"
+                                >
                                     View All Articles ({sortedArticles.length})
                                 </Button>
                             </div>
