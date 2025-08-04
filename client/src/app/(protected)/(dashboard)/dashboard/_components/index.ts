@@ -1,6 +1,0 @@
-export { StudentDashboard } from './student-dashboard'
-export { MentorDashboard } from './mentor-dashboard'
-export { WriterDashboard } from './writer-dashboard'
-export { SellerDashboard } from './seller-dashboard'
-export { AdminDashboard } from './admin-dashboard'
-export { DefaultDashboard } from './default-dashboard'

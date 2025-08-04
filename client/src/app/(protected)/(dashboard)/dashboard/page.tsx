@@ -1,109 +1,92 @@
-"use client"
+'use client'
 
-import { useAuth } from "@/providers/auth-provider"
-import { Badge } from "@/components/ui/badge"
-import { UserRole } from "@/lib/types/api"
-import {
-  StudentDashboard,
-  MentorDashboard,
-  WriterDashboard,
-  SellerDashboard,
-  AdminDashboard,
-  DefaultDashboard
-} from "./_components"
-import {
-  BookOpen,
-  GraduationCap,
-  PenTool,
-  ShoppingBag,
-  Shield,
-  User,
-} from "lucide-react"
+import { useAuth } from '@/providers/auth-provider'
+import { UserRole } from '@/lib/types/api'
+import { LoadingSpinner } from '@/components/ui/loading'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
-export default function DashboardPage() {
-  const { user } = useAuth()
+export default function DashboardFallbackPage() {
+  const { user, isLoading } = useAuth()
 
-  if (!user) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex h-[50vh] items-center justify-center">
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
 
-  const getRoleIcon = (role: UserRole) => {
-    switch (role) {
-      case UserRole.STUDENT:
-        return <BookOpen className="h-5 w-5" />
-      case UserRole.MENTOR:
-        return <GraduationCap className="h-5 w-5" />
-      case UserRole.WRITER:
-        return <PenTool className="h-5 w-5" />
-      case UserRole.SELLER:
-        return <ShoppingBag className="h-5 w-5" />
-      case UserRole.ADMIN:
-        return <Shield className="h-5 w-5" />
-      default:
-        return <User className="h-5 w-5" />
-    }
-  }
+  if (user?.role === UserRole.USER) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold">Welcome to KFATS</h1>
+          <p className="text-muted-foreground">
+            Get started by applying for a role to access more features.
+          </p>
+        </div>
 
-  const getRoleBadgeColor = (role: UserRole) => {
-    switch (role) {
-      case UserRole.STUDENT:
-        return "bg-blue-500"
-      case UserRole.MENTOR:
-        return "bg-green-500"
-      case UserRole.WRITER:
-        return "bg-purple-500"
-      case UserRole.SELLER:
-        return "bg-orange-500"
-      case UserRole.ADMIN:
-        return "bg-red-500"
-      default:
-        return "bg-gray-500"
-    }
-  }
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-lg border p-6">
+            <h3 className="font-semibold mb-2">Student Role</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Access courses, track progress, and earn certificates.
+            </p>
+            <Button asChild size="sm">
+              <Link href="/role-application?role=student">Apply Now</Link>
+            </Button>
+          </div>
+          <div className="rounded-lg border p-6">
+            <h3 className="font-semibold mb-2">Writer Role</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Create and publish articles, build your reputation.
+            </p>
+            <Button asChild size="sm">
+              <Link href="/role-application?role=writer">Apply Now</Link>
+            </Button>
+          </div>
+          <div className="rounded-lg border p-6">
+            <h3 className="font-semibold mb-2">Mentor Role</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Create courses, teach students, share knowledge.
+            </p>
+            <Button asChild size="sm">
+              <Link href="/role-application?role=mentor">Apply Now</Link>
+            </Button>
+          </div>
+          <div className="rounded-lg border p-6">
+            <h3 className="font-semibold mb-2">Seller Role</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Sell products and manage your online store.
+            </p>
+            <Button asChild size="sm">
+              <Link href="/role-application?role=seller">Apply Now</Link>
+            </Button>
+          </div>
+        </div>
 
-  const getRoleDisplayName = (role: UserRole) => {
-    return role.charAt(0).toUpperCase() + role.slice(1)
-  }
-
-  const renderDashboard = () => {
-    switch (user.role) {
-      case UserRole.STUDENT:
-        return <StudentDashboard userId={user.id} />
-      case UserRole.MENTOR:
-        return <MentorDashboard userId={user.id} />
-      case UserRole.WRITER:
-        return <WriterDashboard userId={user.id} />
-      case UserRole.SELLER:
-        return <SellerDashboard userId={user.id} />
-      case UserRole.ADMIN:
-        return <AdminDashboard userId={user.id} />
-      default:
-        return <DefaultDashboard userId={user.id} />
-    }
+        <div className="mt-8 p-4 bg-muted rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            <strong>Note:</strong> Role applications are subject to review.
+            You&apos;ll receive an email notification once your application is processed.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="border-b pb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-3xl font-bold">Welcome back, {user.full_name || user.username}!</h1>
-          <Badge
-            className={`${getRoleBadgeColor(user.role)} text-white flex items-center gap-1`}
-          >
-            {getRoleIcon(user.role)}
-            {getRoleDisplayName(user.role)}
-          </Badge>
-        </div>
-        <p className="text-muted-foreground">
-          Here&apos;s what&apos;s happening with your account today.
+    <div className="flex h-[50vh] items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-lg font-semibold mb-2">Dashboard Access</h2>
+        <p className="text-muted-foreground mb-4">
+          Unable to determine your dashboard. Please try refreshing the page.
         </p>
+        <Button asChild>
+          <Link href="/">Go Home</Link>
+        </Button>
       </div>
-
-      {renderDashboard()}
     </div>
   )
 }

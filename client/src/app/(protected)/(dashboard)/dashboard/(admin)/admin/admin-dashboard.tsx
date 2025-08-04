@@ -2,7 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useOverviewAnalytics, useUserAnalytics, useActivityData, useCourseAnalytics, useArticleAnalytics, useProductAnalytics } from "@/lib/hooks/useAnalytics"
-import { useRoleApplications } from "@/lib/hooks/useRoleApplications"
+// import { useRoleApplications } from "@/lib/hooks/useRoleApplications"
 import {
   OverviewStats,
   UserAnalyticsSection,
@@ -11,7 +11,7 @@ import {
   RoleApplicationsSection,
   CourseAnalyticsSection,
   ContentAnalyticsSection
-} from "./admin"
+} from "./_components"
 
 interface AdminDashboardProps {
   userId?: number

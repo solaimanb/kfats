@@ -33,10 +33,10 @@ export function middleware(request: NextRequest) {
 
   const adminOnlyPaths = [
     '/admin',
-    '/dashboard/role-applications',
-    '/dashboard/users',
-    '/dashboard/content-review',
-    '/dashboard/settings'
+    '/dashboard/admin/role-applications',
+    '/dashboard/admin/users',
+    '/dashboard/admin/content-management',
+    '/dashboard/admin/settings'
   ]
 
   const authPaths = ['/login', '/signup']
@@ -64,6 +64,22 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin', request.url))
     }
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  if (pathname === '/dashboard' && token && userRole) {
+    const roleRoutes: Record<string, string> = {
+      'admin': '/dashboard/admin',
+      'mentor': '/dashboard/mentor',
+      'student': '/dashboard/student',
+      'writer': '/dashboard/writer',
+      'seller': '/dashboard/seller'
+    }
+
+    const normalizedRole = userRole.toLowerCase()
+    const targetRoute = roleRoutes[normalizedRole]
+    if (targetRoute) {
+      return NextResponse.redirect(new URL(targetRoute, request.url))
+    }
   }
 
   if (isRootPath) {

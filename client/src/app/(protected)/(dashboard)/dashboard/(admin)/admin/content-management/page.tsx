@@ -1,5 +1,5 @@
 import { Metadata } from "next"
-import { ContentManagementTable } from "@/app/(protected)/(dashboard)/dashboard/content-management/_components/content-management-table"
+import { ContentManagementTable } from "@/app/(protected)/(dashboard)/dashboard/(admin)/admin/content-management/_components/content-management-table"
 
 export const metadata: Metadata = {
     title: "Content Management",

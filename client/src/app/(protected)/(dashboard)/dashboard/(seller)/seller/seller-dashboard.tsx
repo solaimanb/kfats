@@ -15,7 +15,7 @@ import {
   type OrderAnalytics,
   type SellerRevenueAnalytics,
   type SellerActivity
-} from "./seller"
+} from "./_components"
 
 interface SellerDashboardProps {
   userId?: number

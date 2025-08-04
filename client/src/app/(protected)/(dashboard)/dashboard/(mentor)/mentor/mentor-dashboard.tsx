@@ -14,7 +14,7 @@ import {
   type StudentEngagement,
   type RevenueAnalytics,
   type MentorActivity
-} from "./mentor"
+} from "./_components"
 
 interface MentorDashboardProps {
   userId?: number

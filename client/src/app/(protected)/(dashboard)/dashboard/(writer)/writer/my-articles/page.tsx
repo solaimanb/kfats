@@ -7,19 +7,13 @@ import { useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { MyArticlesPageSkeleton } from "./_components/loading-skeleton"
 import {
-    WriterOverviewStats,
     MyArticlesSection,
-    ContentAnalyticsSection,
-    calculateWriterOverview,
-    generateContentAnalytics
-} from "@/app/(protected)/(dashboard)/dashboard/_components/writer"
+} from "@/app/(protected)/(dashboard)/dashboard/(writer)/writer/_components"
 import {
     PenTool,
-    BarChart3,
     AlertTriangle,
     UserPlus,
     ArrowLeft
@@ -27,7 +21,7 @@ import {
 
 export default function MyArticlesPage() {
     const { user } = useAuth()
-    const { isWriter, canWriteArticles } = useRoleAccess()
+    const { canWriteArticles } = useRoleAccess()
     const { data: myArticles, isLoading, error } = useWriterArticles()
     const router = useRouter()
 
@@ -103,9 +97,6 @@ export default function MyArticlesPage() {
             </div>
         )
     }
-
-    const overviewData = myArticles ? calculateWriterOverview(myArticles) : null
-    const contentAnalytics = myArticles ? generateContentAnalytics(myArticles) : null
 
     const handleCreateArticle = () => {
         router.push('/articles/create')

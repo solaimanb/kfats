@@ -40,7 +40,6 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
 
   const { data: stats } = useApplicationStats()
 
-  // Helper function to safely get string values from application_data
   const getApplicationDataString = (data: Record<string, unknown>, key: string): string | null => {
     const value = data[key]
     return typeof value === 'string' ? value : null
@@ -109,7 +108,6 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
@@ -154,7 +152,6 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
         </div>
       )}
 
-      {/* Filters */}
       {!onlyPending && (
         <Card>
           <CardHeader>

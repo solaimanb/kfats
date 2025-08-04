@@ -49,10 +49,27 @@ import {
 } from "lucide-react"
 
 const getNavigationData = (userRole: UserRole) => {
+  const getDashboardUrl = (role: UserRole) => {
+    switch (role) {
+      case UserRole.ADMIN:
+        return "/dashboard/admin"
+      case UserRole.WRITER:
+        return "/dashboard/writer"
+      case UserRole.MENTOR:
+        return "/dashboard/mentor"
+      case UserRole.SELLER:
+        return "/dashboard/seller"
+      case UserRole.STUDENT:
+        return "/dashboard/student"
+      default:
+        return "/dashboard"
+    }
+  }
+
   const baseNavigation = [
     {
       title: "Overview",
-      url: "/dashboard",
+      url: getDashboardUrl(userRole),
       icon: LayoutDashboard,
       isActive: false,
     },
@@ -61,30 +78,25 @@ const getNavigationData = (userRole: UserRole) => {
   const roleSpecificNavigation = {
     [UserRole.STUDENT]: [
       {
-        title: "My Courses",
-        url: "/dashboard/my-courses",
-        icon: BookOpen,
-      },
-      {
         title: "Browse Courses",
         url: "/courses",
         icon: BookOpen,
       },
       {
-        title: "Progress",
-        url: "/dashboard/progress",
+        title: "My Learning",
+        url: "/dashboard/student/my-learning",
         icon: BarChart3,
       },
     ],
     [UserRole.MENTOR]: [
       {
         title: "My Courses",
-        url: "/dashboard/my-courses",
+        url: "/dashboard/mentor/my-courses",
         icon: BookOpen,
       },
       {
         title: "Students",
-        url: "/dashboard/students",
+        url: "/dashboard/mentor/students",
         icon: Users,
       },
       {
@@ -96,7 +108,7 @@ const getNavigationData = (userRole: UserRole) => {
     [UserRole.WRITER]: [
       {
         title: "My Articles",
-        url: "/dashboard/my-articles",
+        url: "/dashboard/writer/my-articles",
         icon: PenTool,
       },
       {
@@ -104,11 +116,16 @@ const getNavigationData = (userRole: UserRole) => {
         url: "/articles/create",
         icon: Plus,
       },
+      {
+        title: "Analytics",
+        url: "/dashboard/writer/analytics",
+        icon: BarChart3,
+      },
     ],
     [UserRole.SELLER]: [
       {
         title: "My Products",
-        url: "/dashboard/my-products",
+        url: "/dashboard/seller/my-products",
         icon: ShoppingBag,
       },
       {
@@ -118,25 +135,35 @@ const getNavigationData = (userRole: UserRole) => {
       },
       {
         title: "Orders",
-        url: "/dashboard/orders",
+        url: "/dashboard/seller/orders",
         icon: FileText,
+      },
+      {
+        title: "Sales Analytics",
+        url: "/dashboard/seller/analytics",
+        icon: BarChart3,
       },
     ],
     [UserRole.ADMIN]: [
       {
         title: "User Management",
-        url: "/dashboard/users",
+        url: "/dashboard/admin/users",
         icon: Users,
       },
       {
         title: "Role Applications",
-        url: "/dashboard/role-applications",
+        url: "/dashboard/admin/role-applications",
         icon: UserPlus,
       },
       {
         title: "Content Management",
-        url: "/dashboard/content-management",
+        url: "/dashboard/admin/content-management",
         icon: FileText,
+      },
+      {
+        title: "Analytics",
+        url: "/dashboard/admin/analytics",
+        icon: BarChart3,
       },
     ],
     [UserRole.USER]: [

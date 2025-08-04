@@ -139,7 +139,8 @@ function generateViewsTrend() {
 /**
  * Generate mock topic performance data
  */
-function generateTopicPerformance(articles: Article[]) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function generateTopicPerformance(_articles: Article[]) {
     const topics = ['Technology', 'Education', 'Business', 'Tutorials', 'Opinion']
     return topics.map(topic => ({
         topic,
