@@ -117,11 +117,11 @@ const getNavigationData = (userRole: UserRole) => {
         url: "/articles/create",
         icon: Plus,
       },
-      {
-        title: "Analytics",
-        url: "/dashboard/writer/analytics",
-        icon: BarChart3,
-      },
+      // {
+      //   title: "Analytics",
+      //   url: "/dashboard/writer/analytics",
+      //   icon: BarChart3,
+      // },
     ],
     [UserRole.SELLER]: [
       {
@@ -139,11 +139,11 @@ const getNavigationData = (userRole: UserRole) => {
         url: "/dashboard/seller/orders",
         icon: FileText,
       },
-      {
-        title: "Sales Analytics",
-        url: "/dashboard/seller/analytics",
-        icon: BarChart3,
-      },
+      // {
+      //   title: "Sales Analytics",
+      //   url: "/dashboard/seller/analytics",
+      //   icon: BarChart3,
+      // },
     ],
     [UserRole.ADMIN]: [
       {
@@ -161,11 +161,11 @@ const getNavigationData = (userRole: UserRole) => {
         url: "/dashboard/admin/content-management",
         icon: FileText,
       },
-      {
-        title: "Analytics",
-        url: "/dashboard/admin/analytics",
-        icon: BarChart3,
-      },
+      // {
+      //   title: "Analytics",
+      //   url: "/dashboard/admin/analytics",
+      //   icon: BarChart3,
+      // },
     ],
     [UserRole.USER]: [
       {
