@@ -19,13 +19,13 @@ export function ProfileTabs({ user }: ProfileTabsProps) {
         <TabsTrigger value="personal">Personal Info</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
       </TabsList>
-      
+
       <TabsContent value="personal" className="space-y-4">
         <ProfilePersonalInfo user={user} />
       </TabsContent>
 
       <TabsContent value="settings" className="space-y-4">
-        <ProfileSettings user={user} />
+        <ProfileSettings />
       </TabsContent>
     </Tabs>
   )

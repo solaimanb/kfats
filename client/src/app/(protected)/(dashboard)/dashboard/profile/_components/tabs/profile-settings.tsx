@@ -3,14 +3,9 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { User } from "@/lib/types/api"
 import { Trash2, Shield, Eye } from "lucide-react"
 
-interface ProfileSettingsProps {
-  user: User
-}
-
-export function ProfileSettings({ user }: ProfileSettingsProps) {
+export function ProfileSettings() {
   return (
     <div className="space-y-4">
       <Card>
