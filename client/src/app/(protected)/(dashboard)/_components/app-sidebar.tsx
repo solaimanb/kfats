@@ -320,7 +320,7 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/notifications">
+                  <Link href="/dashboard/notifications">
                     <Bell />
                     <span>Notifications</span>
                   </Link>
