@@ -312,7 +312,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/profile">
+                  <Link href="/dashboard/profile">
                     <User />
                     <span>Profile</span>
                   </Link>
