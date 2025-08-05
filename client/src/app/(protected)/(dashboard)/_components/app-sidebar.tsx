@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/providers/auth-provider"
 import { UserRole } from "@/lib/types/api"
+import { AppSidebarSkeleton } from "./app-sidebar-skeleton"
 import {
   Sidebar,
   SidebarContent,
@@ -203,7 +204,7 @@ export function AppSidebar() {
   const { user, logout } = useAuth()
   const pathname = usePathname()
 
-  if (!user) return null
+  if (!user) return <AppSidebarSkeleton />
 
   const navigation = getNavigationData(user.role)
 
@@ -242,7 +243,7 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
