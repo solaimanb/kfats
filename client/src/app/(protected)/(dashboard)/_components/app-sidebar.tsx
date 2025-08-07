@@ -39,7 +39,6 @@ import {
   FileText,
   Settings,
   User,
-  Bell,
   BarChart3,
   Shield,
   UserPlus,
@@ -318,14 +317,14 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
+              {/* <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/dashboard/notifications">
                     <Bell />
                     <span>Notifications</span>
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
+              </SidebarMenuItem> */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/dashboard/settings">
