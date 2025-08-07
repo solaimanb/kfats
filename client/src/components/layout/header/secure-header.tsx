@@ -19,7 +19,6 @@ import {
   LogOut,
   ChevronDown,
   Bell,
-  Search,
   BookOpen,
   PenTool,
   ShoppingBag,
@@ -29,6 +28,7 @@ import {
 } from "lucide-react"
 import { UserRole } from "@/lib/types/api"
 import { useState } from "react"
+import SearchBar from "@/components/common/search/search-bar"
 
 export default function SecureHeader() {
   const { user, logout } = useAuth()
@@ -85,7 +85,7 @@ export default function SecureHeader() {
 
     // Add role-specific links
     const roleLinks = []
-    
+
     if (user.role !== UserRole.USER) {
       roleLinks.push({ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard })
     }
@@ -137,10 +137,7 @@ export default function SecureHeader() {
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-4">
-          {/* Search */}
-          <Button variant="ghost" size="sm" className="hidden md:flex">
-            <Search className="h-4 w-4" />
-          </Button>
+          <SearchBar />
 
           {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative">
@@ -158,7 +155,7 @@ export default function SecureHeader() {
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground text-sm font-semibold">
                     {user.full_name.charAt(0).toUpperCase()}
                   </div>
-                  
+
                   {/* User Info */}
                   <div className="hidden md:block text-left">
                     <div className="text-sm font-medium leading-none">{user.full_name}</div>
@@ -183,8 +180,8 @@ export default function SecureHeader() {
                   <div>
                     <div className="text-lg font-semibold">{user.full_name}</div>
                     <div className="flex items-center gap-2">
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className={`${getRoleColor(user.role)} text-white text-xs`}
                       >
                         <span className="mr-1">{getRoleIcon(user.role)}</span>
@@ -197,8 +194,8 @@ export default function SecureHeader() {
 
               <div className="space-y-2">
                 {/* Profile Actions */}
-                <Link 
-                  href="/profile" 
+                <Link
+                  href="/profile"
                   onClick={() => setIsProfileOpen(false)}
                   className="flex items-center gap-3 w-full p-2 text-left hover:bg-muted rounded-md transition-colors"
                 >
@@ -207,8 +204,8 @@ export default function SecureHeader() {
                 </Link>
 
                 {user.role !== UserRole.USER && (
-                  <Link 
-                    href="/dashboard" 
+                  <Link
+                    href="/dashboard"
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center gap-3 w-full p-2 text-left hover:bg-muted rounded-md transition-colors"
                   >
@@ -218,8 +215,8 @@ export default function SecureHeader() {
                 )}
 
                 {user.role === UserRole.USER && (
-                  <Link 
-                    href="/role-application" 
+                  <Link
+                    href="/role-application"
                     onClick={() => setIsProfileOpen(false)}
                     className="flex items-center gap-3 w-full p-2 text-left hover:bg-muted rounded-md transition-colors"
                   >
@@ -228,7 +225,7 @@ export default function SecureHeader() {
                   </Link>
                 )}
 
-                <button 
+                <button
                   className="flex items-center gap-3 w-full p-2 text-left hover:bg-muted rounded-md transition-colors"
                   onClick={() => setIsProfileOpen(false)}
                 >
@@ -238,7 +235,7 @@ export default function SecureHeader() {
 
                 <hr className="my-2" />
 
-                <button 
+                <button
                   onClick={handleLogout}
                   className="flex items-center gap-3 w-full p-2 text-left hover:bg-destructive hover:text-destructive-foreground rounded-md transition-colors text-destructive"
                 >
