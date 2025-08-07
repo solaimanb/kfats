@@ -193,16 +193,6 @@ export default function SecureHeader() {
               </DialogHeader>
 
               <div className="space-y-2">
-                {/* Profile Actions */}
-                <Link
-                  href="/profile"
-                  onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-3 w-full p-2 text-left hover:bg-muted rounded-md transition-colors"
-                >
-                  <User className="h-4 w-4" />
-                  <span>Profile Settings</span>
-                </Link>
-
                 {user.role !== UserRole.USER && (
                   <Link
                     href="/dashboard"
@@ -225,13 +215,14 @@ export default function SecureHeader() {
                   </Link>
                 )}
 
-                <button
-                  className="flex items-center gap-3 w-full p-2 text-left hover:bg-muted rounded-md transition-colors"
+                <Link
+                  href="/settings"
                   onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-3 w-full p-2 text-left hover:bg-muted rounded-md transition-colors"
                 >
                   <Settings className="h-4 w-4" />
                   <span>Settings</span>
-                </button>
+                </Link>
 
                 <hr className="my-2" />
 

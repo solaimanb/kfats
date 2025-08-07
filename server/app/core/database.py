@@ -8,6 +8,7 @@ from app.models.user import User, RoleApplication
 from app.models.course import Course, Enrollment
 from app.models.article import Article
 from app.models.product import Product
+from app.models.password_reset_token import PasswordResetToken
 
 # PostgreSQL connection configuration with best practices
 engine = create_engine(
