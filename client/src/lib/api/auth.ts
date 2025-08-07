@@ -65,18 +65,15 @@ export class AuthAPI {
    * Logout (client-side)
    */
   static logout(): void {
-    // Remove tokens from storage
     if (typeof window !== 'undefined') {
       document.cookie = 'kfats_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
       document.cookie = 'kfats_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-      
-      // Redirect to login
-      window.location.href = '/login'
+
+      window.location.href = '/'
     }
   }
 }
 
-// Utility functions for token management
 export const tokenUtils = {
   /**
    * Store authentication token
@@ -101,7 +98,7 @@ export const tokenUtils = {
    */
   getToken(): string | null {
     if (typeof window === 'undefined') return null
-    
+
     const value = `; ${document.cookie}`
     const parts = value.split(`; kfats_token=`)
     if (parts.length === 2) {
@@ -115,7 +112,7 @@ export const tokenUtils = {
    */
   getUser(): User | null {
     if (typeof window === 'undefined') return null
-    
+
     const value = `; ${document.cookie}`
     const parts = value.split(`; kfats_user=`)
     if (parts.length === 2) {

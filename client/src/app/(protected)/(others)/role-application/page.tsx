@@ -128,26 +128,11 @@ export default function RoleApplicationPage() {
                     <Badge variant="secondary">Role Applications</Badge>
                     <Star className="h-6 w-6 text-yellow-500" />
                 </div>
-                <h1 className="text-4xl font-bold mb-4">Choose Your Role</h1>
+                <h1 className="text-4xl font-bold mb-4">Choose Your Path</h1>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                     Expand your capabilities on the KFATS platform by applying for specialized roles
                 </p>
             </div>
-
-            {/* Current Role Status */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Current Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center space-x-2">
-                        <span className="font-medium">Current Role:</span>
-                        <Badge variant="outline" className="text-sm">
-                            {user?.role.toUpperCase()}
-                        </Badge>
-                    </div>
-                </CardContent>
-            </Card>
 
             {/* My Applications */}
             {loadingApplications ? (
@@ -193,7 +178,6 @@ export default function RoleApplicationPage() {
 
             {/* Role Selection Cards */}
             <div>
-                <h2 className="text-2xl font-semibold mb-6 text-center">Available Roles</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {Object.entries(roleDefinitions).map(([role, config]) => {
                         const status = getRoleStatus(role as SelectedRole)

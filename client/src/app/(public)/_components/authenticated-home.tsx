@@ -5,17 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { UserRole } from "@/lib/types/api"
-import { BookOpen, Users, PenTool, ShoppingBag, Star } from "lucide-react"
+import { Users, PenTool, ShoppingBag, Star } from "lucide-react"
 import Link from "next/link"
 
 const roleFeatures = {
-  [UserRole.STUDENT]: {
-    icon: BookOpen,
-    title: "Student",
-    description: "Access courses, track progress, and learn from expert mentors",
-    features: ["Enroll in courses", "Track learning progress", "Access course materials", "Connect with mentors"],
-    color: "bg-blue-500"
-  },
+  // [UserRole.STUDENT]: {
+  //   icon: BookOpen,
+  //   title: "Student",
+  //   description: "Access courses, track progress, and learn from expert mentors",
+  //   features: ["Enroll in courses", "Track learning progress", "Access course materials", "Connect with mentors"],
+  //   color: "bg-blue-500"
+  // },
   [UserRole.MENTOR]: {
     icon: Users,
     title: "Mentor",
@@ -58,34 +58,23 @@ export function AuthenticatedHomePage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Star className="h-6 w-6 text-yellow-500" />
             <Badge variant="secondary">Welcome to KFATS</Badge>
             <Star className="h-6 w-6 text-yellow-500" />
           </div>
-          <h1 className="text-4xl font-bold mb-4">
-            Hello, {user.full_name}!
-          </h1>
-          <p className="text-xl text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Welcome to Kushtia Fine Arts & Technology School. Unlock your potential by choosing a role that matches your interests and goals.
-          </p>
-          <Badge variant="outline" className="text-sm">
-            Current Role: {user.role.toUpperCase()}
-          </Badge>
         </div>
 
-        {/* Role Selection Cards */}
         <div className="mb-12">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-semibold mb-2">Choose Your Learning Journey</h2>
+            <h2 className="text-2xl font-semibold mb-2">Explore KFATS Opportunities</h2>
             <p className="text-muted-foreground">
               Apply for a role to unlock specialized features and opportunities
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {Object.entries(roleFeatures).map(([role, config]) => {
               const Icon = config.icon
               return (
