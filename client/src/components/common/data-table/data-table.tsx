@@ -21,22 +21,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 import { DataTableProps } from "./types"
 import { DataTablePagination } from "./data-table-pagination"
-import { DataTableViewOptions } from "./data-table-view-options"
 
 export function DataTable<TData, TValue>({
   columns,
   data,
-  searchKey,
-  searchPlaceholder = "Search...",
   pageSize = 10,
   showPagination = true,
-  showSearch = true,
-  showColumnToggle = true,
   showRowSelection = false,
   onRowSelectionChange,
   toolbar,
@@ -80,25 +74,16 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-1 items-center space-x-2">
-          {showSearch && searchKey && (
-            <Input
-              placeholder={searchPlaceholder}
-              value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-              onChange={(event) =>
-                table.getColumn(searchKey)?.setFilterValue(event.target.value)
-              }
-              className="h-8 w-[150px] lg:w-[250px]"
-            />
-          )}
-          {toolbar}
+      {toolbar && (
+        <div className="flex items-center justify-between">
+          <div className="flex flex-1 items-center space-x-2">
+            {typeof toolbar === 'function'
+              ? (toolbar as (t: import("@tanstack/react-table").Table<TData>) => React.ReactNode)(table)
+              : toolbar}
+          </div>
         </div>
-        {showColumnToggle && <DataTableViewOptions table={table} />}
-      </div>
+      )}
 
-      {/* Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -110,9 +95,9 @@ export function DataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   )
                 })}

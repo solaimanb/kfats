@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, or_, desc, text
+from sqlalchemy import func, or_, desc, text, cast, String
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_db
 from app.core.dependencies import require_role
@@ -31,7 +31,7 @@ def get_content_type_model(content_type: str):
     return content_models.get(content_type)
 
 
-def get_content_type_name_field(content_type: str):
+def get_content_type_name_field(content_type: str) -> str:
     """Get the name field for different content types."""
     name_fields = {
         "articles": "title",
@@ -41,17 +41,18 @@ def get_content_type_name_field(content_type: str):
     return name_fields.get(content_type, "title")
 
 
-def get_content_type_author_field(content_type: str):
+def get_content_type_author_field(content_type: str) -> str:
     """Get the author field for different content types."""
     author_fields = {
         "articles": "author_id",
         "courses": "mentor_id",
         "products": "seller_id"
     }
-    return author_fields.get(content_type)
+    # Default to 'author_id' to satisfy type check; callers only pass known types.
+    return author_fields.get(content_type, "author_id")
 
 
-def map_content_to_overview_item(content, content_type: str, author_name: str, author_role: str) -> ContentOverviewItem:
+def map_content_to_overview_item(content: Any, content_type: str, author_name: str, author_role: str) -> ContentOverviewItem:
     """Map database content model to ContentOverviewItem."""
     title = getattr(content, get_content_type_name_field(content_type))
     return ContentOverviewItem(
@@ -76,7 +77,7 @@ def map_content_to_overview_item(content, content_type: str, author_name: str, a
 @router.get("/all-content", response_model=PaginatedResponse[ContentOverviewItem])
 async def get_all_content(
     content_type: Optional[str] = Query(None, regex="^(articles|courses|products|all)$"),
-    status: Optional[str] = Query(None),
+    status_filter: Optional[str] = Query(None),
     author_role: Optional[UserRole] = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
@@ -98,18 +99,18 @@ async def get_all_content(
             
         query = db.query(model).join(DBUser, getattr(model, get_content_type_author_field(ct)) == DBUser.id)
         
-        if status:
+        if status_filter:
             # Normalize string status to Enum value per content type
             try:
                 enum_value = (
-                    ArticleStatus(status) if ct == "articles" else
-                    CourseStatus(status) if ct == "courses" else
-                    ProductStatus(status)
+                    ArticleStatus(status_filter) if ct == "articles" else
+                    CourseStatus(status_filter) if ct == "courses" else
+                    ProductStatus(status_filter)
                 )
                 query = query.filter(model.status == enum_value)
             except Exception:
                 # Fallback to string comparison if DB stores raw strings
-                query = query.filter(model.status == status)
+                query = query.filter(cast(model.status, String) == status_filter)
             
         if author_role:
             query = query.filter(DBUser.role == author_role)
@@ -129,7 +130,7 @@ async def get_all_content(
         
         skip = (page - 1) * size
         results = query.options(
-            joinedload(getattr(model, 'author', None)) if hasattr(model, 'author') else 
+            joinedload(getattr(model, 'author', None)) if hasattr(model, 'author') else
             joinedload(getattr(model, 'mentor', None)) if hasattr(model, 'mentor') else
             joinedload(getattr(model, 'seller', None))
         ).order_by(desc(model.created_at)).offset(skip).limit(size).all()
@@ -350,13 +351,26 @@ async def get_content_overview_stats(
                     published_count = db.query(model).filter(model.status == status_enum.PUBLISHED).count()
                     stats["total_published"] += published_count
                 except Exception as e:
-                    print(f"Error querying {type_name} PUBLISHED: {e}")
+                    # Fallback to string comparison and rollback failed tx
+                    db.rollback()
+                    try:
+                        published_count = db.query(model).filter(cast(model.status, String) == 'published').count()
+                        stats["total_published"] += published_count
+                    except Exception as e2:
+                        db.rollback()
+                        print(f"Error querying {type_name} PUBLISHED: {e} | fallback: {e2}")
             elif hasattr(status_enum, 'ACTIVE'): 
                 try:
                     active_count = db.query(model).filter(model.status == status_enum.ACTIVE).count()
                     stats["total_published"] += active_count
                 except Exception as e:
-                    print(f"Error querying {type_name} ACTIVE: {e}")
+                    db.rollback()
+                    try:
+                        active_count = db.query(model).filter(cast(model.status, String) == 'active').count()
+                        stats["total_published"] += active_count
+                    except Exception as e2:
+                        db.rollback()
+                        print(f"Error querying {type_name} ACTIVE: {e} | fallback: {e2}")
                     
             if hasattr(status_enum, 'DRAFT'):
                 try:
@@ -364,7 +378,14 @@ async def get_content_overview_stats(
                     stats["total_drafts"] += draft_count
                     stats["total_unpublished"] += draft_count
                 except Exception as e:
-                    print(f"Error querying {type_name} DRAFT: {e}")
+                    db.rollback()
+                    try:
+                        draft_count = db.query(model).filter(cast(model.status, String) == 'draft').count()
+                        stats["total_drafts"] += draft_count
+                        stats["total_unpublished"] += draft_count
+                    except Exception as e2:
+                        db.rollback()
+                        print(f"Error querying {type_name} DRAFT: {e} | fallback: {e2}")
                     
             # Count archived content
             if hasattr(status_enum, 'ARCHIVED'):
@@ -372,7 +393,13 @@ async def get_content_overview_stats(
                     archived_count = db.query(model).filter(model.status == status_enum.ARCHIVED).count()
                     stats["total_archived"] += archived_count
                 except Exception as e:
-                    print(f"Error querying {type_name} ARCHIVED: {e}")
+                    db.rollback()
+                    try:
+                        archived_count = db.query(model).filter(cast(model.status, String) == 'archived').count()
+                        stats["total_archived"] += archived_count
+                    except Exception as e2:
+                        db.rollback()
+                        print(f"Error querying {type_name} ARCHIVED: {e} | fallback: {e2}")
             
             # Count out of stock products as unpublished
             if hasattr(status_enum, 'OUT_OF_STOCK'):
@@ -380,13 +407,20 @@ async def get_content_overview_stats(
                     oos_count = db.query(model).filter(model.status == status_enum.OUT_OF_STOCK).count()
                     stats["total_unpublished"] += oos_count
                 except Exception as e:
-                    print(f"Error querying {type_name} OUT_OF_STOCK: {e}")
+                    db.rollback()
+                    try:
+                        oos_count = db.query(model).filter(cast(model.status, String) == 'out_of_stock').count()
+                        stats["total_unpublished"] += oos_count
+                    except Exception as e2:
+                        db.rollback()
+                        print(f"Error querying {type_name} OUT_OF_STOCK: {e} | fallback: {e2}")
             
             # Featured content
             try:
                 featured_count = db.query(model).filter(model.is_featured == True).count()
                 stats["total_featured"] += featured_count
             except Exception as e:
+                db.rollback()
                 print(f"Error querying {type_name} featured: {e}")
                 
         except Exception as e:
@@ -417,6 +451,7 @@ async def get_content_overview_stats(
         stats["by_author_role"] = role_totals
         
     except Exception as e:
+        db.rollback()
         print(f"Error getting author role stats: {e}")
         stats["by_author_role"] = {}
     

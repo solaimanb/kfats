@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from "react"
 import { useAllApplications, useApplicationStats } from "@/lib/hooks/useRoleApplications"
 import { columns } from "./columns"
-import { DataTable } from "./data-table"
+import { DataTable } from "@/components/common/data-table"
+import { DataTableToolbar } from "./data-table-toolbar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, Clock, Check, X, FileText } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
-import { RoleApplicationStatus, ApplicationableRole } from "@/lib/types/api"
 
 export function RoleApplicationsTable() {
     const queryClient = useQueryClient()
@@ -17,18 +17,6 @@ export function RoleApplicationsTable() {
         pageIndex: 0,
         pageSize: 10,
     })
-    const [filters, setFilters] = useState<{
-        status?: RoleApplicationStatus
-        role?: ApplicationableRole
-    }>({})
-    const [totalCount, setTotalCount] = useState<number>(0)
-
-    const queryParams = {
-        skip: pagination.pageIndex * pagination.pageSize,
-        limit: pagination.pageSize,
-        status: filters.status,
-        role: filters.role,
-    }
 
     const {
         data: applications,
@@ -37,35 +25,25 @@ export function RoleApplicationsTable() {
         refetch,
         isFetching
     } = useAllApplications(
-        filters.status,
-        filters.role,
-        queryParams.skip,
-        queryParams.limit
+        undefined,
+        undefined,
+        pagination.pageIndex * pagination.pageSize,
+        pagination.pageSize
     )
 
     const { data: stats, isLoading: statsLoading } = useApplicationStats()
 
     useEffect(() => {
-        if (stats?.total_applications) {
-            setTotalCount(stats.total_applications)
-        }
-    }, [stats])
-
-    useEffect(() => {
+        // Reset to first page when page size changes
         setPagination(prev => ({ ...prev, pageIndex: 0 }))
-    }, [filters])
+    }, [pagination.pageSize])
 
     const handleRefresh = useCallback(() => {
         refetch()
         queryClient.invalidateQueries({ queryKey: ['roleApplications'] })
     }, [refetch, queryClient])
 
-    const handleFiltersChange = useCallback((newFilters: Record<string, string>) => {
-        setFilters({
-            status: newFilters.status as RoleApplicationStatus,
-            role: newFilters.role as ApplicationableRole,
-        })
-    }, [])
+    // No server-driven filter sync; client-side faceted filters are used in the toolbar
 
     if (error) {
         return (
@@ -173,13 +151,11 @@ export function RoleApplicationsTable() {
                     <DataTable
                         columns={columns}
                         data={applications || []}
-                        pagination={pagination}
-                        setPagination={setPagination}
-                        totalCount={totalCount}
-                        isLoading={applicationsLoading}
-                        isFetching={isFetching}
-                        onRefresh={handleRefresh}
-                        onFiltersChange={handleFiltersChange}
+                        pageSize={pagination.pageSize}
+                        showPagination={true}
+                        toolbar={(table) => (
+                            <DataTableToolbar table={table} onRefresh={handleRefresh} isFetching={isFetching} />
+                        )}
                     />
                 </CardContent>
             </Card>

@@ -87,8 +87,6 @@ export function ContentManagementTable() {
             <DataTable
                 columns={columns}
                 data={derivedData.data}
-                searchKey="title"
-                searchPlaceholder="Search by title..."
                 pageSize={20}
                 showPagination={true}
                 toolbar={

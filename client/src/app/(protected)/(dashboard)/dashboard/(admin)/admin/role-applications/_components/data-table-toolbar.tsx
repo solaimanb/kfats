@@ -4,8 +4,7 @@ import { X, RefreshCw } from "lucide-react"
 import { Table } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { DataTableViewOptions } from "../../users/_components/data-table-view-options"
-import { DataTableFacetedFilter } from "../../users/_components/data-table-faceted-filter"
+import { DataTableViewOptions, DataTableFacetedFilter } from "@/components/common/data-table"
 import { useCallback } from "react"
 import {
   Tooltip,
@@ -13,10 +12,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { 
-  Users, 
-  PenTool, 
-  ShoppingBag, 
+import {
+  Users,
+  PenTool,
+  ShoppingBag,
   Check,
   X as XIcon,
   Clock
@@ -31,7 +30,7 @@ interface DataTableToolbarProps<TData> {
 const roles = [
   {
     value: "mentor",
-    label: "Mentor", 
+    label: "Mentor",
     icon: Users,
   },
   {
@@ -53,12 +52,12 @@ const statuses = [
     icon: Clock,
   },
   {
-    value: "approved", 
+    value: "approved",
     label: "Approved",
     icon: Check,
   },
   {
-    value: "rejected", 
+    value: "rejected",
     label: "Rejected",
     icon: XIcon,
   },
@@ -124,8 +123,8 @@ export function DataTableToolbar<TData>({
                 disabled={isFetching}
                 className="ml-auto h-8"
               >
-                <RefreshCw 
-                  className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} 
+                <RefreshCw
+                  className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`}
                 />
               </Button>
             </TooltipTrigger>
