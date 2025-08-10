@@ -43,7 +43,7 @@ export class UsersAPI {
   /**
    * Update user role (Admin only)
    */
-  static async updateUserRole(userId: number, newRole: string): Promise<{ message: string }> {
+  static async updateUserRole(userId: number, newRole: string): Promise<{ message: string; data?: unknown }> {
     const response = await apiClient.put(`/users/${userId}/role`, { new_role: newRole })
     return response.data
   }

@@ -1,26 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-function decodeJWT(token: string) {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-
-    const payload = parts[1]
-    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
-    return decoded
-  } catch (error) {
-    console.error('JWT decode error:', error)
-    return null
-  }
-}
+// Avoid trusting client-side decoded JWT for authorization decisions.
+// Keep minimal routing logic here; server-side APIs enforce RBAC.
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const token = request.cookies.get('kfats_token')?.value
-
-  const tokenData = token ? decodeJWT(token) : null
-  const userRole = tokenData?.role
+  // Do not decode/verify token on the edge; treat token presence as authenticated hint only.
+  const userRole = request.cookies.get('kfats_role')?.value
 
   const protectedPaths = [
     '/dashboard',
@@ -55,9 +43,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  if (isAdminOnlyPath && token && !isAdmin) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  // Don't enforce admin-only redirects here; server enforces RBAC
 
   if (isAuthPath && token) {
     if (isAdmin) {
@@ -66,7 +52,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  if (pathname === '/dashboard' && token && userRole) {
+  if (pathname === '/dashboard' && token) {
     const roleRoutes: Record<string, string> = {
       'admin': '/dashboard/admin',
       'mentor': '/dashboard/mentor',
@@ -74,8 +60,7 @@ export function middleware(request: NextRequest) {
       'writer': '/dashboard/writer',
       'seller': '/dashboard/seller'
     }
-
-    const normalizedRole = userRole.toLowerCase()
+    const normalizedRole = (userRole || '').toLowerCase()
     const targetRoute = roleRoutes[normalizedRole]
     if (targetRoute) {
       return NextResponse.redirect(new URL(targetRoute, request.url))

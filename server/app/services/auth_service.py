@@ -47,7 +47,7 @@ class AuthService:
             data={
                 "sub": user.username, 
                 "user_id": user.id,
-                "role": user.role,
+                "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
                 "email": user.email
             },
             expires_delta=access_token_expires

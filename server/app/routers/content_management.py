@@ -99,7 +99,17 @@ async def get_all_content(
         query = db.query(model).join(DBUser, getattr(model, get_content_type_author_field(ct)) == DBUser.id)
         
         if status:
-            query = query.filter(model.status == status)
+            # Normalize string status to Enum value per content type
+            try:
+                enum_value = (
+                    ArticleStatus(status) if ct == "articles" else
+                    CourseStatus(status) if ct == "courses" else
+                    ProductStatus(status)
+                )
+                query = query.filter(model.status == enum_value)
+            except Exception:
+                # Fallback to string comparison if DB stores raw strings
+                query = query.filter(model.status == status)
             
         if author_role:
             query = query.filter(DBUser.role == author_role)

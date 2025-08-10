@@ -16,50 +16,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/register", response_model=SuccessResponse)
 async def register(user_data: RegisterRequest, db: Session = Depends(get_db)):
     """Register a new user."""
-    
-    if user_data.password != user_data.confirm_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Passwords do not match"
-        )
-    
-    existing_user = db.query(DBUser).filter(
-        (DBUser.email == user_data.email) | (DBUser.username == user_data.username)
-    ).first()
-    
-    if existing_user:
-        if existing_user.email == user_data.email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already taken"
-            )
-    
-    hashed_password = get_password_hash(user_data.password)
-    db_user = DBUser(
-        email=user_data.email,
-        username=user_data.username,
-        full_name=user_data.full_name,
-        phone=user_data.phone,
-        bio=user_data.bio,
-        avatar_url=user_data.avatar_url,
-        hashed_password=hashed_password,
-        role=user_data.role,
-        status=UserStatus.ACTIVE
-    )
-    
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    return SuccessResponse(
-        message="User registered successfully",
-        data={"user_id": db_user.id, "username": db_user.username}
-    )
+    result = AuthService.register_user(db, user_data)
+    return SuccessResponse(message=result["message"], data={"user_id": result["user_id"], "username": result["username"]})
 
 
 @router.post("/login", response_model=Token)

@@ -42,7 +42,7 @@ def get_email_setting(attr: str, fallback: str = "") -> str:
     return str(val) if val is not None else fallback
 
 def send_reset_email(to_email: str, token: str):
-    frontend_url = get_email_setting("CLIENT_APP_URL", "https://kfats.vercel.app")
+    frontend_url = get_email_setting("client_app_url", "https://kfats.vercel.app")
     reset_link = f"{frontend_url.rstrip('/')}/reset-password?token={token}"
     subject = "KFATS Password Reset"
     body = f"""
@@ -54,20 +54,25 @@ Click the link below to reset your password (valid for {RESET_TOKEN_EXPIRY_MINUT
 If you did not request this, you can ignore this email.
 """
     msg = MIMEText(body)
-    # HARDCODED SMTP CREDENTIALS FOR TESTING
-    smtp_server = "smtp.ethereal.email"
-    smtp_port = 587
-    smtp_username = "dagmar73@ethereal.email"
-    smtp_password = "trvYEVWveJKzTF9FHz"
+    smtp_server = get_email_setting("email_host", "smtp.ethereal.email")
+    try:
+        smtp_port = int(get_email_setting("email_port", "587"))
+    except ValueError:
+        smtp_port = 587
+    smtp_username = get_email_setting("email_user", "")
+    smtp_password = get_email_setting("email_password", "")
+    from_email = get_email_setting("email_from", "noreply@kfats.com")
+
     msg["Subject"] = subject
-    msg["From"] = "noreply@kfats.com"
+    msg["From"] = from_email
     msg["To"] = to_email
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
-            server.login(smtp_username, smtp_password)
-            server.sendmail(msg["From"], [to_email], msg.as_string())
+            if smtp_username and smtp_password:
+                server.login(smtp_username, smtp_password)
+            server.sendmail(from_email, [to_email], msg.as_string())
     except Exception as e:
         print(f"[Email Error] {e}")
 

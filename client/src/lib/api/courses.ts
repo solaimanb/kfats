@@ -16,13 +16,9 @@ export class CoursesAPI {
   static async getAllCourses(params?: {
     page?: number
     size?: number
-    level?: string
     mentor_id?: number
-    search?: string
   }): Promise<PaginatedResponse<Course>> {
-    const response = await apiClient.get<PaginatedResponse<Course>>('/courses/', {
-      params
-    })
+    const response = await apiClient.get<PaginatedResponse<Course>>('/courses/', { params })
     return response.data
   }
 
@@ -61,8 +57,8 @@ export class CoursesAPI {
   /**
    * Enroll in a course
    */
-  static async enrollInCourse(courseId: number): Promise<Enrollment> {
-    const response = await apiClient.post<Enrollment>(`/courses/${courseId}/enroll`)
+  static async enrollInCourse(courseId: number): Promise<ApiResponse<{ course_id: number; enrollment_id: number }>> {
+    const response = await apiClient.post<ApiResponse<{ course_id: number; enrollment_id: number }>>(`/courses/${courseId}/enroll`)
     return response.data
   }
 

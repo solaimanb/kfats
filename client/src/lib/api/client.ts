@@ -34,17 +34,21 @@ apiClient.interceptors.response.use(
     return response
   },
   (error) => {
-    // Handle 401 Unauthorized
+    // Only force logout on explicit authentication failures from protected endpoints (/users/me etc.)
     if (error.response?.status === 401) {
-      Cookies.remove('kfats_token')
-      Cookies.remove('kfats_user')
-      // Redirect to login
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login'
-      }
+      try {
+        const url: string | undefined = error.config?.url
+        const isAuthCheck = url?.includes('/users/me') || url?.includes('/auth')
+        if (isAuthCheck) {
+          Cookies.remove('kfats_token')
+          Cookies.remove('kfats_user')
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login'
+          }
+        }
+      } catch {}
     }
-    
-    // Handle other errors
+
     const message = error.response?.data?.detail || error.message || 'An error occurred'
     return Promise.reject(new Error(message))
   }

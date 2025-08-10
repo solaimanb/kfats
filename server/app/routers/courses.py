@@ -1,11 +1,12 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.course import Course as DBCourse, Enrollment as DBEnrollment
 from app.models.user import User as DBUser
 from app.schemas.course import Course, CourseCreate, CourseUpdate, Enrollment, EnrollmentCreate
-from app.schemas.common import CourseStatus, UserRole, SuccessResponse
+from app.schemas.common import CourseStatus, UserRole, SuccessResponse, PaginatedResponse
 from app.schemas.user import User
 from app.core.dependencies import get_current_active_user, get_mentor_or_admin
 
@@ -37,27 +38,26 @@ async def create_course(
     return Course.model_validate(db_course)
 
 
-@router.get("/", response_model=List[Course])
+@router.get("/", response_model=PaginatedResponse[Course])
 async def get_courses(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    status: Optional[CourseStatus] = None,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     mentor_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
-    """Get list of courses."""
-    
-    query = db.query(DBCourse)
-    
-    # Only show published courses to regular users
-    # Mentors and admins can see all their courses
-    query = query.filter(DBCourse.status == CourseStatus.PUBLISHED)
-    
+    """Get paginated list of published courses."""
+    query = db.query(DBCourse).filter(DBCourse.status == CourseStatus.PUBLISHED)
     if mentor_id:
         query = query.filter(DBCourse.mentor_id == mentor_id)
-    
-    courses = query.offset(skip).limit(limit).all()
-    return [Course.model_validate(course) for course in courses]
+    total = query.count()
+    items = query.offset((page - 1) * size).limit(size).all()
+    return PaginatedResponse(
+        items=[Course.model_validate(c) for c in items],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
 @router.get("/my-courses", response_model=List[Course])
@@ -240,3 +240,47 @@ async def get_course_enrollments(
     
     enrollments = db.query(DBEnrollment).filter(DBEnrollment.course_id == course_id).all()
     return [Enrollment.model_validate(enrollment) for enrollment in enrollments]
+
+
+@router.get("/my-enrollments", response_model=List[Enrollment])
+async def get_my_enrollments(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get enrollments for the current student/user."""
+    enrollments = db.query(DBEnrollment).filter(DBEnrollment.student_id == current_user.id).all()
+    return [Enrollment.model_validate(e) for e in enrollments]
+
+
+class EnrollmentProgressUpdate(BaseModel):
+    progress_percentage: float
+
+
+@router.put("/enrollments/{enrollment_id}/progress", response_model=Enrollment)
+async def update_enrollment_progress(
+    enrollment_id: int,
+    update: EnrollmentProgressUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update progress for an enrollment owned by current user (or mentor/admin of the course)."""
+    enrollment = db.query(DBEnrollment).filter(DBEnrollment.id == enrollment_id).first()
+    if not enrollment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
+
+    # Ownership: student can update own; mentor/admin can update if owns course
+    if enrollment.student_id != current_user.id:
+        # check mentor/admin
+        course = db.query(DBCourse).filter(DBCourse.id == enrollment.course_id).first()
+        if not course:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
+        if current_user.role != UserRole.ADMIN and course.mentor_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    if update.progress_percentage < 0 or update.progress_percentage > 100:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Progress must be between 0 and 100")
+
+    enrollment.progress_percentage = update.progress_percentage
+    db.commit()
+    db.refresh(enrollment)
+    return Enrollment.model_validate(enrollment)

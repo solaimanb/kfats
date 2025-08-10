@@ -2,10 +2,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, String
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.user import User as DBUser
 from app.schemas.user import User, UserUpdate
-from app.schemas.common import UserRole, SuccessResponse, PaginatedResponse
+from app.schemas.common import UserRole, UserStatus, SuccessResponse, PaginatedResponse
 from app.core.dependencies import get_current_active_user, get_admin_user
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -112,10 +113,14 @@ async def get_user_by_id(
     return User.model_validate(user)
 
 
+class UpdateRoleRequest(BaseModel):
+    new_role: UserRole
+
+
 @router.put("/{user_id}/role", response_model=SuccessResponse)
 async def update_user_role(
     user_id: int,
-    new_role: UserRole,
+    request: UpdateRoleRequest,
     admin_user: User = Depends(get_admin_user),
     db: Session = Depends(get_db)
 ):
@@ -129,12 +134,12 @@ async def update_user_role(
         )
     
     old_role = user.role
-    user.role = new_role
+    user.role = request.new_role
     db.commit()
     
     return SuccessResponse(
         message=f"User role updated successfully",
-        data={"user_id": user_id, "old_role": old_role, "new_role": new_role}
+        data={"user_id": user_id, "old_role": old_role, "new_role": request.new_role}
     )
 
 
@@ -165,4 +170,38 @@ async def delete_user(
     return SuccessResponse(
         message="User deleted successfully",
         data={"user_id": user_id}
+    )
+
+
+@router.put("/{user_id}/toggle-status", response_model=SuccessResponse)
+async def toggle_user_status(
+    user_id: int,
+    admin_user: User = Depends(get_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Toggle a user's active status (Admin only)."""
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change status of admin users"
+        )
+
+    try:
+        current = UserStatus(user.status) if not isinstance(user.status, UserStatus) else user.status
+    except Exception:
+        current = UserStatus.ACTIVE if str(user.status).lower() == "active" else UserStatus.INACTIVE
+
+    user.status = UserStatus.INACTIVE if current == UserStatus.ACTIVE else UserStatus.ACTIVE
+    db.commit()
+
+    return SuccessResponse(
+        message="User status updated successfully",
+        data={"user_id": user_id, "new_status": user.status}
     )

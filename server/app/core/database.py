@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, Index
 from sqlalchemy.orm import sessionmaker
 from app.models.base import Base
 from app.core.config import settings
+from urllib.parse import urlparse
 
 # Import all models to register them with SQLAlchemy
 from app.models.user import User, RoleApplication
@@ -11,20 +12,25 @@ from app.models.product import Product
 from app.models.password_reset_token import PasswordResetToken
 
 # PostgreSQL connection configuration with best practices
-engine = create_engine(
-    settings.database_url,
-    # Connection pool settings for PostgreSQL
-    pool_size=10,
-    max_overflow=20,
-    pool_timeout=30,
-    pool_recycle=3600,
-    # PostgreSQL specific settings
-    connect_args={
+parsed = urlparse(settings.database_url)
+is_postgres = parsed.scheme.startswith("postgres")
+
+connect_args = {}
+if is_postgres:
+    connect_args = {
         "sslmode": "require",
         "connect_timeout": 10,
         "application_name": "KFATS_LMS_API",
-    },
-    echo=settings.debug  # Log SQL queries in debug mode
+    }
+
+engine = create_engine(
+    settings.database_url,
+    pool_size=10 if is_postgres else None,
+    max_overflow=20 if is_postgres else None,
+    pool_timeout=30 if is_postgres else None,
+    pool_recycle=3600 if is_postgres else None,
+    connect_args=connect_args,
+    echo=settings.debug
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

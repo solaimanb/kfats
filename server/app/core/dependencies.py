@@ -5,7 +5,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.database import get_db
 from app.models.user import User as DBUser
 from app.schemas.user import User
-from app.schemas.common import UserRole
+from app.schemas.common import UserRole, UserStatus
 from app.core.security import verify_token
 
 # Security scheme
@@ -33,7 +33,13 @@ def get_current_user(
 
 def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     """Get current active user."""
-    if current_user.status != "active":
+    # Ensure we compare enum to enum (or its value)
+    if isinstance(current_user.status, UserStatus):
+        is_active = current_user.status == UserStatus.ACTIVE
+    else:
+        is_active = str(current_user.status).lower() == "active"
+
+    if not is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive user"

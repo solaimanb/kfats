@@ -35,10 +35,11 @@ export class AuthAPI {
    * OAuth2 compatible login
    */
   static async loginOAuth(formData: { username: string; password: string }): Promise<AuthToken> {
-    const response = await apiClient.post<AuthToken>('/auth/login/oauth', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+    const params = new URLSearchParams()
+    params.set('username', formData.username)
+    params.set('password', formData.password)
+    const response = await apiClient.post<AuthToken>('/auth/login/oauth', params, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
     return response.data
   }
@@ -80,7 +81,7 @@ export const tokenUtils = {
    */
   setToken(token: string): void {
     if (typeof window !== 'undefined') {
-      document.cookie = `kfats_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}` // 30 days
+      document.cookie = `kfats_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`
     }
   },
 
@@ -90,6 +91,7 @@ export const tokenUtils = {
   setUser(user: User): void {
     if (typeof window !== 'undefined') {
       document.cookie = `kfats_user=${JSON.stringify(user)}; path=/; max-age=${30 * 24 * 60 * 60}`
+      document.cookie = `kfats_role=${user.role}; path=/; max-age=${30 * 24 * 60 * 60}`
     }
   },
 
@@ -135,6 +137,7 @@ export const tokenUtils = {
     if (typeof window !== 'undefined') {
       document.cookie = 'kfats_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
       document.cookie = 'kfats_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+      document.cookie = 'kfats_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
     }
   }
 }
