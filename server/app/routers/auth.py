@@ -6,6 +6,7 @@ from app.models.user import User as DBUser
 from app.schemas.user import User
 from app.schemas.auth import RegisterRequest, LoginRequest, Token
 from app.schemas.common import UserRole, UserStatus, SuccessResponse
+from pydantic import BaseModel
 from app.core.security import get_password_hash
 from app.core.dependencies import get_current_active_user
 from app.services.auth_service import AuthService
@@ -48,9 +49,13 @@ async def login_oauth(form_data: OAuth2PasswordRequestForm = Depends(), db: Sess
     return AuthService.login_user(db, login_request)
 
 
+class RoleUpgradeBody(BaseModel):
+    new_role: UserRole
+
+
 @router.post("/role-upgrade", response_model=SuccessResponse)
 async def upgrade_user_role(
-    new_role: UserRole,
+    body: RoleUpgradeBody,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -63,17 +68,17 @@ async def upgrade_user_role(
     
     current_role = UserRole(current_user.role)
     
-    if new_role not in upgrade_rules.get(current_role, []):
+    if body.new_role not in upgrade_rules.get(current_role, []):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot upgrade from {current_role} to {new_role}"
+            detail=f"Cannot upgrade from {current_role} to {body.new_role}"
         )
     
     db_user = db.query(DBUser).filter(DBUser.id == current_user.id).first()
-    db_user.role = new_role
+    db_user.role = body.new_role
     db.commit()
     
     return SuccessResponse(
-        message=f"Role upgraded to {new_role} successfully",
-        data={"old_role": current_role, "new_role": new_role}
+        message=f"Role upgraded to {body.new_role} successfully",
+        data={"old_role": current_role, "new_role": body.new_role}
     )

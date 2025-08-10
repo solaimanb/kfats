@@ -6,6 +6,7 @@ from app.models import User as DBUser
 from app.schemas import User, LoginRequest, RegisterRequest, Token
 from app.core.security import verify_password, create_access_token
 from app.services.user_service import UserService
+from app.schemas.common import UserStatus
 from app.core.config import settings
 
 
@@ -33,7 +34,12 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        if user.status != "active":
+        # Ensure robust comparison regardless of enum/string backing
+        try:
+            user_status_value = user.status.value if hasattr(user.status, 'value') else str(user.status)
+        except Exception:
+            user_status_value = str(user.status)
+        if str(user_status_value).lower() != UserStatus.ACTIVE.value:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Account is not active"

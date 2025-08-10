@@ -91,7 +91,7 @@ const getNavigationData = (userRole: UserRole) => {
     [UserRole.MENTOR]: [
       {
         title: "My Courses",
-        url: "/dashboard/mentor/my-courses",
+        url: "/dashboard/mentor/courses",
         icon: BookOpen,
       },
       {
@@ -101,7 +101,7 @@ const getNavigationData = (userRole: UserRole) => {
       },
       {
         title: "Create Course",
-        url: "/courses/create",
+        url: "/dashboard/mentor/courses/create",
         icon: Plus,
       },
     ],
