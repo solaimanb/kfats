@@ -8,9 +8,6 @@ import { DataTableColumnHeader } from "../../users/_components/data-table-column
 import {
   Check,
   X,
-  Users,
-  PenTool,
-  ShoppingBag,
   Clock,
   User as UserIcon
 } from "lucide-react"

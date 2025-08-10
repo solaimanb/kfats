@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog"
 import {
   GraduationCap,
-  User,
   Settings,
   LogOut,
   ChevronDown,
@@ -42,7 +41,7 @@ export default function SecureHeader() {
     router.push("/")
   }
 
-  
+
 
   const getNavigationLinks = () => {
     const baseLinks = [

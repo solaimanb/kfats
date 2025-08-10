@@ -25,9 +25,6 @@ import {
   Check,
   X,
   Eye,
-  Users,
-  PenTool,
-  ShoppingBag,
   Clock,
   User as UserIcon,
   Mail,
@@ -37,7 +34,7 @@ import {
   FileText
 } from "lucide-react"
 import { format } from "date-fns"
-import { RoleApplication, RoleApplicationStatus, ApplicationableRole } from "@/lib/types/api"
+import { RoleApplication, RoleApplicationStatus } from "@/lib/types/api"
 import { useRoleApplications } from "@/lib/hooks/useRoleApplications"
 import { toast } from "sonner"
 import { getRoleBadgeClasses, getRoleIcon } from "@/lib/utils/role"
@@ -126,7 +123,7 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
           <DropdownMenuSeparator />
           {application.status === 'pending' && (
             <>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-green-600 cursor-pointer"
                 onClick={handleApprove}
                 disabled={reviewApplication.isPending}
@@ -134,7 +131,7 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
                 <Check className="mr-2 h-4 w-4" />
                 Approve
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="text-red-600 cursor-pointer"
                 onClick={handleReject}
                 disabled={reviewApplication.isPending}
@@ -166,7 +163,7 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
                 <UserIcon className="h-5 w-5" />
                 Applicant Information
               </h3>
-              
+
               <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={application.user?.avatar_url} alt={application.user?.full_name} />
@@ -174,13 +171,13 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
                     {application.user?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                
+
                 <div className="flex-1 space-y-2">
                   <div>
                     <h4 className="font-semibold text-lg">{application.user?.full_name || 'Unknown User'}</h4>
                     <p className="text-muted-foreground">@{application.user?.username || 'unknown'}</p>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-4 text-sm">
                     {application.user?.email && (
                       <div className="flex items-center gap-1">
@@ -213,7 +210,7 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
                 <MessageSquare className="h-5 w-5" />
                 Application Details
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Requested Role</label>
