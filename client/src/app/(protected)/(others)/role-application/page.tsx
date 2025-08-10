@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { useMyApplications } from "@/lib/hooks/useRoleApplications"
 import { RoleApplication } from "@/lib/types/api"
-import { Loader2, FileText, Users, ShoppingBag, Star, PenTool } from "lucide-react"
+import { Loader2, Users, ShoppingBag, Star, PenTool } from "lucide-react"
+import { getRoleIcon } from "@/lib/utils/role"
 import { RoleSelectionCard } from "./_components/role-selection-card"
 import { MentorApplication } from "./_components/mentor-application"
 import { SellerApplication } from "./_components/seller-application"
@@ -93,19 +94,6 @@ export default function RoleApplicationPage() {
         window.history.pushState({}, '', url.toString())
     }
 
-    const getRoleIcon = (role: string) => {
-        switch (role) {
-            case "mentor":
-                return <Users className="h-4 w-4" />
-            case "seller":
-                return <ShoppingBag className="h-4 w-4" />
-            case "writer":
-                return <FileText className="h-4 w-4" />
-            default:
-                return null
-        }
-    }
-
     if (selectedRole) {
         switch (selectedRole) {
             case "mentor":
@@ -152,7 +140,7 @@ export default function RoleApplicationPage() {
                             {myApplications.map((app: RoleApplication) => (
                                 <div key={app.id} className="flex items-center justify-between p-4 border rounded-lg">
                                     <div className="flex items-center space-x-3">
-                                        {getRoleIcon(app.requested_role)}
+                                        {getRoleIcon(app.requested_role, { context: 'application' })}
                                         <div>
                                             <p className="font-medium">{app.requested_role.toUpperCase()}</p>
                                             <p className="text-sm text-muted-foreground">

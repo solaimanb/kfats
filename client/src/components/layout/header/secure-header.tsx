@@ -24,9 +24,9 @@ import {
   ShoppingBag,
   LayoutDashboard,
   UserPlus,
-  Shield
 } from "lucide-react"
 import { UserRole } from "@/lib/types/api"
+import { getRoleBadgeClasses, getRoleIcon } from "@/lib/utils/role"
 import { useState } from "react"
 import SearchBar from "@/components/common/search/search-bar"
 
@@ -42,39 +42,7 @@ export default function SecureHeader() {
     router.push("/")
   }
 
-  const getRoleIcon = (role: UserRole) => {
-    switch (role) {
-      case UserRole.STUDENT:
-        return <BookOpen className="h-4 w-4" />
-      case UserRole.MENTOR:
-        return <GraduationCap className="h-4 w-4" />
-      case UserRole.WRITER:
-        return <PenTool className="h-4 w-4" />
-      case UserRole.SELLER:
-        return <ShoppingBag className="h-4 w-4" />
-      case UserRole.ADMIN:
-        return <Shield className="h-4 w-4" />
-      default:
-        return <User className="h-4 w-4" />
-    }
-  }
-
-  const getRoleColor = (role: UserRole) => {
-    switch (role) {
-      case UserRole.STUDENT:
-        return "bg-blue-500"
-      case UserRole.MENTOR:
-        return "bg-green-500"
-      case UserRole.WRITER:
-        return "bg-purple-500"
-      case UserRole.SELLER:
-        return "bg-orange-500"
-      case UserRole.ADMIN:
-        return "bg-red-500"
-      default:
-        return "bg-gray-500"
-    }
-  }
+  
 
   const getNavigationLinks = () => {
     const baseLinks = [
@@ -182,7 +150,7 @@ export default function SecureHeader() {
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="secondary"
-                        className={`${getRoleColor(user.role)} text-white text-xs`}
+                        className={`${getRoleBadgeClasses(user.role, 'solid')} text-xs`}
                       >
                         <span className="mr-1">{getRoleIcon(user.role)}</span>
                         {user.role.toUpperCase()}

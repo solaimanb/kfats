@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, ReactNode } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,13 +14,12 @@ import {
   X,
   Eye,
   Clock,
-  Users,
   FileText,
-  ShoppingBag,
   Loader2,
   AlertCircle
 } from "lucide-react"
 import { toast } from "sonner"
+import { getRoleIcon } from "@/lib/utils/role"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 
 interface RoleApplicationReviewProps {
@@ -65,19 +64,6 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
         ? String(error.response.data.detail)
         : `Failed to ${status} application`
       toast.error(errorMessage)
-    }
-  }
-
-  const getRoleIcon = (role: string): ReactNode => {
-    switch (role) {
-      case "mentor":
-        return <Users className="h-4 w-4" />
-      case "seller":
-        return <ShoppingBag className="h-4 w-4" />
-      case "writer":
-        return <FileText className="h-4 w-4" />
-      default:
-        return <FileText className="h-4 w-4" />
     }
   }
 
@@ -218,7 +204,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
                 <div key={app.id} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
-                      {getRoleIcon(app.requested_role)}
+                      {getRoleIcon(app.requested_role, { context: 'application' })}
                       <div>
                         <p className="font-medium">{app.requested_role.toUpperCase()}</p>
                         <p className="text-sm text-muted-foreground">
@@ -241,7 +227,7 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
                         <DialogContent className="max-w-2xl">
                           <DialogHeader>
                             <DialogTitle className="flex items-center space-x-2">
-                              {getRoleIcon(app.requested_role)}
+                              {getRoleIcon(app.requested_role, { context: 'application' })}
                               <span>{app.requested_role.toUpperCase()} Application</span>
                             </DialogTitle>
                             <DialogDescription>

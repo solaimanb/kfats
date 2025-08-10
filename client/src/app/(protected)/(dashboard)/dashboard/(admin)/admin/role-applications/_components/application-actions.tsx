@@ -40,35 +40,10 @@ import { format } from "date-fns"
 import { RoleApplication, RoleApplicationStatus, ApplicationableRole } from "@/lib/types/api"
 import { useRoleApplications } from "@/lib/hooks/useRoleApplications"
 import { toast } from "sonner"
+import { getRoleBadgeClasses, getRoleIcon } from "@/lib/utils/role"
 
 interface ApplicationActionsProps {
   application: RoleApplication
-}
-
-const getRoleIcon = (role: ApplicationableRole) => {
-  switch (role) {
-    case 'mentor':
-      return <Users className="h-4 w-4 text-green-600" />
-    case 'writer':
-      return <PenTool className="h-4 w-4 text-purple-600" />
-    case 'seller':
-      return <ShoppingBag className="h-4 w-4 text-orange-600" />
-    default:
-      return <UserIcon className="h-4 w-4 text-gray-600" />
-  }
-}
-
-const getRoleBadgeColor = (role: ApplicationableRole) => {
-  switch (role) {
-    case 'mentor':
-      return 'bg-green-100 text-green-800 border-green-200'
-    case 'writer':
-      return 'bg-purple-100 text-purple-800 border-purple-200'
-    case 'seller':
-      return 'bg-orange-100 text-orange-800 border-orange-200'
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
 }
 
 const getStatusBadgeColor = (status: RoleApplicationStatus) => {
@@ -243,8 +218,8 @@ export function ApplicationActions({ application }: ApplicationActionsProps) {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Requested Role</label>
                   <div className="flex items-center gap-2">
-                    {getRoleIcon(application.requested_role)}
-                    <Badge className={getRoleBadgeColor(application.requested_role)}>
+                    {getRoleIcon(application.requested_role, { context: 'application' })}
+                    <Badge className={getRoleBadgeClasses(application.requested_role, 'soft')}>
                       {application.requested_role.charAt(0).toUpperCase() + application.requested_role.slice(1)}
                     </Badge>
                   </div>

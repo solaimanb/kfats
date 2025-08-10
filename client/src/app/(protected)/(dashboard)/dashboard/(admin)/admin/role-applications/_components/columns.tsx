@@ -17,21 +17,10 @@ import {
 import { formatDistanceToNow } from "date-fns"
 import { RoleApplication, RoleApplicationStatus, ApplicationableRole } from "@/lib/types/api"
 import { ApplicationActions } from "./application-actions"
+import { getRoleBadgeClasses, getRoleIcon } from "@/lib/utils/role"
 
 export type { RoleApplication }
 
-const getRoleBadgeColor = (role: ApplicationableRole) => {
-  switch (role) {
-    case 'mentor':
-      return 'bg-green-100 text-green-800 border-green-200'
-    case 'writer':
-      return 'bg-purple-100 text-purple-800 border-purple-200'
-    case 'seller':
-      return 'bg-orange-100 text-orange-800 border-orange-200'
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-}
 
 const getStatusBadgeColor = (status: RoleApplicationStatus) => {
   switch (status) {
@@ -43,19 +32,6 @@ const getStatusBadgeColor = (status: RoleApplicationStatus) => {
       return 'bg-yellow-100 text-yellow-800 border-yellow-200'
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-}
-
-const getRoleIcon = (role: ApplicationableRole) => {
-  switch (role) {
-    case 'mentor':
-      return <Users className="h-4 w-4 text-green-600" />
-    case 'writer':
-      return <PenTool className="h-4 w-4 text-purple-600" />
-    case 'seller':
-      return <ShoppingBag className="h-4 w-4 text-orange-600" />
-    default:
-      return <UserIcon className="h-4 w-4 text-gray-600" />
   }
 }
 
@@ -131,8 +107,8 @@ export const columns: ColumnDef<RoleApplication>[] = [
       const role = row.getValue("requested_role") as ApplicationableRole
       return (
         <div className="flex items-center gap-2">
-          {getRoleIcon(role)}
-          <Badge className={getRoleBadgeColor(role)}>
+          {getRoleIcon(role, { context: 'application' })}
+          <Badge className={getRoleBadgeClasses(role, 'soft')}>
             {role.charAt(0).toUpperCase() + role.slice(1)}
           </Badge>
         </div>

@@ -24,26 +24,11 @@ import {
 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { User } from "@/lib/types/api"
+import { getRoleBadgeClasses } from "@/lib/utils/role"
 
 // Re-export the User type from API
 export type { User }
 
-const getRoleBadgeColor = (role: string) => {
-  switch (role) {
-    case 'admin':
-      return 'bg-red-100 text-red-800 border-red-200'
-    case 'mentor':
-      return 'bg-green-100 text-green-800 border-green-200'
-    case 'writer':
-      return 'bg-purple-100 text-purple-800 border-purple-200'
-    case 'seller':
-      return 'bg-orange-100 text-orange-800 border-orange-200'
-    case 'student':
-      return 'bg-blue-100 text-blue-800 border-blue-200'
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-}
 
 const getStatusBadgeColor = (status: string) => {
   return status === 'active'
@@ -116,7 +101,7 @@ export const columns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const role = row.getValue("role") as string
       return (
-        <Badge className={getRoleBadgeColor(role)}>
+        <Badge className={getRoleBadgeClasses(role, 'soft')}>
           {role.charAt(0).toUpperCase() + role.slice(1)}
         </Badge>
       )

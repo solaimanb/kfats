@@ -40,13 +40,13 @@ import {
   Settings,
   User,
   BarChart3,
-  Shield,
   UserPlus,
   Plus,
   LogOut,
   ChevronUp,
   Home,
 } from "lucide-react"
+import { getRoleBadgeClasses, getRoleIcon } from "@/lib/utils/role"
 
 const getNavigationData = (userRole: UserRole) => {
   const getDashboardUrl = (role: UserRole) => {
@@ -207,39 +207,6 @@ export function AppSidebar() {
 
   const navigation = getNavigationData(user.role)
 
-  const getRoleIcon = (role: UserRole) => {
-    switch (role) {
-      case UserRole.STUDENT:
-        return <BookOpen className="h-4 w-4" />
-      case UserRole.MENTOR:
-        return <GraduationCap className="h-4 w-4" />
-      case UserRole.WRITER:
-        return <PenTool className="h-4 w-4" />
-      case UserRole.SELLER:
-        return <ShoppingBag className="h-4 w-4" />
-      case UserRole.ADMIN:
-        return <Shield className="h-4 w-4" />
-      default:
-        return <User className="h-4 w-4" />
-    }
-  }
-
-  const getRoleBadgeColor = (role: UserRole) => {
-    switch (role) {
-      case UserRole.STUDENT:
-        return "bg-blue-500"
-      case UserRole.MENTOR:
-        return "bg-green-500"
-      case UserRole.WRITER:
-        return "bg-purple-500"
-      case UserRole.SELLER:
-        return "bg-orange-500"
-      case UserRole.ADMIN:
-        return "bg-red-500"
-      default:
-        return "bg-gray-500"
-    }
-  }
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -382,7 +349,7 @@ export function AppSidebar() {
                   </div>
                   <Badge
                     variant="secondary"
-                    className={`${getRoleBadgeColor(user.role)} text-white text-xs`}
+                    className={`${getRoleBadgeClasses(user.role, 'solid')} text-xs`}
                   >
                     {user.role.toUpperCase()}
                   </Badge>
