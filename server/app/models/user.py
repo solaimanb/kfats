@@ -27,6 +27,7 @@ class User(BaseModel):
     products = relationship("Product", back_populates="seller", foreign_keys="Product.seller_id")
     role_applications = relationship("RoleApplication", foreign_keys="RoleApplication.user_id", back_populates="applicant")
     reviewed_applications = relationship("RoleApplication", foreign_keys="RoleApplication.reviewed_by")
+    orders = relationship("Order", back_populates="seller")
 
 
 class RoleApplication(BaseModel):

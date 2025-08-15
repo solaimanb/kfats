@@ -12,6 +12,8 @@ interface SellerOverviewStatsProps {
 }
 
 export function SellerOverviewStats({ data, isLoading }: SellerOverviewStatsProps) {
+  console.log("Seller Overview Stats - Data:", data)
+  
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -12,7 +12,9 @@ class Product(BaseModel):
     description = Column(Text, nullable=False)
     price = Column(Float, nullable=False)
     category = Column(SQLEnum(ProductCategory), nullable=False)
-    image_urls = Column(JSON, nullable=True)  # Store as JSON array
+    image_urls = Column(JSON, nullable=True)
+    sold_quantity = Column(Integer, default=0, nullable=False)
+    sold_at = Column(DateTime(timezone=True), nullable=True)
     stock_quantity = Column(Integer, nullable=True)
     status = Column(SQLEnum(ProductStatus), default=ProductStatus.ACTIVE, nullable=False)
     seller_id = Column(ForeignKey("users.id"), nullable=False)

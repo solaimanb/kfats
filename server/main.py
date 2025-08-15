@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import create_tables
 from app.routers import auth, users, courses, articles, products, role_applications, analytics, content_management
+from app.routers import seller_analytics
 from app.routers import mentors
 from app.routers import search
 from app.routers import password
@@ -37,6 +38,7 @@ app.include_router(content_management.router, prefix="/api/v1")
 app.include_router(mentors.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(password.router, prefix="/api/v1")
+app.include_router(seller_analytics.router, prefix="/api/v1")
 
 
 @app.on_event("startup")

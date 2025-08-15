@@ -75,7 +75,7 @@ export function MyProductsSection({
 
                             return (
                                 <div
-                                    key={product.id}
+                                    key={product.id ?? `${product.name}-${product.status}`}
                                     className={`flex items-center justify-between p-4 border rounded-lg transition-colors hover:bg-muted/50 ${isLowStock ? 'border-orange-200 bg-orange-50/30' : ''
                                         }`}
                                 >
