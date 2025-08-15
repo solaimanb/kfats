@@ -41,8 +41,6 @@ export default function SecureHeader() {
     router.push("/")
   }
 
-
-
   const getNavigationLinks = () => {
     const baseLinks = [
       { href: "/courses", label: "Courses", icon: BookOpen },
@@ -50,12 +48,7 @@ export default function SecureHeader() {
       { href: "/marketplace", label: "Marketplace", icon: ShoppingBag }
     ]
 
-    // Add role-specific links
     const roleLinks = []
-
-    if (user.role !== UserRole.USER) {
-      roleLinks.push({ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard })
-    }
 
     if (user.role === UserRole.MENTOR || user.role === UserRole.ADMIN) {
       roleLinks.push({ href: "/courses/create", label: "Create Course", icon: BookOpen })
@@ -79,13 +72,11 @@ export default function SecureHeader() {
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 h-full flex items-center justify-between">
-        {/* Logo */}
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <GraduationCap className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold">KFATS</span>
         </Link>
 
-        {/* Navigation */}
         <nav className="hidden lg:flex items-center gap-6">
           {getNavigationLinks().slice(0, 4).map((link) => {
             const Icon = link.icon
@@ -102,28 +93,22 @@ export default function SecureHeader() {
           })}
         </nav>
 
-        {/* Right Side Actions */}
         <div className="flex items-center gap-4">
           <SearchBar />
 
-          {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative">
             <Bell className="h-4 w-4" />
-            {/* Notification indicator */}
             <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
           </Button>
 
-          {/* User Menu */}
           <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
             <DialogTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 pl-2 pr-1">
                 <div className="flex items-center gap-3">
-                  {/* Avatar */}
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground text-sm font-semibold">
                     {user.full_name.charAt(0).toUpperCase()}
                   </div>
 
-                  {/* User Info */}
                   <div className="hidden md:block text-left">
                     <div className="text-sm font-medium leading-none">{user.full_name}</div>
                     <div className="flex items-center gap-1 mt-1">
