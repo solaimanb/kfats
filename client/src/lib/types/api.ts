@@ -192,8 +192,9 @@ export interface Product {
   description: string
   price: number
   category: ProductCategory
-  image_urls?: string[]
-  stock_quantity?: number
+  image_urls: string[]
+  stock_quantity: number
+  sold_quantity: number
   status: ProductStatus
   seller_id: number
   created_at: string
@@ -220,8 +221,8 @@ export interface ProductCreate {
   description: string
   price: number
   category: ProductCategory
-  image_urls?: string[]
-  stock_quantity?: number
+  image_urls: string[]
+  stock_quantity: number
 }
 
 // API Response Types

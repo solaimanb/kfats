@@ -130,7 +130,7 @@ const getNavigationData = (userRole: UserRole) => {
       },
       {
         title: "Add Product",
-        url: "/products/create",
+        url: "/dashboard/seller/products/create",
         icon: Plus,
       },
       {
