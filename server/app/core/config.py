@@ -1,5 +1,6 @@
 import os
 from typing import Optional, List
+from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
@@ -8,10 +9,10 @@ class Settings(BaseSettings):
     app_name: str = "KFATS LMS API"
     app_version: str = "1.0.0"
     debug: bool = False
-    client_app_url: str
+    client_app_url: Optional[str] = None
 
     # Database
-    database_url: str
+    database_url: Optional[str] = None
 
     # Security
     secret_key: str = "your-secret-key-change-this-in-production"
@@ -38,7 +39,9 @@ class Settings(BaseSettings):
     max_page_size: int = 100
 
     class Config:
-        env_file = ".env"
+        # Load the repository `server/.env` file regardless of CWD
+        env_file = str(Path(__file__).resolve().parents[2] / ".env")
+        env_file_encoding = "utf-8"
     
     @property
     def cors_origins_list(self) -> List[str]:

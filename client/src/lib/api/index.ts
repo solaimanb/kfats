@@ -7,6 +7,8 @@ export { ProductsAPI } from './products'
 export { ContentManagementAPI } from './content-management'
 export { SearchAPI } from './search'
 export { PasswordAPI } from './password'
+export { OrdersAPI } from './orders'
+export * as OrdersTypes from '../types/orders'
 
 export { apiClient, apiRequest } from './client'
 export type { ApiResponse } from './client'

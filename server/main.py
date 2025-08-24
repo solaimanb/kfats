@@ -7,6 +7,7 @@ from app.routers import seller_analytics
 from app.routers import mentors
 from app.routers import search
 from app.routers import password
+from app.routers import orders
 
 # Create FastAPI application
 app = FastAPI(
@@ -39,12 +40,14 @@ app.include_router(mentors.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(password.router, prefix="/api/v1")
 app.include_router(seller_analytics.router, prefix="/api/v1")
+app.include_router(orders.router, prefix="/api/v1")
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Create database tables on startup."""
-    create_tables()
+    """Create database tables on startup in development only."""
+    if settings.debug:
+        create_tables()
 
 
 @app.get("/")

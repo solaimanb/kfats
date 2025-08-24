@@ -5,6 +5,9 @@ from .base import BaseModel
 from ..schemas.common import UserRole, UserStatus
 
 
+
+
+
 class User(BaseModel):
     """User database model."""
     __tablename__ = "users"
@@ -20,14 +23,44 @@ class User(BaseModel):
     status = Column(SQLEnum(UserStatus), default=UserStatus.ACTIVE, nullable=False)
     last_login = Column(DateTime(timezone=True), nullable=True)
     
-    # Relationships
-    courses_created = relationship("Course", back_populates="mentor", foreign_keys="Course.mentor_id")
+    courses_created = relationship(
+        "Course",
+        back_populates="mentor",
+        primaryjoin="Course.mentor_id==User.id",
+    )
     enrollments = relationship("Enrollment", back_populates="student")
-    articles = relationship("Article", back_populates="author", foreign_keys="Article.author_id")
-    products = relationship("Product", back_populates="seller", foreign_keys="Product.seller_id")
-    role_applications = relationship("RoleApplication", foreign_keys="RoleApplication.user_id", back_populates="applicant")
-    reviewed_applications = relationship("RoleApplication", foreign_keys="RoleApplication.reviewed_by")
-    orders = relationship("Order", back_populates="seller")
+    articles = relationship(
+        "Article",
+        back_populates="author",
+        primaryjoin="Article.author_id==User.id",
+    )
+    products = relationship(
+        "Product",
+        back_populates="seller",
+        primaryjoin="Product.seller_id==User.id",
+    )
+    role_applications = relationship(
+        "RoleApplication",
+        back_populates="applicant",
+        primaryjoin="RoleApplication.user_id==User.id",
+    )
+    reviewed_applications = relationship(
+        "RoleApplication",
+        back_populates="reviewer",
+        primaryjoin="RoleApplication.reviewed_by==User.id",
+    )
+    # orders: orders where this user is the seller
+    orders = relationship(
+        "Order",
+        back_populates="seller",
+        primaryjoin="Order.seller_id==User.id",
+    )
+    # purchases: orders where this user is the buyer
+    purchases = relationship(
+        "Order",
+        back_populates="buyer",
+        primaryjoin="Order.buyer_id==User.id",
+    )
 
 
 class RoleApplication(BaseModel):

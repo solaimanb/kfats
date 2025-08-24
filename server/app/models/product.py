@@ -28,3 +28,4 @@ class Product(BaseModel):
     # Relationships
     seller = relationship("User", back_populates="products", foreign_keys=[seller_id])
     admin_reviewer = relationship("User", foreign_keys=[admin_action_by])
+    order_items = relationship("OrderItem", back_populates="product")
