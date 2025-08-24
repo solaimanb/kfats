@@ -1,11 +1,11 @@
 from typing import List, Optional
+import math
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_db
 from app.models.product import Product as DBProduct
-from app.models.user import User as DBUser
 from app.schemas.product import Product, ProductCreate, ProductUpdate
-from app.schemas.common import ProductStatus, ProductCategory, UserRole, SuccessResponse
+from app.schemas.common import ProductStatus, ProductCategory, UserRole, SuccessResponse, PaginatedResponse
 from app.schemas.user import User
 from app.core.dependencies import get_current_active_user, get_seller_or_admin
 
@@ -33,10 +33,10 @@ async def create_product(
     return Product.model_validate(db_product)
 
 
-@router.get("/", response_model=List[Product])
+@router.get("/", response_model=PaginatedResponse)
 async def get_products(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     category: Optional[ProductCategory] = None,
     seller_id: Optional[int] = None,
     min_price: Optional[float] = None,
@@ -59,8 +59,23 @@ async def get_products(
     if max_price is not None:
         query = query.filter(DBProduct.price <= max_price)
     
+    # pagination semantics: convert page/size to offset/limit
+    skip = (page - 1) * size
+    limit = size
+
+    # compute total before applying offset/limit
+    total = query.count()
     products = query.offset(skip).limit(limit).all()
-    return [Product.model_validate(product) for product in products]
+
+    pages = math.ceil(total / size) if size > 0 else 1
+
+    return PaginatedResponse(
+        items=[Product.model_validate(product) for product in products],
+        total=int(total),
+        page=page,
+        size=size,
+        pages=pages,
+    )
 
 
 @router.get("/my-products", response_model=List[Product])
@@ -109,7 +124,8 @@ async def update_product(
         )
     
     # Check ownership
-    if current_user.role != UserRole.ADMIN and product.seller_id != current_user.id:
+    seller_id = getattr(product, "seller_id", None)
+    if current_user.role != UserRole.ADMIN and seller_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own products"
@@ -142,7 +158,8 @@ async def delete_product(
         )
     
     # Check ownership
-    if current_user.role != UserRole.ADMIN and product.seller_id != current_user.id:
+    seller_id = getattr(product, "seller_id", None)
+    if current_user.role != UserRole.ADMIN and seller_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete your own products"
