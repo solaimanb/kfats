@@ -13,6 +13,8 @@ class Product(BaseModel):
     price = Column(Float, nullable=False)
     category = Column(SQLEnum(ProductCategory), nullable=False)
     image_urls = Column(JSON, nullable=True)
+    # Persistent URL slug for the product (set by seller or generated automatically)
+    slug = Column(String(255), nullable=True, unique=True, index=True)
     sold_quantity = Column(Integer, default=0, nullable=False)
     sold_at = Column(DateTime(timezone=True), nullable=True)
     stock_quantity = Column(Integer, nullable=True)

@@ -37,6 +37,14 @@ export class ProductsAPI {
   }
 
   /**
+   * Get product by slug
+   */
+  static async getProductBySlug(slug: string): Promise<Product> {
+    const response = await apiClient.get<Product>(`/products/slug/${slug}`)
+    return response.data
+  }
+
+  /**
    * Get seller's products
    */
   static async getSellerProducts(): Promise<Product[]> {

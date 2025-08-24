@@ -85,12 +85,19 @@ export function SellerDashboard({ }: SellerDashboardProps) {
     router.push('/products/create')
   }
 
-  const handleViewProduct = (productId: number) => {
-    router.push(`/products/${productId}`)
+  const handleViewProduct = (product: { id: number; name?: string }) => {
+    if (!product?.name) return router.push(`/dashboard/seller/products/${product.id}`)
+    const slug = product.name
+      .toString()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+    router.push(`/products/${slug}`)
   }
 
   const handleEditProduct = (productId: number) => {
-    router.push(`/products/${productId}/edit`)
+    router.push(`/dashboard/seller/products/${productId}/edit`)
   }
 
   return (

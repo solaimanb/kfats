@@ -5,6 +5,7 @@ export interface SearchResult {
     id: number
     title: string
     snippet: string
+    slug?: string
 }
 
 export class SearchAPI {

@@ -55,3 +55,22 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Helper to import the configured settings instance.
+
+    Use this in modules that cannot import the module-level `settings` at
+    import time (tests, CLI helpers, or Alembic env).
+    """
+    return settings
+
+
+# Backwards compatible property: provide an async driver URL when needed.
+def async_database_url() -> str:
+    url = settings.database_url or "sqlite+aiosqlite:///./test.db"
+    if url.startswith("postgres://"):
+        return "postgresql+asyncpg://" + url[len("postgres://"):]
+    if url.startswith("postgresql://") and "+asyncpg" not in url:
+        return "postgresql+asyncpg://" + url[len("postgresql://"):]
+    return url

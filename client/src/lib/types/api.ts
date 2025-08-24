@@ -193,6 +193,7 @@ export interface Product {
   price: number
   category: ProductCategory
   image_urls: string[]
+  slug?: string
   stock_quantity: number
   sold_quantity: number
   status: ProductStatus
@@ -221,6 +222,7 @@ export interface ProductCreate {
   description: string
   price: number
   category: ProductCategory
+  slug?: string
   image_urls: string[]
   stock_quantity: number
 }

@@ -12,7 +12,7 @@ interface MyProductsSectionProps {
     products: ProductPerformance[]
     isLoading: boolean
     onCreateProduct: () => void
-    onViewProduct: (productId: number) => void
+    onViewProduct: (product: ProductPerformance) => void
     onEditProduct: (productId: number) => void
 }
 
@@ -145,7 +145,7 @@ export function MyProductsSection({
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => onViewProduct(product.id)}
+                                            onClick={() => onViewProduct(product)}
                                         >
                                             <Eye className="h-4 w-4" />
                                         </Button>

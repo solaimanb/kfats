@@ -107,7 +107,15 @@ function getResultUrl(item: SearchResult): string {
     case "course":
       return `/courses/${item.id}`
     case "product":
-      return `/products/${item.id}`
+      if (item.slug && item.slug.length > 0) return `/products/${item.slug}`
+      // Fallback to slugify title if backend doesn't provide slug
+      const fallback = item.title
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+      return `/products/${fallback}`
     default:
       return "/"
   }

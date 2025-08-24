@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ProductsAPI } from '../api/products'
-import { ProductCreate } from '../types/api'
+import { ProductCreate, Product, PaginatedResponse } from '../types/api'
 
 // Query keys
 export const productsKeys = {
@@ -25,10 +25,10 @@ export function useProducts(params?: {
   max_price?: number
   search?: string
 }) {
-  return useQuery({
+  return useQuery<PaginatedResponse<Product>, Error>({
     queryKey: productsKeys.list(params || {}),
     queryFn: () => ProductsAPI.getAllProducts(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -40,6 +40,17 @@ export function useProduct(productId: number) {
     queryKey: productsKeys.detail(productId),
     queryFn: () => ProductsAPI.getProductById(productId),
     staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}
+
+/**
+ * Hook to get product by slug
+ */
+export function useProductBySlug(slug: string) {
+  return useQuery({
+    queryKey: [...productsKeys.details(), 'slug', slug] as const,
+    queryFn: () => ProductsAPI.getProductBySlug(slug),
+    staleTime: 5 * 60 * 1000,
   })
 }
 

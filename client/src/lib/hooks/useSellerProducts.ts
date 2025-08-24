@@ -27,7 +27,18 @@ export function useSellerProducts() {
     }, []);
 
     const create = () => router.push("/dashboard/seller/products/create");
-    const view = (id: number) => router.push(`/dashboard/seller/products/${id}`);
+    // View the public product page by slug. We expect callers to pass the full product object when available,
+    // but keep a fallback to id-based dashboard route if name/slug cannot be derived.
+    const view = (product: Product | number) => {
+        if (typeof product === 'number') return router.push(`/dashboard/seller/products/${product}`);
+        const slug = product.name
+            .toString()
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-');
+        return router.push(`/products/${slug}`);
+    };
     const edit = (id: number) => router.push(`/dashboard/seller/products/${id}/edit`);
 
     const remove = async (id: number) => {

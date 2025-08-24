@@ -12,6 +12,7 @@ class ProductBase(BaseModel):
     category: ProductCategory
     image_urls: Optional[List[str]] = None
     stock_quantity: Optional[int] = None
+    slug: Optional[str] = None
 
 
 class ProductCreate(ProductBase):
@@ -34,6 +35,7 @@ class Product(ProductBase):
     status: ProductStatus
     created_at: datetime
     updated_at: datetime
+    slug: Optional[str] = None
 
     class Config:
         from_attributes = True
