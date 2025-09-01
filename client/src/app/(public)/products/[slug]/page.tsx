@@ -1,7 +1,7 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { useProductBySlug } from "@/lib/hooks/useProducts"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -9,14 +9,21 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-interface PageProps {
-  params: { slug: string }
-}
-
-export default function ProductDetailPage({ params }: PageProps) {
-  const { slug } = params
-  const { data: product, isLoading, isError } = useProductBySlug(slug)
+export default function ProductDetailPage() {
+  const params = useParams<{ slug: string }>()
+  const [slug, setSlug] = useState<string | null>(null)
+  const { data: product, isLoading, isError } = useProductBySlug(slug || "")
   const router = useRouter()
+
+  useEffect(() => {
+    const getParams = async () => {
+      if (params.slug) {
+        const resolvedSlug = typeof params.slug === 'string' ? params.slug : await params.slug
+        setSlug(resolvedSlug)
+      }
+    }
+    getParams()
+  }, [params.slug])
 
   useEffect(() => {
     if (!slug) router.replace('/marketplace')
