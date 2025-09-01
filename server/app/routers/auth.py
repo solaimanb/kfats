@@ -1,7 +1,7 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.models.user import User as DBUser
 from app.schemas.user import User
 from app.schemas.auth import RegisterRequest, LoginRequest, Token
@@ -15,27 +15,29 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/register", response_model=SuccessResponse)
-async def register(user_data: RegisterRequest, db: Session = Depends(get_db)):
+async def register(user_data: RegisterRequest, db: AsyncSession = Depends(get_async_db)):
     """Register a new user."""
-    result = AuthService.register_user(db, user_data)
+    result = await AuthService.register_user(db, user_data)
     return SuccessResponse(message=result["message"], data={"user_id": result["user_id"], "username": result["username"]})
 
 
 @router.post("/login", response_model=Token)
-async def login(user_data: LoginRequest, db: Session = Depends(get_db)):
+async def login(user_data: LoginRequest, db: AsyncSession = Depends(get_async_db)):
     """Authenticate user and return access token."""
-    return AuthService.login_user(db, user_data)
+    return await AuthService.login_user(db, user_data)
 
 
 @router.post("/login/oauth", response_model=Token)
-async def login_oauth(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login_oauth(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_async_db)):
     """OAuth2 compatible login endpoint."""
     
     from app.schemas.auth import LoginRequest
     
-    user = db.query(DBUser).filter(DBUser.email == form_data.username).first()
+    result = await db.execute(db.query(DBUser).filter(DBUser.email == form_data.username))
+    user = result.scalars().first()
     if not user:
-        user = db.query(DBUser).filter(DBUser.username == form_data.username).first()
+        result = await db.execute(db.query(DBUser).filter(DBUser.username == form_data.username))
+        user = result.scalars().first()
     
     if not user:
         raise HTTPException(
@@ -46,7 +48,7 @@ async def login_oauth(form_data: OAuth2PasswordRequestForm = Depends(), db: Sess
     
     login_request = LoginRequest(email=user.email, password=form_data.password)
     
-    return AuthService.login_user(db, login_request)
+    return await AuthService.login_user(db, login_request)
 
 
 class RoleUpgradeBody(BaseModel):
@@ -57,7 +59,7 @@ class RoleUpgradeBody(BaseModel):
 async def upgrade_user_role(
     body: RoleUpgradeBody,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Upgrade user role (e.g., user -> student when enrolling in a course)."""
     
@@ -74,9 +76,10 @@ async def upgrade_user_role(
             detail=f"Cannot upgrade from {current_role} to {body.new_role}"
         )
     
-    db_user = db.query(DBUser).filter(DBUser.id == current_user.id).first()
+    result = await db.execute(db.query(DBUser).filter(DBUser.id == current_user.id))
+    db_user = result.scalars().first()
     db_user.role = body.new_role
-    db.commit()
+    await db.commit()
     
     return SuccessResponse(
         message=f"Role upgraded to {body.new_role} successfully",

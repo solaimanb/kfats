@@ -1,8 +1,8 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.models.course import Course as DBCourse, Enrollment as DBEnrollment
 from app.models.user import User as DBUser
 from app.schemas.course import Course, CourseCreate, CourseUpdate, Enrollment, EnrollmentCreate
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/courses", tags=["Courses"])
 async def create_course(
     course_data: CourseCreate,
     current_user: User = Depends(get_mentor_or_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Create a new course (Mentor/Admin only)."""
     
@@ -32,8 +32,8 @@ async def create_course(
     )
     
     db.add(db_course)
-    db.commit()
-    db.refresh(db_course)
+    await db.commit()
+    await db.refresh(db_course)
     
     return Course.model_validate(db_course)
 
@@ -43,14 +43,17 @@ async def get_courses(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     mentor_id: Optional[int] = None,
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get paginated list of published courses."""
     query = db.query(DBCourse).filter(DBCourse.status == CourseStatus.PUBLISHED)
     if mentor_id:
         query = query.filter(DBCourse.mentor_id == mentor_id)
-    total = query.count()
-    items = query.offset((page - 1) * size).limit(size).all()
+    
+    result = await db.execute(query)
+    items = result.scalars().all()
+    total = len(items)
+    
     return PaginatedResponse(
         items=[Course.model_validate(c) for c in items],
         total=total,
@@ -63,19 +66,25 @@ async def get_courses(
 @router.get("/my-courses", response_model=List[Course])
 async def get_my_courses(
     current_user: User = Depends(get_mentor_or_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get courses created by current mentor."""
     
-    courses = db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id).all()
+    result = await db.execute(
+        db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id)
+    )
+    courses = result.scalars().all()
     return [Course.model_validate(course) for course in courses]
 
 
 @router.get("/{course_id}", response_model=Course)
-async def get_course(course_id: int, db: Session = Depends(get_db)):
+async def get_course(course_id: int, db: AsyncSession = Depends(get_async_db)):
     """Get course by ID."""
     
-    course = db.query(DBCourse).filter(DBCourse.id == course_id).first()
+    result = await db.execute(
+        db.query(DBCourse).filter(DBCourse.id == course_id)
+    )
+    course = result.scalars().first()
     if not course:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -90,11 +99,14 @@ async def update_course(
     course_id: int,
     course_update: CourseUpdate,
     current_user: User = Depends(get_mentor_or_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Update course (only by course mentor or admin)."""
     
-    course = db.query(DBCourse).filter(DBCourse.id == course_id).first()
+    result = await db.execute(
+        db.query(DBCourse).filter(DBCourse.id == course_id)
+    )
+    course = result.scalars().first()
     if not course:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -113,8 +125,8 @@ async def update_course(
     for field, value in update_data.items():
         setattr(course, field, value)
     
-    db.commit()
-    db.refresh(course)
+    await db.commit()
+    await db.refresh(course)
     
     return Course.model_validate(course)
 
@@ -123,11 +135,14 @@ async def update_course(
 async def delete_course(
     course_id: int,
     current_user: User = Depends(get_mentor_or_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Delete course (only by course mentor or admin)."""
     
-    course = db.query(DBCourse).filter(DBCourse.id == course_id).first()
+    result = await db.execute(
+        db.query(DBCourse).filter(DBCourse.id == course_id)
+    )
+    course = result.scalars().first()
     if not course:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -141,8 +156,8 @@ async def delete_course(
             detail="You can only delete your own courses"
         )
     
-    db.delete(course)
-    db.commit()
+    await db.delete(course)
+    await db.commit()
     
     return SuccessResponse(
         message="Course deleted successfully",
@@ -154,15 +169,18 @@ async def delete_course(
 async def enroll_in_course(
     course_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Enroll in a course."""
     
     # Check if course exists and is published
-    course = db.query(DBCourse).filter(
-        DBCourse.id == course_id,
-        DBCourse.status == CourseStatus.PUBLISHED
-    ).first()
+    result = await db.execute(
+        db.query(DBCourse).filter(
+            DBCourse.id == course_id,
+            DBCourse.status == CourseStatus.PUBLISHED
+        )
+    )
+    course = result.scalars().first()
     
     if not course:
         raise HTTPException(
@@ -171,10 +189,13 @@ async def enroll_in_course(
         )
     
     # Check if already enrolled
-    existing_enrollment = db.query(DBEnrollment).filter(
-        DBEnrollment.student_id == current_user.id,
-        DBEnrollment.course_id == course_id
-    ).first()
+    result = await db.execute(
+        db.query(DBEnrollment).filter(
+            DBEnrollment.student_id == current_user.id,
+            DBEnrollment.course_id == course_id
+        )
+    )
+    existing_enrollment = result.scalars().first()
     
     if existing_enrollment:
         raise HTTPException(
@@ -197,19 +218,19 @@ async def enroll_in_course(
         )
         
         db.add(enrollment)
-        db.flush()  # Flush to get the ID
+        await db.flush()  # Flush to get the ID
         
         # Update enrolled count
         course.enrolled_count += 1
         
-        db.commit()
+        await db.commit()
         
         return SuccessResponse(
             message="Successfully enrolled in course",
             data={"course_id": course_id, "enrollment_id": enrollment.id}
         )
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Enrollment failed: {str(e)}"
@@ -220,12 +241,15 @@ async def enroll_in_course(
 async def get_course_enrollments(
     course_id: int,
     current_user: User = Depends(get_mentor_or_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get course enrollments (Mentor/Admin only)."""
     
     # Check if course exists and user has access
-    course = db.query(DBCourse).filter(DBCourse.id == course_id).first()
+    result = await db.execute(
+        db.query(DBCourse).filter(DBCourse.id == course_id)
+    )
+    course = result.scalars().first()
     if not course:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -238,17 +262,23 @@ async def get_course_enrollments(
             detail="Access denied"
         )
     
-    enrollments = db.query(DBEnrollment).filter(DBEnrollment.course_id == course_id).all()
+    result = await db.execute(
+        db.query(DBEnrollment).filter(DBEnrollment.course_id == course_id)
+    )
+    enrollments = result.scalars().all()
     return [Enrollment.model_validate(enrollment) for enrollment in enrollments]
 
 
 @router.get("/my-enrollments", response_model=List[Enrollment])
 async def get_my_enrollments(
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get enrollments for the current student/user."""
-    enrollments = db.query(DBEnrollment).filter(DBEnrollment.student_id == current_user.id).all()
+    result = await db.execute(
+        db.query(DBEnrollment).filter(DBEnrollment.student_id == current_user.id)
+    )
+    enrollments = result.scalars().all()
     return [Enrollment.model_validate(e) for e in enrollments]
 
 
@@ -261,17 +291,23 @@ async def update_enrollment_progress(
     enrollment_id: int,
     update: EnrollmentProgressUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Update progress for an enrollment owned by current user (or mentor/admin of the course)."""
-    enrollment = db.query(DBEnrollment).filter(DBEnrollment.id == enrollment_id).first()
+    result = await db.execute(
+        db.query(DBEnrollment).filter(DBEnrollment.id == enrollment_id)
+    )
+    enrollment = result.scalars().first()
     if not enrollment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
 
     # Ownership: student can update own; mentor/admin can update if owns course
     if enrollment.student_id != current_user.id:
         # check mentor/admin
-        course = db.query(DBCourse).filter(DBCourse.id == enrollment.course_id).first()
+        result = await db.execute(
+            db.query(DBCourse).filter(DBCourse.id == enrollment.course_id)
+        )
+        course = result.scalars().first()
         if not course:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
         if current_user.role != UserRole.ADMIN and course.mentor_id != current_user.id:
@@ -281,6 +317,6 @@ async def update_enrollment_progress(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Progress must be between 0 and 100")
 
     enrollment.progress_percentage = update.progress_percentage
-    db.commit()
-    db.refresh(enrollment)
+    await db.commit()
+    await db.refresh(enrollment)
     return Enrollment.model_validate(enrollment)

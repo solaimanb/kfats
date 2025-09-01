@@ -1,13 +1,31 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.core.database import create_tables
-from app.routers import auth, users, courses, articles, products, role_applications, analytics, content_management
-from app.routers import seller_analytics
-from app.routers import mentors
-from app.routers import search
-from app.routers import password
-from app.routers import orders
+from app.core.database import create_tables_async
+from app.core.logging import setup_logging
+from app.core.middleware import (
+    RequestLoggingMiddleware,
+    SecurityHeadersMiddleware,
+    RateLimitMiddleware
+)
+from app.core.error_handlers import EXCEPTION_HANDLERS
+from app.routers import (
+    auth, users, courses, articles, products, role_applications,
+    analytics, content_management, mentors, search, password, orders, seller_analytics
+)
+
+# Async lifespan context manager
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application startup and shutdown events."""
+    # Startup
+    setup_logging()  # Initialize logging first
+    if settings.debug:
+        await create_tables_async()
+    yield
+    # Shutdown
+    # Add cleanup logic here if needed
 
 # Create FastAPI application
 app = FastAPI(
@@ -15,10 +33,16 @@ app = FastAPI(
     version=settings.app_version,
     description="API for Kushtia Finearts and Technology School LMS Platform",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
-# Add CORS middleware
+# Add custom middleware (order matters)
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
+
+# Add CORS middleware (keeping the original for compatibility)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -27,7 +51,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Register exception handlers
+for exception_class, handler_func in EXCEPTION_HANDLERS:
+    app.add_exception_handler(exception_class, handler_func)
+
+# Include routers with async consistency
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(courses.router, prefix="/api/v1")
@@ -42,16 +70,9 @@ app.include_router(password.router, prefix="/api/v1")
 app.include_router(seller_analytics.router, prefix="/api/v1")
 app.include_router(orders.router, prefix="/api/v1")
 
-
-@app.on_event("startup")
-async def startup_event():
-    """Create database tables on startup in development only."""
-    if settings.debug:
-        create_tables()
-
-
 @app.get("/")
-def read_root():
+async def read_root():
+    """Root endpoint with API information."""
     return {
         "message": "Welcome to KFATS LMS API",
         "version": settings.app_version,
@@ -59,7 +80,7 @@ def read_root():
         "status": "running"
     }
 
-
 @app.get("/health")
-def health_check():
+async def health_check():
+    """Health check endpoint."""
     return {"status": "healthy", "service": "KFATS LMS API"}

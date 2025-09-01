@@ -2,10 +2,10 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, and_, distinct
 
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.core.dependencies import get_mentor_or_admin
 from app.models.user import User as DBUser
 from app.models.course import Course as DBCourse, Enrollment as DBEnrollment
@@ -19,29 +19,31 @@ from app.schemas.mentor import (
 )
 from app.schemas.user import User
 
-router = APIRouter(prefix="/mentors", tags=["Mentors"]) 
+router = APIRouter(prefix="/mentors", tags=["Mentors"])
 
 
 @router.get("/me/overview", response_model=MentorOverviewResponse)
 async def get_mentor_overview(
     current_user: User = Depends(get_mentor_or_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     # Total courses
-    total_courses = db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id).count()
+    result = await db.execute(
+        db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id)
+    )
+    total_courses = len(result.scalars().all())
 
     # Total students (distinct across mentor's courses)
-    total_students = (
+    result = await db.execute(
         db.query(func.count(distinct(DBEnrollment.student_id)))
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .filter(DBCourse.mentor_id == current_user.id)
-        .scalar()
-        or 0
     )
+    total_students = result.scalar() or 0
 
     # Enrollments last 30 days
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    enrollments_last_30d = (
+    result = await db.execute(
         db.query(func.count(DBEnrollment.id))
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .filter(
@@ -50,23 +52,22 @@ async def get_mentor_overview(
                 DBEnrollment.enrolled_at >= thirty_days_ago,
             )
         )
-        .scalar()
-        or 0
     )
+    enrollments_last_30d = result.scalar() or 0
 
     # Average completion across mentor's enrollments
-    avg_completion = (
+    result = await db.execute(
         db.query(func.avg(DBEnrollment.progress_percentage))
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .filter(DBCourse.mentor_id == current_user.id)
-        .scalar()
     )
+    avg_completion = result.scalar()
     avg_completion = float(avg_completion) if avg_completion is not None else 0.0
 
     # Monthly enrollments (last 6 months) - DB-agnostic grouping in Python
     six_months_ago = datetime.utcnow() - timedelta(days=180)
     monthly_enrollments_map: dict[str, int] = {}
-    enroll_dates = (
+    result = await db.execute(
         db.query(DBEnrollment.enrolled_at)
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .filter(
@@ -75,8 +76,8 @@ async def get_mentor_overview(
                 DBEnrollment.enrolled_at >= six_months_ago,
             )
         )
-        .all()
     )
+    enroll_dates = result.all()
     for (enrolled_at,) in enroll_dates:
         if not enrolled_at:
             continue
@@ -89,12 +90,15 @@ async def get_mentor_overview(
     ]
 
     # Course performance for mentor's courses
-    courses = db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id).all()
+    result = await db.execute(
+        db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id)
+    )
+    courses = result.scalars().all()
     course_ids = [c.id for c in courses]
 
     perf_map = {cid: {"enrolled": 0, "avg": 0.0} for cid in course_ids}
     if course_ids:
-        enrollment_stats = (
+        result = await db.execute(
             db.query(
                 DBEnrollment.course_id,
                 func.count(DBEnrollment.id),
@@ -102,8 +106,8 @@ async def get_mentor_overview(
             )
             .filter(DBEnrollment.course_id.in_(course_ids))
             .group_by(DBEnrollment.course_id)
-            .all()
         )
+        enrollment_stats = result.all()
         for cid, cnt, avgp in enrollment_stats:
             perf_map[cid] = {"enrolled": int(cnt or 0), "avg": float(avgp or 0.0)}
 
@@ -138,7 +142,7 @@ async def get_mentor_students(
     size: int = Query(20, ge=1, le=100),
     course_id: Optional[int] = None,
     current_user: User = Depends(get_mentor_or_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     query = (
         db.query(DBEnrollment, DBUser, DBCourse)
@@ -150,16 +154,17 @@ async def get_mentor_students(
     if course_id:
         query = query.filter(DBEnrollment.course_id == course_id)
 
-    total = query.count()
-    items = (
-        query.order_by(DBEnrollment.enrolled_at.desc())
-        .offset((page - 1) * size)
-        .limit(size)
-        .all()
-    )
+    result = await db.execute(query)
+    items = result.all()
+    total = len(items)
+
+    # Apply pagination in Python since we can't use offset/limit with joined queries easily
+    start_idx = (page - 1) * size
+    end_idx = start_idx + size
+    paginated_items = items[start_idx:end_idx]
 
     results: List[MentorStudentItem] = []
-    for enrollment, student, course in items:
+    for enrollment, student, course in paginated_items:
         try:
             status_value = (
                 enrollment.status.value if hasattr(enrollment.status, 'value') else str(enrollment.status)
@@ -193,18 +198,18 @@ async def get_mentor_students(
 async def get_mentor_activity(
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_mentor_or_admin),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     activities: List[MentorActivityItem] = []
 
     # Recent course creations
-    recent_courses = (
+    result = await db.execute(
         db.query(DBCourse)
         .filter(DBCourse.mentor_id == current_user.id)
         .order_by(DBCourse.created_at.desc())
         .limit(min(10, limit))
-        .all()
     )
+    recent_courses = result.scalars().all()
     for c in recent_courses:
         activities.append(
             MentorActivityItem(
@@ -217,15 +222,15 @@ async def get_mentor_activity(
         )
 
     # Recent enrollments into mentor courses
-    recent_enrollments = (
+    result = await db.execute(
         db.query(DBEnrollment, DBUser, DBCourse)
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .join(DBUser, DBEnrollment.student_id == DBUser.id)
         .filter(DBCourse.mentor_id == current_user.id)
         .order_by(DBEnrollment.enrolled_at.desc())
         .limit(min(20, limit))
-        .all()
     )
+    recent_enrollments = result.all()
     for e, student, course in recent_enrollments:
         activities.append(
             MentorActivityItem(

@@ -1,13 +1,20 @@
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import or_, String
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.models.user import User as DBUser
 from app.schemas.user import User, UserUpdate
 from app.schemas.common import UserRole, UserStatus, SuccessResponse, PaginatedResponse
 from app.core.dependencies import get_current_active_user, get_admin_user
+from app.core.exceptions import ConflictError, BusinessLogicError
+from app.core.error_utils import (
+    ensure_user_exists,
+    handle_database_error,
+    create_business_logic_error,
+    require_authorization
+)
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -22,31 +29,45 @@ async def get_current_user_profile(current_user: User = Depends(get_current_acti
 async def update_current_user_profile(
     user_update: UserUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Update current user's profile."""
-    
-    db_user = db.query(DBUser).filter(DBUser.id == current_user.id).first()
-    
-    if user_update.username and user_update.username != current_user.username:
-        existing_user = db.query(DBUser).filter(
-            DBUser.username == user_update.username,
-            DBUser.id != current_user.id
-        ).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already taken"
+
+    try:
+        result = await db.execute(
+            db.query(DBUser).filter(DBUser.id == current_user.id)
+        )
+        db_user = result.scalars().first()
+        ensure_user_exists(current_user.id, db_user)
+
+        if user_update.username and user_update.username != current_user.username:
+            result = await db.execute(
+                db.query(DBUser).filter(
+                    DBUser.username == user_update.username,
+                    DBUser.id != current_user.id
+                )
             )
-    
-    update_data = user_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_user, field, value)
-    
-    db.commit()
-    db.refresh(db_user)
-    
-    return User.model_validate(db_user)
+            existing_user = result.scalars().first()
+            if existing_user:
+                raise ConflictError(
+                    message="Username already taken",
+                    details={"field": "username", "value": user_update.username}
+                )
+
+        update_data = user_update.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_user, field, value)
+
+        await db.commit()
+        await db.refresh(db_user)
+
+        return User.model_validate(db_user)
+
+    except Exception as e:
+        await db.rollback()
+        if isinstance(e, ConflictError):
+            raise
+        handle_database_error(e)
 
 
 @router.get("/", response_model=PaginatedResponse[User])
@@ -57,7 +78,7 @@ async def get_users(
     status: Optional[str] = None,
     email: Optional[str] = None,
     admin_user: User = Depends(get_admin_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get paginated list of users (Admin only)."""
     
@@ -80,8 +101,9 @@ async def get_users(
             )
         )
     
-    total = query.count()
-    users = query.offset(skip).limit(limit).all()
+    result = await db.execute(query)
+    users = result.scalars().all()
+    total = len(users)
     
     page = (skip // limit) + 1
     pages = (total + limit - 1) // limit
@@ -99,18 +121,21 @@ async def get_users(
 async def get_user_by_id(
     user_id: int,
     admin_user: User = Depends(get_admin_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get user by ID (Admin only)."""
-    
-    user = db.query(DBUser).filter(DBUser.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+
+    try:
+        result = await db.execute(
+            db.query(DBUser).filter(DBUser.id == user_id)
         )
-    
-    return User.model_validate(user)
+        user = result.scalars().first()
+        ensure_user_exists(user_id, user)
+
+        return User.model_validate(user)
+
+    except Exception as e:
+        handle_database_error(e)
 
 
 class UpdateRoleRequest(BaseModel):
@@ -122,11 +147,14 @@ async def update_user_role(
     user_id: int,
     request: UpdateRoleRequest,
     admin_user: User = Depends(get_admin_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Update user role (Admin only)."""
     
-    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    result = await db.execute(
+        db.query(DBUser).filter(DBUser.id == user_id)
+    )
+    user = result.scalars().first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -135,7 +163,7 @@ async def update_user_role(
     
     old_role = user.role
     user.role = request.new_role
-    db.commit()
+    await db.commit()
     
     return SuccessResponse(
         message=f"User role updated successfully",
@@ -147,40 +175,50 @@ async def update_user_role(
 async def delete_user(
     user_id: int,
     admin_user: User = Depends(get_admin_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Delete user (Admin only)."""
-    
-    user = db.query(DBUser).filter(DBUser.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+
+    try:
+        result = await db.execute(
+            db.query(DBUser).filter(DBUser.id == user_id)
         )
-    
-    if user.role == UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete admin users"
+        user = result.scalars().first()
+        ensure_user_exists(user_id, user)
+
+        if user.role == UserRole.ADMIN:
+            raise create_business_logic_error(
+                "Cannot delete admin users",
+                user_id=user_id,
+                user_role=user.role.value
+            )
+
+        await db.delete(user)
+        await db.commit()
+
+        return SuccessResponse(
+            message="User deleted successfully",
+            data={"user_id": user_id}
         )
-    
-    db.delete(user)
-    db.commit()
-    
-    return SuccessResponse(
-        message="User deleted successfully",
-        data={"user_id": user_id}
-    )
+
+    except Exception as e:
+        await db.rollback()
+        if isinstance(e, BusinessLogicError):
+            raise
+        handle_database_error(e)
 
 
 @router.put("/{user_id}/toggle-status", response_model=SuccessResponse)
 async def toggle_user_status(
     user_id: int,
     admin_user: User = Depends(get_admin_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Toggle a user's active status (Admin only)."""
-    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    result = await db.execute(
+        db.query(DBUser).filter(DBUser.id == user_id)
+    )
+    user = result.scalars().first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -199,7 +237,7 @@ async def toggle_user_status(
         current = UserStatus.ACTIVE if str(user.status).lower() == "active" else UserStatus.INACTIVE
 
     user.status = UserStatus.INACTIVE if current == UserStatus.ACTIVE else UserStatus.ACTIVE
-    db.commit()
+    await db.commit()
 
     return SuccessResponse(
         message="User status updated successfully",

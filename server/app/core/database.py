@@ -123,12 +123,24 @@ def get_db() -> Generator[Session, None, None]:
 def create_sync_tables() -> None:
     """Create DB tables using a synchronous engine (for local dev/setup)."""
     sync_url = (
-        DATABASE_URL.replace("+asyncpg", "")
-        if "+asyncpg" in DATABASE_URL
+        DATABASE_URL.replace("+asyncpg", "").replace("+aiosqlite", "")
+        if "+asyncpg" in DATABASE_URL or "+aiosqlite" in DATABASE_URL
         else DATABASE_URL
     )
     local_engine = create_engine(sync_url)
     Base.metadata.create_all(bind=local_engine)
+
+
+async def create_tables_async() -> None:
+    """Create DB tables using an async engine (for async startup)."""
+    async_url = (
+        DATABASE_URL.replace("+asyncpg", "").replace("+aiosqlite", "")
+        if "+asyncpg" in DATABASE_URL or "+aiosqlite" in DATABASE_URL
+        else DATABASE_URL
+    )
+    local_engine = create_async_engine(async_url)
+    async with local_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
 def create_tables() -> None:

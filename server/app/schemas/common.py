@@ -92,10 +92,59 @@ class SuccessResponse(BaseModel, Generic[T]):
     success: bool = True
 
 
-class ErrorResponse(BaseModel):
+class ErrorDetail(BaseModel):
+    """Detailed error information"""
+    field: Optional[str] = None
     message: str
-    error: Optional[str] = None
+    type: Optional[str] = None
+
+
+class ErrorResponse(BaseModel):
+    """Enhanced error response with detailed information"""
     success: bool = False
+    error: dict
+
+
+class ValidationErrorResponse(BaseModel):
+    """Response for validation errors"""
+    success: bool = False
+    error: dict
+
+
+class DatabaseErrorResponse(BaseModel):
+    """Response for database errors"""
+    success: bool = False
+    error: dict
+
+
+class AuthenticationErrorResponse(BaseModel):
+    """Response for authentication errors"""
+    success: bool = False
+    error: dict
+
+
+class AuthorizationErrorResponse(BaseModel):
+    """Response for authorization errors"""
+    success: bool = False
+    error: dict
+
+
+class NotFoundErrorResponse(BaseModel):
+    """Response for resource not found errors"""
+    success: bool = False
+    error: dict
+
+
+class BusinessLogicErrorResponse(BaseModel):
+    """Response for business logic errors"""
+    success: bool = False
+    error: dict
+
+
+class RateLimitErrorResponse(BaseModel):
+    """Response for rate limiting errors"""
+    success: bool = False
+    error: dict
 
 
 class PaginatedResponse(BaseModel, Generic[T]):

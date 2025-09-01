@@ -1,8 +1,8 @@
 from datetime import timedelta, datetime
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
-from app.models import User as DBUser
+from app.models.user import User as DBUser
 from app.schemas import User, LoginRequest, RegisterRequest, Token
 from app.core.security import verify_password, create_access_token
 from app.services.user_service import UserService
@@ -14,9 +14,9 @@ class AuthService:
     """Service layer for authentication operations."""
     
     @staticmethod
-    def authenticate_user(db: Session, email: str, password: str) -> Optional[DBUser]:
+    async def authenticate_user(db: AsyncSession, email: str, password: str) -> Optional[DBUser]:
         """Authenticate user with email and password."""
-        user = UserService.get_user_by_email(db, email)
+        user = await UserService.get_user_by_email(db, email)
         if not user:
             return None
         if not verify_password(password, user.hashed_password):
@@ -24,9 +24,9 @@ class AuthService:
         return user
     
     @staticmethod
-    def login_user(db: Session, login_data: LoginRequest) -> Token:
+    async def login_user(db: AsyncSession, login_data: LoginRequest) -> Token:
         """Login user and return access token."""
-        user = AuthService.authenticate_user(db, login_data.email, login_data.password)
+        user = await AuthService.authenticate_user(db, login_data.email, login_data.password)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,7 +46,7 @@ class AuthService:
             )
         
         user.last_login = datetime.utcnow()
-        db.commit()
+        await db.commit()
         
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = create_access_token(
@@ -67,7 +67,7 @@ class AuthService:
         )
     
     @staticmethod
-    def register_user(db: Session, register_data: RegisterRequest) -> dict:
+    async def register_user(db: AsyncSession, register_data: RegisterRequest) -> dict:
         """Register a new user."""
         if register_data.password != register_data.confirm_password:
             raise HTTPException(
@@ -80,7 +80,7 @@ class AuthService:
         
         from app.schemas import UserCreate
         user_create = UserCreate(**user_data)
-        user = UserService.create_user(db, user_create)
+        user = await UserService.create_user(db, user_create)
         
         return {
             "message": "User registered successfully",

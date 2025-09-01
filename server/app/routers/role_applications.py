@@ -1,10 +1,11 @@
 import json
 from datetime import datetime, timedelta
 from typing import Optional, List
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 from sqlalchemy import and_
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.models.user import User as DBUser, RoleApplication as DBRoleApplication
 from app.schemas.user import RoleApplication, RoleApplicationCreate, RoleApplicationUpdate, User
 from app.schemas.common import (
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/role-applications", tags=["Role Applications"])
 async def apply_for_role(
     application_data: RoleApplicationCreate,
     current_user: DBUser = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Apply for a role (mentor, seller, writer).
@@ -39,13 +40,16 @@ async def apply_for_role(
             detail="Administrators cannot apply for other roles"
         )
     
-    existing_application = db.query(DBRoleApplication).filter(
-        and_(
-            DBRoleApplication.user_id == current_user.id,
-            DBRoleApplication.requested_role == application_data.requested_role,
-            DBRoleApplication.status == RoleApplicationStatus.PENDING
+    existing_application_result = await db.execute(
+        db.query(DBRoleApplication).filter(
+            and_(
+                DBRoleApplication.user_id == current_user.id,
+                DBRoleApplication.requested_role == application_data.requested_role,
+                DBRoleApplication.status == RoleApplicationStatus.PENDING
+            )
         )
-    ).first()
+    )
+    existing_application = existing_application_result.scalar_one_or_none()
     
     if existing_application:
         raise HTTPException(
@@ -53,14 +57,17 @@ async def apply_for_role(
             detail=f"You already have a pending application for {application_data.requested_role} role"
         )
     
-    recent_rejection = db.query(DBRoleApplication).filter(
-        and_(
-            DBRoleApplication.user_id == current_user.id,
-            DBRoleApplication.requested_role == application_data.requested_role,
-            DBRoleApplication.status == RoleApplicationStatus.REJECTED,
-            DBRoleApplication.reviewed_at >= datetime.utcnow().date() - timedelta(days=30)
+    recent_rejection_result = await db.execute(
+        db.query(DBRoleApplication).filter(
+            and_(
+                DBRoleApplication.user_id == current_user.id,
+                DBRoleApplication.requested_role == application_data.requested_role,
+                DBRoleApplication.status == RoleApplicationStatus.REJECTED,
+                DBRoleApplication.reviewed_at >= datetime.utcnow().date() - timedelta(days=30)
+            )
         )
-    ).first()
+    )
+    recent_rejection = recent_rejection_result.scalar_one_or_none()
     
     if recent_rejection:
         raise HTTPException(
@@ -78,8 +85,8 @@ async def apply_for_role(
     )
     
     db.add(new_application)
-    db.commit()
-    db.refresh(new_application)
+    await db.commit()
+    await db.refresh(new_application)
     
     return SuccessResponse(
         message=f"Your application for {application_data.requested_role} role has been submitted successfully",
@@ -90,13 +97,16 @@ async def apply_for_role(
 @router.get("/my-applications", response_model=List[RoleApplication])
 async def get_my_applications(
     current_user: DBUser = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get current user's role applications."""
     
-    applications = db.query(DBRoleApplication).filter(
-        DBRoleApplication.user_id == current_user.id
-    ).order_by(DBRoleApplication.applied_at.desc()).all()
+    applications_result = await db.execute(
+        db.query(DBRoleApplication).filter(
+            DBRoleApplication.user_id == current_user.id
+        ).order_by(DBRoleApplication.applied_at.desc())
+    )
+    applications = applications_result.scalars().all()
     
     return applications
 
@@ -108,7 +118,7 @@ async def get_all_applications(
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(20, ge=1, le=100, description="Page size"),
     current_user: DBUser = Depends(require_role(UserRole.ADMIN)),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Get all role applications (Admin only).
@@ -125,10 +135,16 @@ async def get_all_applications(
     if role:
         query = query.filter(DBRoleApplication.requested_role == role)
     
-    total = query.count()
-    applications = query.order_by(
-        DBRoleApplication.applied_at.desc()
-    ).offset((page - 1) * size).limit(size).all()
+    # Get total count
+    total_result = await db.execute(query.with_only_columns([DBRoleApplication.id]))
+    total = len(total_result.scalars().all())
+    
+    # Get paginated results
+    applications_result = await db.execute(
+        query.order_by(DBRoleApplication.applied_at.desc())
+        .offset((page - 1) * size).limit(size)
+    )
+    applications = applications_result.scalars().all()
     
     result = []
     for app in applications:
@@ -155,7 +171,7 @@ async def get_all_applications_simple(
     skip: int = Query(0, ge=0, description="Number of applications to skip"),
     limit: int = Query(20, ge=1, le=100, description="Number of applications to return"),
     current_user: DBUser = Depends(require_role(UserRole.ADMIN)),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Get all role applications with skip/limit pagination (Admin only).
@@ -172,9 +188,11 @@ async def get_all_applications_simple(
     if role:
         query = query.filter(DBRoleApplication.requested_role == role)
     
-    applications = query.order_by(
-        DBRoleApplication.applied_at.desc()
-    ).offset(skip).limit(limit).all()
+    applications_result = await db.execute(
+        query.order_by(DBRoleApplication.applied_at.desc())
+        .offset(skip).limit(limit)
+    )
+    applications = applications_result.scalars().all()
     
     result = []
     for app in applications:
@@ -193,16 +211,17 @@ async def review_application(
     application_id: int,
     review_data: RoleApplicationUpdate,
     current_user: DBUser = Depends(require_role(UserRole.ADMIN)),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Review a role application (Admin only).
     Approve or reject with optional notes.
     """
     
-    application = db.query(DBRoleApplication).filter(
-        DBRoleApplication.id == application_id
-    ).first()
+    application_result = await db.execute(
+        db.query(DBRoleApplication).filter(DBRoleApplication.id == application_id)
+    )
+    application = application_result.scalar_one_or_none()
     
     if not application:
         raise HTTPException(
@@ -222,12 +241,15 @@ async def review_application(
     application.reviewed_at = datetime.utcnow()
     
     if review_data.status == RoleApplicationStatus.APPROVED:
-        user = db.query(DBUser).filter(DBUser.id == application.user_id).first()
+        user_result = await db.execute(
+            db.query(DBUser).filter(DBUser.id == application.user_id)
+        )
+        user = user_result.scalar_one_or_none()
         if user:
             user.role = UserRole(application.requested_role)
             user.updated_at = datetime.utcnow()
     
-    db.commit()
+    await db.commit()
     
     status_text = "approved" if review_data.status == RoleApplicationStatus.APPROVED else "rejected"
     return SuccessResponse(
@@ -243,26 +265,42 @@ async def review_application(
 @router.get("/stats", response_model=dict)
 async def get_applications_stats(
     current_user: DBUser = Depends(require_role(UserRole.ADMIN)),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """Get role application statistics (Admin only)."""
     
-    total_applications = db.query(DBRoleApplication).count()
-    pending_applications = db.query(DBRoleApplication).filter(
-        DBRoleApplication.status == RoleApplicationStatus.PENDING
-    ).count()
-    approved_applications = db.query(DBRoleApplication).filter(
-        DBRoleApplication.status == RoleApplicationStatus.APPROVED
-    ).count()
-    rejected_applications = db.query(DBRoleApplication).filter(
-        DBRoleApplication.status == RoleApplicationStatus.REJECTED
-    ).count()
+    total_result = await db.execute(db.query(DBRoleApplication))
+    total_applications = len(total_result.scalars().all())
+    
+    pending_result = await db.execute(
+        db.query(DBRoleApplication).filter(
+            DBRoleApplication.status == RoleApplicationStatus.PENDING
+        )
+    )
+    pending_applications = len(pending_result.scalars().all())
+    
+    approved_result = await db.execute(
+        db.query(DBRoleApplication).filter(
+            DBRoleApplication.status == RoleApplicationStatus.APPROVED
+        )
+    )
+    approved_applications = len(approved_result.scalars().all())
+    
+    rejected_result = await db.execute(
+        db.query(DBRoleApplication).filter(
+            DBRoleApplication.status == RoleApplicationStatus.REJECTED
+        )
+    )
+    rejected_applications = len(rejected_result.scalars().all())
     
     role_stats = {}
     for role in ApplicationableRole:
-        count = db.query(DBRoleApplication).filter(
-            DBRoleApplication.requested_role == role
-        ).count()
+        role_result = await db.execute(
+            db.query(DBRoleApplication).filter(
+                DBRoleApplication.requested_role == role
+            )
+        )
+        count = len(role_result.scalars().all())
         role_stats[role.value] = count
     
     return {
@@ -284,20 +322,23 @@ async def get_applications_stats(
 async def withdraw_application(
     application_id: int,
     current_user: DBUser = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     Withdraw a pending role application.
     Users can only withdraw their own pending applications.
     """
     
-    application = db.query(DBRoleApplication).filter(
-        and_(
-            DBRoleApplication.id == application_id,
-            DBRoleApplication.user_id == current_user.id,
-            DBRoleApplication.status == RoleApplicationStatus.PENDING
+    application_result = await db.execute(
+        db.query(DBRoleApplication).filter(
+            and_(
+                DBRoleApplication.id == application_id,
+                DBRoleApplication.user_id == current_user.id,
+                DBRoleApplication.status == RoleApplicationStatus.PENDING
+            )
         )
-    ).first()
+    )
+    application = application_result.scalar_one_or_none()
     
     if not application:
         raise HTTPException(
@@ -305,8 +346,8 @@ async def withdraw_application(
             detail="Pending application not found"
         )
     
-    db.delete(application)
-    db.commit()
+    await db.delete(application)
+    await db.commit()
     
     return SuccessResponse(
         message="Application withdrawn successfully",

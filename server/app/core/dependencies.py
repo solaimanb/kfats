@@ -1,8 +1,8 @@
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.core.database import get_db
+from app.core.database import get_async_db
 from app.models.user import User as DBUser
 from app.schemas.user import User
 from app.schemas.common import UserRole, UserStatus
@@ -12,15 +12,19 @@ from app.core.security import verify_token
 security = HTTPBearer()
 
 
-def get_current_user(
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ) -> User:
     """Get current authenticated user."""
     token = credentials.credentials
     token_data = verify_token(token)
     
-    user = db.query(DBUser).filter(DBUser.id == token_data.user_id).first()
+    result = await db.execute(
+        db.query(DBUser).filter(DBUser.id == token_data.user_id)
+    )
+    user = result.scalars().first()
+    
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -31,7 +35,7 @@ def get_current_user(
     return User.model_validate(user)
 
 
-def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     """Get current active user."""
     # Ensure we compare enum to enum (or its value)
     if isinstance(current_user.status, UserStatus):
@@ -49,7 +53,7 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
 
 def require_role(required_role: UserRole):
     """Decorator factory to require specific user role."""
-    def role_checker(current_user: User = Depends(get_current_active_user)):
+    async def role_checker(current_user: User = Depends(get_current_active_user)):
         # Ensure robust enum comparison
         user_role = UserRole(current_user.role)
         if user_role != required_role:
@@ -63,7 +67,7 @@ def require_role(required_role: UserRole):
 
 def require_roles(allowed_roles: list[UserRole]):
     """Decorator factory to require one of multiple user roles."""
-    def role_checker(current_user: User = Depends(get_current_active_user)):
+    async def role_checker(current_user: User = Depends(get_current_active_user)):
         # Ensure robust enum comparison and admin bypass
         user_role = UserRole(current_user.role)
         
@@ -83,21 +87,21 @@ def require_roles(allowed_roles: list[UserRole]):
 
 
 # Convenience dependency functions
-def get_admin_user(current_user: User = Depends(require_role(UserRole.ADMIN))):
+async def get_admin_user(current_user: User = Depends(require_role(UserRole.ADMIN))):
     """Require admin role."""
     return current_user
 
 
-def get_mentor_or_admin(current_user: User = Depends(require_roles([UserRole.MENTOR, UserRole.ADMIN]))):
+async def get_mentor_or_admin(current_user: User = Depends(require_roles([UserRole.MENTOR, UserRole.ADMIN]))):
     """Allow mentor or admin access."""
     return current_user
 
 
-def get_seller_or_admin(current_user: User = Depends(require_roles([UserRole.SELLER, UserRole.ADMIN]))):
+async def get_seller_or_admin(current_user: User = Depends(require_roles([UserRole.SELLER, UserRole.ADMIN]))):
     """Allow seller or admin access."""
     return current_user
 
 
-def get_writer_or_admin(current_user: User = Depends(require_roles([UserRole.WRITER, UserRole.ADMIN]))):
+async def get_writer_or_admin(current_user: User = Depends(require_roles([UserRole.WRITER, UserRole.ADMIN]))):
     """Allow writer or admin access."""
     return current_user

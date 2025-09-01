@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.product import Product as DBProduct
 from app.models.order import Order as DBOrder
@@ -12,7 +12,7 @@ from typing import Dict, Optional, Any, cast
 
 class OrderService:
     @staticmethod
-    def create_order(db: Session, order_create: OrderCreate, buyer: DBUser) -> DBOrder:
+    async def create_order(db: AsyncSession, order_create: OrderCreate, buyer: DBUser) -> DBOrder:
         """Create an order with transactional safety.
         Steps:
         - Validate stock availability
@@ -25,7 +25,10 @@ class OrderService:
 
         try:
             for item in order_create.items:
-                product = db.query(DBProduct).filter(DBProduct.id == item.product_id).with_for_update().first()
+                result = await db.execute(
+                    db.query(DBProduct).filter(DBProduct.id == item.product_id).with_for_update()
+                )
+                product = result.scalars().first()
                 if not product:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {item.product_id} not found")
 
@@ -88,7 +91,7 @@ class OrderService:
 
             db_order = DBOrder(buyer_id=buyer_id_val, seller_id=seller_id_val, total_amount=total_amount, status="pending", payment_reference=payment_ref)
             db.add(db_order)
-            db.flush()  # get order id
+            await db.flush()  # get order id
 
             db_order_any = cast(Any, db_order)
             db_order_id = int(getattr(db_order_any, "id"))
@@ -100,8 +103,8 @@ class OrderService:
                 db_item = DBOrderItem(order_id=db_order_id, product_id=prod_id_val, unit_price=oi["unit_price"], quantity=oi["quantity"])
                 db.add(db_item)
 
-            db.commit()
-            db.refresh(db_order)
+            await db.commit()
+            await db.refresh(db_order)
 
             # Graceful fallback: some DB backends (or driver configs) may not
             # populate server_default timestamps back into SQLAlchemy objects
@@ -126,10 +129,10 @@ class OrderService:
 
             return db_order
         except HTTPException:
-            db.rollback()
+            await db.rollback()
             raise
         except Exception as e:
-            db.rollback()
+            await db.rollback()
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
     @staticmethod
@@ -154,25 +157,31 @@ class OrderService:
             return
 
     @staticmethod
-    def get_order(db: Session, order_id: int):
-        order = db.query(DBOrder).filter(DBOrder.id == int(order_id)).first()
+    async def get_order(db: AsyncSession, order_id: int):
+        result = await db.execute(
+            db.query(DBOrder).filter(DBOrder.id == int(order_id))
+        )
+        order = result.scalars().first()
         if order is not None:
             OrderService._ensure_order_timestamps(order)
         return order
 
     @staticmethod
-    def list_orders(db: Session, buyer_id: Optional[int] = None, skip: int = 0, limit: int = 20):
+    async def list_orders(db: AsyncSession, buyer_id: Optional[int] = None, skip: int = 0, limit: int = 20):
         query = db.query(DBOrder)
         if buyer_id is not None:
             query = query.filter(DBOrder.buyer_id == int(buyer_id))
-        orders = query.offset(int(skip)).limit(int(limit)).all()
+        result = await db.execute(
+            query.offset(int(skip)).limit(int(limit))
+        )
+        orders = result.scalars().all()
         # Small fallback: ensure datetimes exist for Pydantic validation if DB didn't return them.
         for o in orders:
             OrderService._ensure_order_timestamps(o)
         return orders
 
     @staticmethod
-    def list_orders_by_seller(db: Session, seller_id: int, skip: int = 0, limit: int = 20):
+    async def list_orders_by_seller(db: AsyncSession, seller_id: int, skip: int = 0, limit: int = 20):
         """List orders that include items sold by the given seller (join on order_items/products)."""
         query = (
             db.query(DBOrder)
@@ -180,19 +189,25 @@ class OrderService:
             .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
             .filter(DBProduct.seller_id == int(seller_id))
         )
-        orders = query.offset(int(skip)).limit(int(limit)).all()
+        result = await db.execute(
+            query.offset(int(skip)).limit(int(limit))
+        )
+        orders = result.scalars().all()
         # Ensure timestamps for each order to avoid Pydantic validation errors
         for o in orders:
             OrderService._ensure_order_timestamps(o)
         return orders
 
     @staticmethod
-    def update_order_status(db: Session, order_id: int, new_status: str, actor_user: DBUser):
+    async def update_order_status(db: AsyncSession, order_id: int, new_status: str, actor_user: DBUser):
         """Update order status with basic permission checks.
         Sellers can update status only for orders that include their products and only to allowed transitions.
         Admins can update any order.
         """
-        db_order = db.query(DBOrder).filter(DBOrder.id == int(order_id)).first()
+        result = await db.execute(
+            db.query(DBOrder).filter(DBOrder.id == int(order_id))
+        )
+        db_order = result.scalars().first()
         if not db_order:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
@@ -204,31 +219,34 @@ class OrderService:
             if actor_id_attr is None:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid actor id")
             actor_id = int(actor_id_attr)
-            seller_match = (
+            result = await db.execute(
                 db.query(DBOrderItem)
                 .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
                 .filter(DBOrderItem.order_id == int(order_id), DBProduct.seller_id == actor_id)
-                .first()
             )
+            seller_match = result.scalars().first()
             if not seller_match:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to modify this order")
 
         setattr(cast(Any, db_order), "status", str(new_status))
-        db.commit()
-        db.refresh(db_order)
+        await db.commit()
+        await db.refresh(db_order)
         # Ensure created/updated timestamps exist before returning
         OrderService._ensure_order_timestamps(db_order)
         return db_order
 
     @staticmethod
-    def process_payment_webhook(db: Session, payment_data: Dict):
+    async def process_payment_webhook(db: AsyncSession, payment_data: Dict):
         """Process a payment provider webhook payload. Expects payment_reference and status."""
         payment_ref = payment_data.get("payment_reference")
         status_str = payment_data.get("status")
         if not payment_ref:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing payment_reference")
 
-        db_order = db.query(DBOrder).filter(DBOrder.payment_reference == payment_ref).first()
+        result = await db.execute(
+            db.query(DBOrder).filter(DBOrder.payment_reference == payment_ref)
+        )
+        db_order = result.scalars().first()
         if not db_order:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found for payment reference")
 
@@ -243,17 +261,20 @@ class OrderService:
             # keep unknown statuses as-is but record raw info if needed
             setattr(cast(Any, db_order), "status", str(status_str))
 
-        db.commit()
-        db.refresh(db_order)
+        await db.commit()
+        await db.refresh(db_order)
         OrderService._ensure_order_timestamps(db_order)
         return db_order
 
     @staticmethod
-    def initiate_refund(db: Session, order_id: int, actor_user: DBUser):
+    async def initiate_refund(db: AsyncSession, order_id: int, actor_user: DBUser):
         """Initiate refund: permission checks, set status, restock items.
         This is a logical refund; integration with payment gateway should be implemented separately.
         """
-        db_order = db.query(DBOrder).filter(DBOrder.id == int(order_id)).first()
+        result = await db.execute(
+            db.query(DBOrder).filter(DBOrder.id == int(order_id))
+        )
+        db_order = result.scalars().first()
         if not db_order:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
@@ -265,23 +286,29 @@ class OrderService:
             if actor_id_attr is None:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid actor id")
             actor_id = int(actor_id_attr)
-            seller_items = (
+            result = await db.execute(
                 db.query(DBOrderItem)
                 .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
                 .filter(DBOrderItem.order_id == int(order_id), DBProduct.seller_id == actor_id)
-                .all()
             )
+            seller_items = result.scalars().all()
             if not seller_items:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed to refund this order")
 
         # Perform refund logic: mark refunded and restock products (for items belonging to the refunding actor or all if admin)
         try:
-            items_to_handle = db.query(DBOrderItem).filter(DBOrderItem.order_id == int(order_id)).all()
+            result = await db.execute(
+                db.query(DBOrderItem).filter(DBOrderItem.order_id == int(order_id))
+            )
+            items_to_handle = result.scalars().all()
             for item in items_to_handle:
                 prod_id = getattr(item, "product_id", None)
                 if prod_id is None:
                     continue
-                prod = db.query(DBProduct).filter(DBProduct.id == prod_id).first()
+                result = await db.execute(
+                    db.query(DBProduct).filter(DBProduct.id == prod_id)
+                )
+                prod = result.scalars().first()
                 if prod:
                     prod_any = cast(Any, prod)
                     # Restock
@@ -302,10 +329,10 @@ class OrderService:
                     qty = int(getattr(item, "quantity", 0))
                     setattr(prod_any, "sold_quantity", max(current_sold - qty, 0))
             setattr(cast(Any, db_order), "status", "refunded")
-            db.commit()
-            db.refresh(db_order)
+            await db.commit()
+            await db.refresh(db_order)
             OrderService._ensure_order_timestamps(db_order)
             return db_order
         except Exception as e:
-            db.rollback()
+            await db.rollback()
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

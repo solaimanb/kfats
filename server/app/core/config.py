@@ -34,9 +34,15 @@ class Settings(BaseSettings):
     email_password: str = ""
     email_from: str = ""
 
-    # Pagination
-    default_page_size: int = 20
-    max_page_size: int = 100
+    # Logging
+    log_level: str = "INFO"
+    log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_file: str = "logs/kfats.log"
+    log_max_size: int = 10 * 1024 * 1024  # 10MB
+    log_backup_count: int = 5
+
+    # Rate Limiting
+    rate_limit_requests_per_minute: int = 60
 
     class Config:
         # Load the repository `server/.env` file regardless of CWD

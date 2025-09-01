@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models import RoleApplication as DBRoleApplication, User as DBUser
 from app.schemas import RoleApplication, RoleApplicationCreate, RoleApplicationUpdate, UserRole
@@ -10,25 +10,37 @@ class RoleService:
     """Service layer for role management operations."""
     
     @staticmethod
-    def get_application_by_id(db: Session, app_id: int) -> Optional[DBRoleApplication]:
+    async def get_application_by_id(db: AsyncSession, app_id: int) -> Optional[DBRoleApplication]:
         """Get role application by ID."""
-        return db.query(DBRoleApplication).filter(DBRoleApplication.id == app_id).first()
+        result = await db.execute(
+            db.query(DBRoleApplication).filter(DBRoleApplication.id == app_id)
+        )
+        return result.scalars().first()
     
     @staticmethod
-    def get_user_applications(db: Session, user_id: int) -> List[DBRoleApplication]:
+    async def get_user_applications(db: AsyncSession, user_id: int) -> List[DBRoleApplication]:
         """Get all applications for a user."""
-        return db.query(DBRoleApplication).filter(DBRoleApplication.user_id == user_id).all()
+        result = await db.execute(
+            db.query(DBRoleApplication).filter(DBRoleApplication.user_id == user_id)
+        )
+        return result.scalars().all()
     
     @staticmethod
-    def get_pending_applications(db: Session) -> List[DBRoleApplication]:
+    async def get_pending_applications(db: AsyncSession) -> List[DBRoleApplication]:
         """Get all pending applications."""
-        return db.query(DBRoleApplication).filter(DBRoleApplication.status == "pending").all()
+        result = await db.execute(
+            db.query(DBRoleApplication).filter(DBRoleApplication.status == "pending")
+        )
+        return result.scalars().all()
     
     @staticmethod
-    def create_application(db: Session, app_data: RoleApplicationCreate, user_id: int) -> DBRoleApplication:
+    async def create_application(db: AsyncSession, app_data: RoleApplicationCreate, user_id: int) -> DBRoleApplication:
         """Create a new role application."""
         # Check if user already has the requested role
-        user = db.query(DBUser).filter(DBUser.id == user_id).first()
+        result = await db.execute(
+            db.query(DBUser).filter(DBUser.id == user_id)
+        )
+        user = result.scalars().first()
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -42,11 +54,14 @@ class RoleService:
             )
         
         # Check for existing pending application for the same role
-        existing_app = db.query(DBRoleApplication).filter(
-            DBRoleApplication.user_id == user_id,
-            DBRoleApplication.requested_role == app_data.requested_role,
-            DBRoleApplication.status == "pending"
-        ).first()
+        result = await db.execute(
+            db.query(DBRoleApplication).filter(
+                DBRoleApplication.user_id == user_id,
+                DBRoleApplication.requested_role == app_data.requested_role,
+                DBRoleApplication.status == "pending"
+            )
+        )
+        existing_app = result.scalars().first()
         
         if existing_app:
             raise HTTPException(
@@ -55,12 +70,15 @@ class RoleService:
             )
         
         # Check for recent rejection (30-day cooldown)
-        recent_rejection = db.query(DBRoleApplication).filter(
-            DBRoleApplication.user_id == user_id,
-            DBRoleApplication.requested_role == app_data.requested_role,
-            DBRoleApplication.status == "rejected",
-            DBRoleApplication.reviewed_at >= datetime.utcnow() - timedelta(days=30)
-        ).first()
+        result = await db.execute(
+            db.query(DBRoleApplication).filter(
+                DBRoleApplication.user_id == user_id,
+                DBRoleApplication.requested_role == app_data.requested_role,
+                DBRoleApplication.status == "rejected",
+                DBRoleApplication.reviewed_at >= datetime.utcnow() - timedelta(days=30)
+            )
+        )
+        recent_rejection = result.scalars().first()
         
         if recent_rejection:
             raise HTTPException(
@@ -77,19 +95,19 @@ class RoleService:
         )
         
         db.add(db_application)
-        db.commit()
-        db.refresh(db_application)
+        await db.commit()
+        await db.refresh(db_application)
         return db_application
     
     @staticmethod
-    def review_application(
-        db: Session, 
+    async def review_application(
+        db: AsyncSession, 
         app_id: int, 
         review_data: RoleApplicationUpdate, 
         reviewer_id: int
     ) -> DBRoleApplication:
         """Review a role application."""
-        application = RoleService.get_application_by_id(db, app_id)
+        application = await RoleService.get_application_by_id(db, app_id)
         if not application:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -110,10 +128,13 @@ class RoleService:
         
         # If approved, upgrade user role
         if review_data.status == "approved":
-            user = db.query(DBUser).filter(DBUser.id == application.user_id).first()
+            result = await db.execute(
+                db.query(DBUser).filter(DBUser.id == application.user_id)
+            )
+            user = result.scalars().first()
             if user:
                 user.role = UserRole(application.requested_role)
         
-        db.commit()
-        db.refresh(application)
+        await db.commit()
+        await db.refresh(application)
         return application
