@@ -10,7 +10,7 @@ class Course(BaseModel):
     __tablename__ = "courses"
     
     title = Column(String, nullable=False, index=True)
-    description = Column(Text, nullable=False)
+    description = Column(Text, index=True, nullable=False)
     short_description = Column(String, nullable=True)
     thumbnail_url = Column(String, nullable=True)
     level = Column(SQLEnum(CourseLevel), nullable=False)
@@ -38,9 +38,9 @@ class Enrollment(Base):
     __tablename__ = "enrollments"
     
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(ForeignKey("users.id"), nullable=False)
-    course_id = Column(ForeignKey("courses.id"), nullable=False)
-    status = Column(SQLEnum(EnrollmentStatus), default=EnrollmentStatus.ACTIVE, nullable=False)
+    student_id = Column(ForeignKey("users.id"), index=True, nullable=False)
+    course_id = Column(ForeignKey("courses.id"), index=True, nullable=False)
+    status = Column(SQLEnum(EnrollmentStatus), index=True, default=EnrollmentStatus.ACTIVE, nullable=False)
     progress_percentage = Column(Float, default=0.0)
     enrolled_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)

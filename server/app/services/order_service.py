@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 from fastapi import HTTPException, status
 from app.models.product import Product as DBProduct
 from app.models.order import Order as DBOrder
@@ -171,6 +172,13 @@ class OrderService:
         query = db.query(DBOrder)
         if buyer_id is not None:
             query = query.filter(DBOrder.buyer_id == int(buyer_id))
+        
+        # Get total count
+        count_query = query.with_entities(func.count(DBOrder.id))
+        total_result = await db.execute(count_query)
+        total = total_result.scalar()
+        
+        # Get paginated results
         result = await db.execute(
             query.offset(int(skip)).limit(int(limit))
         )
@@ -178,7 +186,7 @@ class OrderService:
         # Small fallback: ensure datetimes exist for Pydantic validation if DB didn't return them.
         for o in orders:
             OrderService._ensure_order_timestamps(o)
-        return orders
+        return orders, total
 
     @staticmethod
     async def list_orders_by_seller(db: AsyncSession, seller_id: int, skip: int = 0, limit: int = 20):
@@ -189,6 +197,13 @@ class OrderService:
             .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
             .filter(DBProduct.seller_id == int(seller_id))
         )
+        
+        # Get total count
+        count_query = query.with_entities(func.count(DBOrder.id))
+        total_result = await db.execute(count_query)
+        total = total_result.scalar()
+        
+        # Get paginated results
         result = await db.execute(
             query.offset(int(skip)).limit(int(limit))
         )
@@ -196,7 +211,7 @@ class OrderService:
         # Ensure timestamps for each order to avoid Pydantic validation errors
         for o in orders:
             OrderService._ensure_order_timestamps(o)
-        return orders
+        return orders, total
 
     @staticmethod
     async def update_order_status(db: AsyncSession, order_id: int, new_status: str, actor_user: DBUser):

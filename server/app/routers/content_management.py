@@ -125,8 +125,8 @@ async def get_all_content(
                 )
             )
 
-        result = await db.execute(query)
-        type_count = len(result.scalars().all())
+        count_result = await db.execute(query.with_only_columns(func.count(model.id)))
+        type_count = count_result.scalar()
         total_count += type_count
 
         skip = (page - 1) * size
@@ -350,59 +350,59 @@ async def get_content_overview_stats(
 
     for type_name, model, status_enum in content_types:
         try:
-            result = await db.execute(db.query(model))
-            total_count = len(result.scalars().all())
+            count_result = await db.execute(db.query(func.count(model.id)))
+            total_count = count_result.scalar()
             stats["by_type"][type_name] = total_count
 
             # Count published/active content
             if hasattr(status_enum, 'PUBLISHED'):
                 try:
-                    result = await db.execute(
-                        db.query(model).filter(model.status == status_enum.PUBLISHED)
+                    count_result = await db.execute(
+                        db.query(func.count(model.id)).filter(model.status == status_enum.PUBLISHED)
                     )
-                    published_count = len(result.scalars().all())
+                    published_count = count_result.scalar()
                     stats["total_published"] += published_count
                 except Exception as e:
                     # Fallback to string comparison
                     try:
-                        result = await db.execute(
-                            db.query(model).filter(cast(model.status, String) == 'published')
+                        count_result = await db.execute(
+                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'published')
                         )
-                        published_count = len(result.scalars().all())
+                        published_count = count_result.scalar()
                         stats["total_published"] += published_count
                     except Exception as e2:
                         print(f"Error querying {type_name} PUBLISHED: {e} | fallback: {e2}")
             elif hasattr(status_enum, 'ACTIVE'):
                 try:
-                    result = await db.execute(
-                        db.query(model).filter(model.status == status_enum.ACTIVE)
+                    count_result = await db.execute(
+                        db.query(func.count(model.id)).filter(model.status == status_enum.ACTIVE)
                     )
-                    active_count = len(result.scalars().all())
+                    active_count = count_result.scalar()
                     stats["total_published"] += active_count
                 except Exception as e:
                     try:
-                        result = await db.execute(
-                            db.query(model).filter(cast(model.status, String) == 'active')
+                        count_result = await db.execute(
+                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'active')
                         )
-                        active_count = len(result.scalars().all())
+                        active_count = count_result.scalar()
                         stats["total_published"] += active_count
                     except Exception as e2:
                         print(f"Error querying {type_name} ACTIVE: {e} | fallback: {e2}")
 
             if hasattr(status_enum, 'DRAFT'):
                 try:
-                    result = await db.execute(
-                        db.query(model).filter(model.status == status_enum.DRAFT)
+                    count_result = await db.execute(
+                        db.query(func.count(model.id)).filter(model.status == status_enum.DRAFT)
                     )
-                    draft_count = len(result.scalars().all())
+                    draft_count = count_result.scalar()
                     stats["total_drafts"] += draft_count
                     stats["total_unpublished"] += draft_count
                 except Exception as e:
                     try:
-                        result = await db.execute(
-                            db.query(model).filter(cast(model.status, String) == 'draft')
+                        count_result = await db.execute(
+                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'draft')
                         )
-                        draft_count = len(result.scalars().all())
+                        draft_count = count_result.scalar()
                         stats["total_drafts"] += draft_count
                         stats["total_unpublished"] += draft_count
                     except Exception as e2:
@@ -411,17 +411,17 @@ async def get_content_overview_stats(
             # Count archived content
             if hasattr(status_enum, 'ARCHIVED'):
                 try:
-                    result = await db.execute(
-                        db.query(model).filter(model.status == status_enum.ARCHIVED)
+                    count_result = await db.execute(
+                        db.query(func.count(model.id)).filter(model.status == status_enum.ARCHIVED)
                     )
-                    archived_count = len(result.scalars().all())
+                    archived_count = count_result.scalar()
                     stats["total_archived"] += archived_count
                 except Exception as e:
                     try:
-                        result = await db.execute(
-                            db.query(model).filter(cast(model.status, String) == 'archived')
+                        count_result = await db.execute(
+                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'archived')
                         )
-                        archived_count = len(result.scalars().all())
+                        archived_count = count_result.scalar()
                         stats["total_archived"] += archived_count
                     except Exception as e2:
                         print(f"Error querying {type_name} ARCHIVED: {e} | fallback: {e2}")
@@ -429,27 +429,27 @@ async def get_content_overview_stats(
             # Count out of stock products as unpublished
             if hasattr(status_enum, 'OUT_OF_STOCK'):
                 try:
-                    result = await db.execute(
-                        db.query(model).filter(model.status == status_enum.OUT_OF_STOCK)
+                    count_result = await db.execute(
+                        db.query(func.count(model.id)).filter(model.status == status_enum.OUT_OF_STOCK)
                     )
-                    oos_count = len(result.scalars().all())
+                    oos_count = count_result.scalar()
                     stats["total_unpublished"] += oos_count
                 except Exception as e:
                     try:
-                        result = await db.execute(
-                            db.query(model).filter(cast(model.status, String) == 'out_of_stock')
+                        count_result = await db.execute(
+                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'out_of_stock')
                         )
-                        oos_count = len(result.scalars().all())
+                        oos_count = count_result.scalar()
                         stats["total_unpublished"] += oos_count
                     except Exception as e2:
                         print(f"Error querying {type_name} OUT_OF_STOCK: {e} | fallback: {e2}")
 
             # Featured content
             try:
-                result = await db.execute(
-                    db.query(model).filter(model.is_featured == True)
+                count_result = await db.execute(
+                    db.query(func.count(model.id)).filter(model.is_featured == True)
                 )
-                featured_count = len(result.scalars().all())
+                featured_count = count_result.scalar()
                 stats["total_featured"] += featured_count
             except Exception as e:
                 print(f"Error querying {type_name} featured: {e}")

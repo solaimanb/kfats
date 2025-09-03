@@ -1,12 +1,13 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_async_db
 from app.models.article import Article as DBArticle
 from app.models.user import User as DBUser
 from app.schemas.article import Article, ArticleCreate, ArticleUpdate
-from app.schemas.common import ArticleStatus, UserRole, SuccessResponse
+from app.schemas.common import ArticleStatus, UserRole, SuccessResponse, PaginatedResponse
 from app.schemas.user import User
 from app.core.dependencies import get_current_active_user, get_writer_or_admin
 
@@ -38,15 +39,15 @@ async def create_article(
     return Article.model_validate(db_article)
 
 
-@router.get("/", response_model=List[Article])
+@router.get("/", response_model=PaginatedResponse[Article])
 async def get_articles(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     status: Optional[ArticleStatus] = None,
     author_id: Optional[int] = None,
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get list of articles."""
+    """Get paginated list of articles."""
     
     query = db.query(DBArticle)
     
@@ -56,25 +57,54 @@ async def get_articles(
     if author_id:
         query = query.filter(DBArticle.author_id == author_id)
     
-    result = await db.execute(
-        query.offset(skip).limit(limit)
-    )
+    # Get total count
+    count_query = query.with_entities(func.count(DBArticle.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    skip = (page - 1) * size
+    result = await db.execute(query.offset(skip).limit(size))
     articles = result.scalars().all()
-    return [Article.model_validate(article) for article in articles]
+    
+    return PaginatedResponse(
+        items=[Article.model_validate(article) for article in articles],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
-@router.get("/my-articles", response_model=List[Article])
+@router.get("/my-articles", response_model=PaginatedResponse[Article])
 async def get_my_articles(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_writer_or_admin),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get articles created by current writer."""
+    """Get paginated articles created by current writer."""
     
-    result = await db.execute(
-        db.query(DBArticle).filter(DBArticle.author_id == current_user.id)
-    )
+    # Build base query
+    query = db.query(DBArticle).filter(DBArticle.author_id == current_user.id)
+    
+    # Get total count
+    count_query = query.with_entities(func.count(DBArticle.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    skip = (page - 1) * size
+    result = await db.execute(query.offset(skip).limit(size))
     articles = result.scalars().all()
-    return [Article.model_validate(article) for article in articles]
+    
+    return PaginatedResponse(
+        items=[Article.model_validate(article) for article in articles],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
 @router.get("/{article_id}", response_model=Article)

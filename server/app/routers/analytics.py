@@ -1,8 +1,7 @@
-from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, and_, or_
-from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, and_
+from fastapi import APIRouter, Depends
 from app.core.database import get_async_db
 from app.core.dependencies import get_current_active_user, require_role
 from app.models.user import User as DBUser
@@ -24,37 +23,37 @@ async def get_overview_analytics(
     """Get system overview analytics."""
     
     # Basic counts
-    total_users_result = await db.execute(db.query(DBUser))
-    total_users = len(total_users_result.scalars().all())
+    total_users_result = await db.execute(db.query(func.count(DBUser.id)))
+    total_users = total_users_result.scalar()
     
-    total_courses_result = await db.execute(db.query(DBCourse))
-    total_courses = len(total_courses_result.scalars().all())
+    total_courses_result = await db.execute(db.query(func.count(DBCourse.id)))
+    total_courses = total_courses_result.scalar()
     
-    total_articles_result = await db.execute(db.query(DBArticle))
-    total_articles = len(total_articles_result.scalars().all())
+    total_articles_result = await db.execute(db.query(func.count(DBArticle.id)))
+    total_articles = total_articles_result.scalar()
     
-    total_products_result = await db.execute(db.query(DBProduct))
-    total_products = len(total_products_result.scalars().all())
+    total_products_result = await db.execute(db.query(func.count(DBProduct.id)))
+    total_products = total_products_result.scalar()
     
-    total_enrollments_result = await db.execute(db.query(DBEnrollment))
-    total_enrollments = len(total_enrollments_result.scalars().all())
+    total_enrollments_result = await db.execute(db.query(func.count(DBEnrollment.id)))
+    total_enrollments = total_enrollments_result.scalar()
     
     # Recent activity (last 30 days)
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     new_users_result = await db.execute(
-        db.query(DBUser).filter(DBUser.created_at >= thirty_days_ago)
+        db.query(func.count(DBUser.id)).filter(DBUser.created_at >= thirty_days_ago)
     )
-    new_users_this_month = len(new_users_result.scalars().all())
+    new_users_this_month = new_users_result.scalar()
     
     new_courses_result = await db.execute(
-        db.query(DBCourse).filter(DBCourse.created_at >= thirty_days_ago)
+        db.query(func.count(DBCourse.id)).filter(DBCourse.created_at >= thirty_days_ago)
     )
-    new_courses_this_month = len(new_courses_result.scalars().all())
+    new_courses_this_month = new_courses_result.scalar()
     
     new_articles_result = await db.execute(
-        db.query(DBArticle).filter(DBArticle.created_at >= thirty_days_ago)
+        db.query(func.count(DBArticle.id)).filter(DBArticle.created_at >= thirty_days_ago)
     )
-    new_articles_this_month = len(new_articles_result.scalars().all())
+    new_articles_this_month = new_articles_result.scalar()
     
     # User role distribution
     user_roles_result = await db.execute(
@@ -122,17 +121,17 @@ async def get_user_analytics(
     # Active users (logged in within last 30 days)
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     active_users_result = await db.execute(
-        db.query(DBUser).filter(
+        db.query(func.count(DBUser.id)).filter(
             and_(
                 DBUser.last_login.isnot(None),
                 DBUser.last_login >= thirty_days_ago
             )
         )
     )
-    active_users = len(active_users_result.scalars().all())
+    active_users = active_users_result.scalar()
     
-    total_users_result = await db.execute(db.query(DBUser))
-    total_users = len(total_users_result.scalars().all())
+    total_users_result = await db.execute(db.query(func.count(DBUser.id)))
+    total_users = total_users_result.scalar()
     
     return {
         "status_distribution": status_distribution,
@@ -151,13 +150,13 @@ async def get_course_analytics(
     """Get course performance analytics."""
     
     # Basic course stats
-    total_courses_result = await db.execute(db.query(DBCourse))
-    total_courses = len(total_courses_result.scalars().all())
+    total_courses_result = await db.execute(db.query(func.count(DBCourse.id)))
+    total_courses = total_courses_result.scalar()
     
     published_courses_result = await db.execute(
-        db.query(DBCourse).filter(DBCourse.status == CourseStatus.PUBLISHED)
+        db.query(func.count(DBCourse.id)).filter(DBCourse.status == CourseStatus.PUBLISHED)
     )
-    published_courses = len(published_courses_result.scalars().all())
+    published_courses = published_courses_result.scalar()
     
     # Enrollment trends
     enrollment_trends_result = await db.execute(
@@ -231,8 +230,8 @@ async def get_course_analytics(
     else:
         mentor_performance = []
     
-    total_enrollments_result = await db.execute(db.query(DBEnrollment))
-    total_enrollments = len(total_enrollments_result.scalars().all())
+    total_enrollments_result = await db.execute(db.query(func.count(DBEnrollment.id)))
+    total_enrollments = total_enrollments_result.scalar()
     
     return {
         "overview": {
@@ -255,13 +254,13 @@ async def get_article_analytics(
     """Get article and content analytics."""
     
     # Basic article stats
-    total_articles_result = await db.execute(db.query(DBArticle))
-    total_articles = len(total_articles_result.scalars().all())
+    total_articles_result = await db.execute(db.query(func.count(DBArticle.id)))
+    total_articles = total_articles_result.scalar()
     
     published_articles_result = await db.execute(
-        db.query(DBArticle).filter(DBArticle.status == ArticleStatus.PUBLISHED)
+        db.query(func.count(DBArticle.id)).filter(DBArticle.status == ArticleStatus.PUBLISHED)
     )
-    published_articles = len(published_articles_result.scalars().all())
+    published_articles = published_articles_result.scalar()
     
     total_views_result = await db.execute(
         db.query(func.sum(DBArticle.views_count))
@@ -339,13 +338,13 @@ async def get_product_analytics(
     """Get product and marketplace analytics."""
     
     # Basic product stats
-    total_products_result = await db.execute(db.query(DBProduct))
-    total_products = len(total_products_result.scalars().all())
+    total_products_result = await db.execute(db.query(func.count(DBProduct.id)))
+    total_products = total_products_result.scalar()
     
     active_products_result = await db.execute(
-        db.query(DBProduct).filter(DBProduct.status == ProductStatus.ACTIVE)
+        db.query(func.count(DBProduct.id)).filter(DBProduct.status == ProductStatus.ACTIVE)
     )
-    active_products = len(active_products_result.scalars().all())
+    active_products = active_products_result.scalar()
     
     # Inventory value
     total_inventory_value_result = await db.execute(

@@ -10,7 +10,7 @@ class Article(BaseModel):
     
     title = Column(String, nullable=False, index=True)
     content = Column(Text, nullable=False)
-    excerpt = Column(String, nullable=True)
+    excerpt = Column(String, index=True, nullable=True)
     featured_image_url = Column(String, nullable=True)
     tags = Column(JSON, nullable=True)
     status = Column(SQLEnum(ArticleStatus), default=ArticleStatus.DRAFT, nullable=False)

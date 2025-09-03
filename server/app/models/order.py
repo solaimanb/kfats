@@ -7,9 +7,9 @@ class Order(BaseModel):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
-    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    seller_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    status = Column(String, nullable=False)
+    buyer_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    seller_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=True)
+    status = Column(String, index=True, nullable=False)
     total_amount = Column(Float, nullable=False)
     payment_reference = Column(String, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

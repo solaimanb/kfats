@@ -14,7 +14,7 @@ class User(BaseModel):
     
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
-    full_name = Column(String, nullable=False)
+    full_name = Column(String, index=True, nullable=False)
     phone = Column(String, nullable=True)
     bio = Column(Text, nullable=True)
     avatar_url = Column(String, nullable=True)
@@ -67,9 +67,9 @@ class RoleApplication(BaseModel):
     """Role application database model."""
     __tablename__ = "role_applications"
     
-    user_id = Column(ForeignKey("users.id"), nullable=False)
-    requested_role = Column(String, nullable=False)  # mentor, seller, writer
-    status = Column(String, default="pending", nullable=False)  # pending, approved, rejected
+    user_id = Column(ForeignKey("users.id"), index=True, nullable=False)
+    requested_role = Column(String, index=True, nullable=False)  # mentor, seller, writer
+    status = Column(String, index=True, default="pending", nullable=False)  # pending, approved, rejected
     reason = Column(Text, nullable=False)  # User's application reason
     application_data = Column(String, nullable=True)  # JSON string for additional details
     admin_notes = Column(Text, nullable=True)  # Admin review notes

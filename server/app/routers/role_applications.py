@@ -94,21 +94,41 @@ async def apply_for_role(
     )
 
 
-@router.get("/my-applications", response_model=List[RoleApplication])
+@router.get("/my-applications", response_model=PaginatedResponse[RoleApplication])
 async def get_my_applications(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     current_user: DBUser = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get current user's role applications."""
+    """Get paginated list of current user's role applications."""
     
+    # Build base query
+    query = db.query(DBRoleApplication).filter(
+        DBRoleApplication.user_id == current_user.id
+    )
+    
+    # Get total count
+    from sqlalchemy import func
+    count_query = query.with_entities(func.count(DBRoleApplication.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    skip = (page - 1) * size
     applications_result = await db.execute(
-        db.query(DBRoleApplication).filter(
-            DBRoleApplication.user_id == current_user.id
-        ).order_by(DBRoleApplication.applied_at.desc())
+        query.order_by(DBRoleApplication.applied_at.desc())
+        .offset(skip).limit(size)
     )
     applications = applications_result.scalars().all()
     
-    return applications
+    return PaginatedResponse(
+        items=[RoleApplication.model_validate(app) for app in applications],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
 @router.get("/", response_model=PaginatedResponse[RoleApplication])
@@ -136,8 +156,10 @@ async def get_all_applications(
         query = query.filter(DBRoleApplication.requested_role == role)
     
     # Get total count
-    total_result = await db.execute(query.with_only_columns([DBRoleApplication.id]))
-    total = len(total_result.scalars().all())
+    from sqlalchemy import func
+    count_query = query.with_entities(func.count(DBRoleApplication.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
     
     # Get paginated results
     applications_result = await db.execute(
@@ -164,17 +186,17 @@ async def get_all_applications(
     )
 
 
-@router.get("/all", response_model=List[RoleApplication])
+@router.get("/all", response_model=PaginatedResponse[RoleApplication])
 async def get_all_applications_simple(
     status: Optional[RoleApplicationStatus] = Query(None, description="Filter by status"),
     role: Optional[ApplicationableRole] = Query(None, description="Filter by requested role"),
-    skip: int = Query(0, ge=0, description="Number of applications to skip"),
-    limit: int = Query(20, ge=1, le=100, description="Number of applications to return"),
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(20, ge=1, le=100, description="Page size"),
     current_user: DBUser = Depends(require_role(UserRole.ADMIN)),
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    Get all role applications with skip/limit pagination (Admin only).
+    Get all role applications with page/size pagination (Admin only).
     This endpoint matches the client API expectations.
     """
     
@@ -188,9 +210,17 @@ async def get_all_applications_simple(
     if role:
         query = query.filter(DBRoleApplication.requested_role == role)
     
+    # Get total count
+    from sqlalchemy import func
+    count_query = query.with_entities(func.count(DBRoleApplication.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    skip = (page - 1) * size
     applications_result = await db.execute(
         query.order_by(DBRoleApplication.applied_at.desc())
-        .offset(skip).limit(limit)
+        .offset(skip).limit(size)
     )
     applications = applications_result.scalars().all()
     
@@ -203,7 +233,13 @@ async def get_all_applications_simple(
             app_data.reviewed_by_user = app.reviewer
         result.append(app_data)
     
-    return result
+    return PaginatedResponse(
+        items=result,
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
 @router.put("/{application_id}/review", response_model=SuccessResponse)
@@ -269,38 +305,44 @@ async def get_applications_stats(
 ):
     """Get role application statistics (Admin only)."""
     
-    total_result = await db.execute(db.query(DBRoleApplication))
-    total_applications = len(total_result.scalars().all())
+    from sqlalchemy import func
     
+    # Get total count
+    total_result = await db.execute(db.query(func.count(DBRoleApplication.id)))
+    total_applications = total_result.scalar()
+    
+    # Get pending count
     pending_result = await db.execute(
-        db.query(DBRoleApplication).filter(
+        db.query(func.count(DBRoleApplication.id)).filter(
             DBRoleApplication.status == RoleApplicationStatus.PENDING
         )
     )
-    pending_applications = len(pending_result.scalars().all())
+    pending_applications = pending_result.scalar()
     
+    # Get approved count
     approved_result = await db.execute(
-        db.query(DBRoleApplication).filter(
+        db.query(func.count(DBRoleApplication.id)).filter(
             DBRoleApplication.status == RoleApplicationStatus.APPROVED
         )
     )
-    approved_applications = len(approved_result.scalars().all())
+    approved_applications = approved_result.scalar()
     
+    # Get rejected count
     rejected_result = await db.execute(
-        db.query(DBRoleApplication).filter(
+        db.query(func.count(DBRoleApplication.id)).filter(
             DBRoleApplication.status == RoleApplicationStatus.REJECTED
         )
     )
-    rejected_applications = len(rejected_result.scalars().all())
+    rejected_applications = rejected_result.scalar()
     
     role_stats = {}
     for role in ApplicationableRole:
         role_result = await db.execute(
-            db.query(DBRoleApplication).filter(
+            db.query(func.count(DBRoleApplication.id)).filter(
                 DBRoleApplication.requested_role == role
             )
         )
-        count = len(role_result.scalars().all())
+        count = role_result.scalar()
         role_stats[role.value] = count
     
     return {

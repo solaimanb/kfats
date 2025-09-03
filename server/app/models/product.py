@@ -9,7 +9,7 @@ class Product(BaseModel):
     __tablename__ = "products"
     
     name = Column(String, nullable=False, index=True)
-    description = Column(Text, nullable=False)
+    description = Column(Text, index=True, nullable=False)
     price = Column(Float, nullable=False)
     category = Column(SQLEnum(ProductCategory), nullable=False)
     image_urls = Column(JSON, nullable=True)

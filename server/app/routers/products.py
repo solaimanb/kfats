@@ -137,17 +137,37 @@ async def get_products(
     )
 
 
-@router.get("/my-products", response_model=List[Product])
+@router.get("/my-products", response_model=PaginatedResponse[Product])
 async def get_my_products(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_seller_or_admin),
     db: AsyncSession = Depends(get_async_db),
 ):
-    """Get products created by current seller."""
+    """Get paginated products created by current seller."""
 
-    stmt = select(DBProduct).where(DBProduct.seller_id == current_user.id)
+    # Build base query
+    query = select(DBProduct).where(DBProduct.seller_id == current_user.id)
+    
+    # Get total count
+    count_stmt = select(func.count()).select_from(DBProduct).where(DBProduct.seller_id == current_user.id)
+    total = await db.scalar(count_stmt) or 0
+    
+    # Apply pagination
+    skip = (page - 1) * size
+    stmt = select(DBProduct).where(DBProduct.seller_id == current_user.id).offset(skip).limit(size)
     res = await db.execute(stmt)
     products = res.scalars().all()
-    return [Product.model_validate(product) for product in products]
+    
+    pages = math.ceil(total / size) if size > 0 else 1
+    
+    return PaginatedResponse(
+        items=[Product.model_validate(product) for product in products],
+        total=int(total),
+        page=page,
+        size=size,
+        pages=pages,
+    )
 
 
 @router.get("/{product_id}", response_model=Product)
@@ -310,14 +330,34 @@ async def delete_product(
     )
 
 
-@router.get("/category/{category}", response_model=List[Product])
+@router.get("/category/{category}", response_model=PaginatedResponse[Product])
 async def get_products_by_category(
-    category: ProductCategory, db: AsyncSession = Depends(get_async_db)
+    category: ProductCategory,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_async_db)
 ):
-    """Get products by category."""
-    stmt = select(DBProduct).where(
-        DBProduct.category == category, DBProduct.status == ProductStatus.ACTIVE
-    )
+    """Get paginated products by category."""
+    
+    # Build base query
+    where_clauses = [DBProduct.category == category, DBProduct.status == ProductStatus.ACTIVE]
+    
+    # Get total count
+    count_stmt = select(func.count()).select_from(DBProduct).where(*where_clauses)
+    total = await db.scalar(count_stmt) or 0
+    
+    # Apply pagination
+    skip = (page - 1) * size
+    stmt = select(DBProduct).where(*where_clauses).offset(skip).limit(size)
     res = await db.execute(stmt)
     products = res.scalars().all()
-    return [Product.model_validate(product) for product in products]
+    
+    pages = math.ceil(total / size) if size > 0 else 1
+    
+    return PaginatedResponse(
+        items=[Product.model_validate(product) for product in products],
+        total=int(total),
+        page=page,
+        size=size,
+        pages=pages,
+    )

@@ -28,10 +28,10 @@ async def get_mentor_overview(
     db: AsyncSession = Depends(get_async_db)
 ):
     # Total courses
-    result = await db.execute(
-        db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id)
+    count_result = await db.execute(
+        db.query(func.count(DBCourse.id)).filter(DBCourse.mentor_id == current_user.id)
     )
-    total_courses = len(result.scalars().all())
+    total_courses = count_result.scalar()
 
     # Total students (distinct across mentor's courses)
     result = await db.execute(
@@ -144,6 +144,20 @@ async def get_mentor_students(
     current_user: User = Depends(get_mentor_or_admin),
     db: AsyncSession = Depends(get_async_db)
 ):
+    # Get total count for pagination
+    count_query = (
+        db.query(func.count(DBEnrollment.id))
+        .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
+        .join(DBUser, DBEnrollment.student_id == DBUser.id)
+        .filter(DBCourse.mentor_id == current_user.id)
+    )
+    if course_id:
+        count_query = count_query.filter(DBEnrollment.course_id == course_id)
+    
+    count_result = await db.execute(count_query)
+    total = count_result.scalar()
+
+    # Apply pagination at database level
     query = (
         db.query(DBEnrollment, DBUser, DBCourse)
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
@@ -154,17 +168,16 @@ async def get_mentor_students(
     if course_id:
         query = query.filter(DBEnrollment.course_id == course_id)
 
-    result = await db.execute(query)
+    # Apply database-level pagination
+    result = await db.execute(
+        query.order_by(DBEnrollment.enrolled_at.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
     items = result.all()
-    total = len(items)
-
-    # Apply pagination in Python since we can't use offset/limit with joined queries easily
-    start_idx = (page - 1) * size
-    end_idx = start_idx + size
-    paginated_items = items[start_idx:end_idx]
 
     results: List[MentorStudentItem] = []
-    for enrollment, student, course in paginated_items:
+    for enrollment, student, course in items:
         try:
             status_value = (
                 enrollment.status.value if hasattr(enrollment.status, 'value') else str(enrollment.status)

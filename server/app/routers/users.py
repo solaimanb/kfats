@@ -101,9 +101,15 @@ async def get_users(
             )
         )
     
-    result = await db.execute(query)
+    # Get total count
+    from sqlalchemy import func
+    count_query = query.with_entities(func.count(DBUser.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    result = await db.execute(query.offset(skip).limit(limit))
     users = result.scalars().all()
-    total = len(users)
     
     page = (skip // limit) + 1
     pages = (total + limit - 1) // limit

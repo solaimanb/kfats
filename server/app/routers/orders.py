@@ -1,9 +1,11 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 from app.core.database import get_async_db
 from app.core.dependencies import get_current_active_user, get_seller_or_admin, require_roles
 from app.schemas.order import OrderCreate, Order
+from app.schemas.common import PaginatedResponse
 from app.services.order_service import OrderService
 from app.models.user import User as DBUser
 from app.schemas.user import User, User as UserSchema
@@ -33,17 +35,41 @@ async def get_order(order_id: int, db: AsyncSession = Depends(get_async_db), cur
     return Order.model_validate(order)
 
 
-@router.get("/", response_model=List[Order])
-async def list_orders(skip: int = 0, limit: int = 20, db: AsyncSession = Depends(get_async_db), current_user: User = Depends(get_current_active_user)):
-    orders = await OrderService.list_orders(db, buyer_id=current_user.id, skip=skip, limit=limit)
-    return [Order.model_validate(o) for o in orders]
+@router.get("/", response_model=PaginatedResponse[Order])
+async def list_orders(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    skip = (page - 1) * size
+    orders, total = await OrderService.list_orders(db, buyer_id=current_user.id, skip=skip, limit=size)
+    return PaginatedResponse(
+        items=[Order.model_validate(o) for o in orders],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
-@router.get("/seller/", response_model=List[Order])
-async def get_seller_orders(skip: int = 0, limit: int = 20, db: AsyncSession = Depends(get_async_db), current_user: User = Depends(get_seller_or_admin)):
+@router.get("/seller/", response_model=PaginatedResponse[Order])
+async def get_seller_orders(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_seller_or_admin)
+):
     # current_user is a pydantic User schema; use id
-    orders = await OrderService.list_orders_by_seller(db, seller_id=current_user.id, skip=skip, limit=limit)
-    return [Order.model_validate(o) for o in orders]
+    skip = (page - 1) * size
+    orders, total = await OrderService.list_orders_by_seller(db, seller_id=current_user.id, skip=skip, limit=size)
+    return PaginatedResponse(
+        items=[Order.model_validate(o) for o in orders],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
 @router.put("/{order_id}/status", response_model=Order)

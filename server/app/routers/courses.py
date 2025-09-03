@@ -1,5 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from app.core.database import get_async_db
@@ -46,13 +47,20 @@ async def get_courses(
     db: AsyncSession = Depends(get_async_db)
 ):
     """Get paginated list of published courses."""
+    # Build base query
     query = db.query(DBCourse).filter(DBCourse.status == CourseStatus.PUBLISHED)
     if mentor_id:
         query = query.filter(DBCourse.mentor_id == mentor_id)
     
-    result = await db.execute(query)
+    # Get total count
+    count_query = query.with_entities(func.count(DBCourse.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    skip = (page - 1) * size
+    result = await db.execute(query.offset(skip).limit(size))
     items = result.scalars().all()
-    total = len(items)
     
     return PaginatedResponse(
         items=[Course.model_validate(c) for c in items],
@@ -63,18 +71,35 @@ async def get_courses(
     )
 
 
-@router.get("/my-courses", response_model=List[Course])
+@router.get("/my-courses", response_model=PaginatedResponse[Course])
 async def get_my_courses(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_mentor_or_admin),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get courses created by current mentor."""
+    """Get paginated list of courses created by current mentor."""
     
-    result = await db.execute(
-        db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id)
-    )
+    # Build base query
+    query = db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id)
+    
+    # Get total count
+    count_query = query.with_entities(func.count(DBCourse.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    skip = (page - 1) * size
+    result = await db.execute(query.offset(skip).limit(size))
     courses = result.scalars().all()
-    return [Course.model_validate(course) for course in courses]
+    
+    return PaginatedResponse(
+        items=[Course.model_validate(course) for course in courses],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
 @router.get("/{course_id}", response_model=Course)
@@ -237,13 +262,15 @@ async def enroll_in_course(
         )
 
 
-@router.get("/{course_id}/enrollments", response_model=List[Enrollment])
+@router.get("/{course_id}/enrollments", response_model=PaginatedResponse[Enrollment])
 async def get_course_enrollments(
     course_id: int,
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_mentor_or_admin),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get course enrollments (Mentor/Admin only)."""
+    """Get paginated course enrollments (Mentor/Admin only)."""
     
     # Check if course exists and user has access
     result = await db.execute(
@@ -262,24 +289,57 @@ async def get_course_enrollments(
             detail="Access denied"
         )
     
-    result = await db.execute(
-        db.query(DBEnrollment).filter(DBEnrollment.course_id == course_id)
-    )
+    # Build base query
+    query = db.query(DBEnrollment).filter(DBEnrollment.course_id == course_id)
+    
+    # Get total count
+    count_query = query.with_entities(func.count(DBEnrollment.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    skip = (page - 1) * size
+    result = await db.execute(query.offset(skip).limit(size))
     enrollments = result.scalars().all()
-    return [Enrollment.model_validate(enrollment) for enrollment in enrollments]
+    
+    return PaginatedResponse(
+        items=[Enrollment.model_validate(enrollment) for enrollment in enrollments],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
-@router.get("/my-enrollments", response_model=List[Enrollment])
+@router.get("/my-enrollments", response_model=PaginatedResponse[Enrollment])
 async def get_my_enrollments(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get enrollments for the current student/user."""
-    result = await db.execute(
-        db.query(DBEnrollment).filter(DBEnrollment.student_id == current_user.id)
-    )
+    """Get paginated enrollments for the current student/user."""
+    
+    # Build base query
+    query = db.query(DBEnrollment).filter(DBEnrollment.student_id == current_user.id)
+    
+    # Get total count
+    count_query = query.with_entities(func.count(DBEnrollment.id))
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+    
+    # Apply pagination
+    skip = (page - 1) * size
+    result = await db.execute(query.offset(skip).limit(size))
     enrollments = result.scalars().all()
-    return [Enrollment.model_validate(e) for e in enrollments]
+    
+    return PaginatedResponse(
+        items=[Enrollment.model_validate(e) for e in enrollments],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
 
 
 class EnrollmentProgressUpdate(BaseModel):
