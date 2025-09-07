@@ -3,17 +3,20 @@ Database seeding script for KFATS LMS
 Creates initial admin user and sample data.
 """
 
-from sqlalchemy.orm import Session
-from app.core.database import SessionLocal, create_tables
+import asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.core.database import AsyncSessionLocal, create_tables_async
 from app.models.user import User as DBUser
 from app.schemas.common import UserRole, UserStatus
 from app.core.security import get_password_hash
 
 
-def create_admin_user(db: Session):
+async def create_admin_user(db: AsyncSession):
     """Create default admin user."""
     admin_email = "admin@kfats.edu"
-    admin_user = db.query(DBUser).filter(DBUser.email == admin_email).first()
+    result = await db.execute(select(DBUser).where(DBUser.email == admin_email))
+    admin_user = result.scalars().first()
     
     if not admin_user:
         admin_user = DBUser(
@@ -31,7 +34,7 @@ def create_admin_user(db: Session):
         print(f"ℹ️  Admin user already exists: {admin_email}")
 
 
-def create_sample_users(db: Session):
+async def create_sample_users(db: AsyncSession):
     """Create sample users for testing."""
     sample_users = [
         {
@@ -65,7 +68,8 @@ def create_sample_users(db: Session):
     ]
     
     for user_data in sample_users:
-        existing_user = db.query(DBUser).filter(DBUser.email == user_data["email"]).first()
+        result = await db.execute(select(DBUser).where(DBUser.email == user_data["email"]))
+        existing_user = result.scalars().first()
         if not existing_user:
             user = DBUser(
                 email=user_data["email"],
@@ -83,39 +87,38 @@ def create_sample_users(db: Session):
     db.commit()
 
 
-def seed_database():
+async def seed_database():
     """Main seeding function."""
     print("🌱 Starting database seeding...")
     
     # Create tables
-    create_tables()
+    await create_tables_async()
     print("✅ Database tables created/verified")
     
     # Create database session
-    db = SessionLocal()
-    
-    try:
-        # Create admin user
-        create_admin_user(db)
-        
-        # Create sample users
-        create_sample_users(db)
-        
-        print("🎉 Database seeding completed successfully!")
-        print("\n📝 Sample credentials:")
-        print("Admin: admin@kfats.edu / admin123")
-        print("Mentor: mentor@kfats.edu / mentor123")
-        print("Student: student@kfats.edu / student123")
-        print("Writer: writer@kfats.edu / writer123")
-        print("Seller: seller@kfats.edu / seller123")
-        print("\n⚠️  Please change these passwords in production!")
-        
-    except Exception as e:
-        print(f"❌ Error during seeding: {e}")
-        db.rollback()
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as db:
+        try:
+            # Create admin user
+            await create_admin_user(db)
+            
+            # Create sample users
+            await create_sample_users(db)
+            
+            print("🎉 Database seeding completed successfully!")
+            print("\n📝 Sample credentials:")
+            print("Admin: admin@kfats.edu / admin123")
+            print("Mentor: mentor@kfats.edu / mentor123")
+            print("Student: student@kfats.edu / student123")
+            print("Writer: writer@kfats.edu / writer123")
+            print("Seller: seller@kfats.edu / seller123")
+            print("\n⚠️  Please change these passwords in production!")
+            
+        except Exception as e:
+            print(f"❌ Error during seeding: {e}")
+            await db.rollback()
+        finally:
+            await db.close()
 
 
 if __name__ == "__main__":
-    seed_database()
+    asyncio.run(seed_database())

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-from sqlalchemy import and_
+from sqlalchemy import and_, select, func
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_async_db
 from app.models.user import User as DBUser, RoleApplication as DBRoleApplication
@@ -41,7 +41,7 @@ async def apply_for_role(
         )
     
     existing_application_result = await db.execute(
-        db.query(DBRoleApplication).filter(
+        select(DBRoleApplication).where(
             and_(
                 DBRoleApplication.user_id == current_user.id,
                 DBRoleApplication.requested_role == application_data.requested_role,
@@ -58,7 +58,7 @@ async def apply_for_role(
         )
     
     recent_rejection_result = await db.execute(
-        db.query(DBRoleApplication).filter(
+        select(DBRoleApplication).where(
             and_(
                 DBRoleApplication.user_id == current_user.id,
                 DBRoleApplication.requested_role == application_data.requested_role,
@@ -104,20 +104,23 @@ async def get_my_applications(
     """Get paginated list of current user's role applications."""
     
     # Build base query
-    query = db.query(DBRoleApplication).filter(
+    query = select(DBRoleApplication).where(
         DBRoleApplication.user_id == current_user.id
     )
     
     # Get total count
-    from sqlalchemy import func
-    count_query = query.with_entities(func.count(DBRoleApplication.id))
+    count_query = select(func.count(DBRoleApplication.id)).where(
+        DBRoleApplication.user_id == current_user.id
+    )
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
     # Apply pagination
     skip = (page - 1) * size
     applications_result = await db.execute(
-        query.order_by(DBRoleApplication.applied_at.desc())
+        select(DBRoleApplication)
+        .where(DBRoleApplication.user_id == current_user.id)
+        .order_by(DBRoleApplication.applied_at.desc())
         .offset(skip).limit(size)
     )
     applications = applications_result.scalars().all()
@@ -145,19 +148,22 @@ async def get_all_applications(
     Supports filtering by status and role.
     """
     
-    query = db.query(DBRoleApplication).options(
+    query = select(DBRoleApplication).options(
         joinedload(DBRoleApplication.applicant),
         joinedload(DBRoleApplication.reviewer)
     )
     
     if status:
-        query = query.filter(DBRoleApplication.status == status)
+        query = query.where(DBRoleApplication.status == status)
     if role:
-        query = query.filter(DBRoleApplication.requested_role == role)
+        query = query.where(DBRoleApplication.requested_role == role)
     
     # Get total count
-    from sqlalchemy import func
-    count_query = query.with_entities(func.count(DBRoleApplication.id))
+    count_query = select(func.count(DBRoleApplication.id))
+    if status:
+        count_query = count_query.where(DBRoleApplication.status == status)
+    if role:
+        count_query = count_query.where(DBRoleApplication.requested_role == role)
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -200,19 +206,22 @@ async def get_all_applications_simple(
     This endpoint matches the client API expectations.
     """
     
-    query = db.query(DBRoleApplication).options(
+    query = select(DBRoleApplication).options(
         joinedload(DBRoleApplication.applicant),
         joinedload(DBRoleApplication.reviewer)
     )
     
     if status:
-        query = query.filter(DBRoleApplication.status == status)
+        query = query.where(DBRoleApplication.status == status)
     if role:
-        query = query.filter(DBRoleApplication.requested_role == role)
+        query = query.where(DBRoleApplication.requested_role == role)
     
     # Get total count
-    from sqlalchemy import func
-    count_query = query.with_entities(func.count(DBRoleApplication.id))
+    count_query = select(func.count(DBRoleApplication.id))
+    if status:
+        count_query = count_query.where(DBRoleApplication.status == status)
+    if role:
+        count_query = count_query.where(DBRoleApplication.requested_role == role)
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -255,7 +264,7 @@ async def review_application(
     """
     
     application_result = await db.execute(
-        db.query(DBRoleApplication).filter(DBRoleApplication.id == application_id)
+        select(DBRoleApplication).where(DBRoleApplication.id == application_id)
     )
     application = application_result.scalar_one_or_none()
     
@@ -278,7 +287,7 @@ async def review_application(
     
     if review_data.status == RoleApplicationStatus.APPROVED:
         user_result = await db.execute(
-            db.query(DBUser).filter(DBUser.id == application.user_id)
+            select(DBUser).where(DBUser.id == application.user_id)
         )
         user = user_result.scalar_one_or_none()
         if user:
@@ -308,12 +317,12 @@ async def get_applications_stats(
     from sqlalchemy import func
     
     # Get total count
-    total_result = await db.execute(db.query(func.count(DBRoleApplication.id)))
+    total_result = await db.execute(select(func.count(DBRoleApplication.id)))
     total_applications = total_result.scalar()
     
     # Get pending count
     pending_result = await db.execute(
-        db.query(func.count(DBRoleApplication.id)).filter(
+        select(func.count(DBRoleApplication.id)).where(
             DBRoleApplication.status == RoleApplicationStatus.PENDING
         )
     )
@@ -321,7 +330,7 @@ async def get_applications_stats(
     
     # Get approved count
     approved_result = await db.execute(
-        db.query(func.count(DBRoleApplication.id)).filter(
+        select(func.count(DBRoleApplication.id)).where(
             DBRoleApplication.status == RoleApplicationStatus.APPROVED
         )
     )
@@ -329,7 +338,7 @@ async def get_applications_stats(
     
     # Get rejected count
     rejected_result = await db.execute(
-        db.query(func.count(DBRoleApplication.id)).filter(
+        select(func.count(DBRoleApplication.id)).where(
             DBRoleApplication.status == RoleApplicationStatus.REJECTED
         )
     )
@@ -338,7 +347,7 @@ async def get_applications_stats(
     role_stats = {}
     for role in ApplicationableRole:
         role_result = await db.execute(
-            db.query(func.count(DBRoleApplication.id)).filter(
+            select(func.count(DBRoleApplication.id)).where(
                 DBRoleApplication.requested_role == role
             )
         )
@@ -372,7 +381,7 @@ async def withdraw_application(
     """
     
     application_result = await db.execute(
-        db.query(DBRoleApplication).filter(
+        select(DBRoleApplication).where(
             and_(
                 DBRoleApplication.id == application_id,
                 DBRoleApplication.user_id == current_user.id,

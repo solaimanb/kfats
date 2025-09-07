@@ -19,13 +19,10 @@ from app.routers import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle application startup and shutdown events."""
-    # Startup
-    setup_logging()  # Initialize logging first
+    setup_logging()
     if settings.debug:
         await create_tables_async()
     yield
-    # Shutdown
-    # Add cleanup logic here if needed
 
 # Create FastAPI application
 app = FastAPI(
@@ -37,12 +34,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add custom middleware (order matters)
-app.add_middleware(RequestLoggingMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
-
-# Add CORS middleware (keeping the original for compatibility)
+# Add CORS middleware FIRST (order matters for CORS headers)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -50,6 +42,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add custom middleware AFTER CORS
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
 
 # Register exception handlers
 for exception_class, handler_func in EXCEPTION_HANDLERS:

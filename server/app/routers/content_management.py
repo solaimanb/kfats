@@ -1,7 +1,7 @@
 from typing import Optional, Any
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, or_, desc, text, cast, String
+from sqlalchemy import func, or_, desc, text, cast, String, select
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_async_db
 from app.core.dependencies import require_role
@@ -97,7 +97,7 @@ async def get_all_content(
         if not model:
             continue
 
-        query = db.query(model).join(DBUser, getattr(model, get_content_type_author_field(ct)) == DBUser.id)
+        query = select(model).join(DBUser, getattr(model, get_content_type_author_field(ct)) == DBUser.id)
 
         if status_filter:
             # Normalize string status to Enum value per content type
@@ -107,17 +107,17 @@ async def get_all_content(
                     CourseStatus(status_filter) if ct == "courses" else
                     ProductStatus(status_filter)
                 )
-                query = query.filter(model.status == enum_value)
+                query = query.where(model.status == enum_value)
             except Exception:
                 # Fallback to string comparison if DB stores raw strings
-                query = query.filter(cast(model.status, String) == status_filter)
+                query = query.where(cast(model.status, String) == status_filter)
 
         if author_role:
-            query = query.filter(DBUser.role == author_role)
+            query = query.where(DBUser.role == author_role)
 
         if search:
             name_field = getattr(model, get_content_type_name_field(ct))
-            query = query.filter(
+            query = query.where(
                 or_(
                     name_field.ilike(f"%{search}%"),
                     model.description.ilike(f"%{search}%") if hasattr(model, 'description') else text("false"),
@@ -125,7 +125,7 @@ async def get_all_content(
                 )
             )
 
-        count_result = await db.execute(query.with_only_columns(func.count(model.id)))
+        count_result = await db.execute(select(func.count(model.id)).select_from(query.subquery()))
         type_count = count_result.scalar()
         total_count += type_count
 
@@ -138,7 +138,7 @@ async def get_all_content(
         for item in results:
             # Get author information
             author_result = await db.execute(
-                db.query(DBUser).filter(DBUser.id == getattr(item, get_content_type_author_field(ct)))
+                select(DBUser).where(DBUser.id == getattr(item, get_content_type_author_field(ct)))
             )
             author = author_result.scalars().first()
             if not author:
@@ -178,7 +178,7 @@ async def toggle_content_status(
         )
 
     result = await db.execute(
-        db.query(model).filter(model.id == content_id)
+        select(model).where(model.id == content_id)
     )
     content = result.scalars().first()
     if not content:
@@ -255,7 +255,7 @@ async def toggle_feature_content(
         )
 
     result = await db.execute(
-        db.query(model).filter(model.id == content_id)
+        select(model).where(model.id == content_id)
     )
     content = result.scalars().first()
     if not content:
@@ -299,7 +299,7 @@ async def update_admin_notes(
         )
 
     result = await db.execute(
-        db.query(model).filter(model.id == content_id)
+        select(model).where(model.id == content_id)
     )
     content = result.scalars().first()
     if not content:
@@ -350,7 +350,7 @@ async def get_content_overview_stats(
 
     for type_name, model, status_enum in content_types:
         try:
-            count_result = await db.execute(db.query(func.count(model.id)))
+            count_result = await db.execute(select(func.count(model.id)))
             total_count = count_result.scalar()
             stats["by_type"][type_name] = total_count
 
@@ -358,7 +358,7 @@ async def get_content_overview_stats(
             if hasattr(status_enum, 'PUBLISHED'):
                 try:
                     count_result = await db.execute(
-                        db.query(func.count(model.id)).filter(model.status == status_enum.PUBLISHED)
+                        select(func.count(model.id)).where(model.status == status_enum.PUBLISHED)
                     )
                     published_count = count_result.scalar()
                     stats["total_published"] += published_count
@@ -366,7 +366,7 @@ async def get_content_overview_stats(
                     # Fallback to string comparison
                     try:
                         count_result = await db.execute(
-                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'published')
+                            select(func.count(model.id)).where(cast(model.status, String) == 'published')
                         )
                         published_count = count_result.scalar()
                         stats["total_published"] += published_count
@@ -375,14 +375,14 @@ async def get_content_overview_stats(
             elif hasattr(status_enum, 'ACTIVE'):
                 try:
                     count_result = await db.execute(
-                        db.query(func.count(model.id)).filter(model.status == status_enum.ACTIVE)
+                        select(func.count(model.id)).where(model.status == status_enum.ACTIVE)
                     )
                     active_count = count_result.scalar()
                     stats["total_published"] += active_count
                 except Exception as e:
                     try:
                         count_result = await db.execute(
-                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'active')
+                            select(func.count(model.id)).where(cast(model.status, String) == 'active')
                         )
                         active_count = count_result.scalar()
                         stats["total_published"] += active_count
@@ -392,7 +392,7 @@ async def get_content_overview_stats(
             if hasattr(status_enum, 'DRAFT'):
                 try:
                     count_result = await db.execute(
-                        db.query(func.count(model.id)).filter(model.status == status_enum.DRAFT)
+                        select(func.count(model.id)).where(model.status == status_enum.DRAFT)
                     )
                     draft_count = count_result.scalar()
                     stats["total_drafts"] += draft_count
@@ -400,7 +400,7 @@ async def get_content_overview_stats(
                 except Exception as e:
                     try:
                         count_result = await db.execute(
-                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'draft')
+                            select(func.count(model.id)).where(cast(model.status, String) == 'draft')
                         )
                         draft_count = count_result.scalar()
                         stats["total_drafts"] += draft_count
@@ -412,14 +412,14 @@ async def get_content_overview_stats(
             if hasattr(status_enum, 'ARCHIVED'):
                 try:
                     count_result = await db.execute(
-                        db.query(func.count(model.id)).filter(model.status == status_enum.ARCHIVED)
+                        select(func.count(model.id)).where(model.status == status_enum.ARCHIVED)
                     )
                     archived_count = count_result.scalar()
                     stats["total_archived"] += archived_count
                 except Exception as e:
                     try:
                         count_result = await db.execute(
-                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'archived')
+                            select(func.count(model.id)).where(cast(model.status, String) == 'archived')
                         )
                         archived_count = count_result.scalar()
                         stats["total_archived"] += archived_count
@@ -430,14 +430,14 @@ async def get_content_overview_stats(
             if hasattr(status_enum, 'OUT_OF_STOCK'):
                 try:
                     count_result = await db.execute(
-                        db.query(func.count(model.id)).filter(model.status == status_enum.OUT_OF_STOCK)
+                        select(func.count(model.id)).where(model.status == status_enum.OUT_OF_STOCK)
                     )
                     oos_count = count_result.scalar()
                     stats["total_unpublished"] += oos_count
                 except Exception as e:
                     try:
                         count_result = await db.execute(
-                            db.query(func.count(model.id)).filter(cast(model.status, String) == 'out_of_stock')
+                            select(func.count(model.id)).where(cast(model.status, String) == 'out_of_stock')
                         )
                         oos_count = count_result.scalar()
                         stats["total_unpublished"] += oos_count
@@ -447,7 +447,7 @@ async def get_content_overview_stats(
             # Featured content
             try:
                 count_result = await db.execute(
-                    db.query(func.count(model.id)).filter(model.is_featured == True)
+                    select(func.count(model.id)).where(model.is_featured == True)
                 )
                 featured_count = count_result.scalar()
                 stats["total_featured"] += featured_count
@@ -462,21 +462,21 @@ async def get_content_overview_stats(
     try:
         # Get separate counts for each content type
         article_result = await db.execute(
-            db.query(DBUser.role, func.count(DBArticle.id))
+            select(DBUser.role, func.count(DBArticle.id))
             .join(DBArticle, DBUser.id == DBArticle.author_id)
             .group_by(DBUser.role)
         )
         article_authors = article_result.all()
 
         course_result = await db.execute(
-            db.query(DBUser.role, func.count(DBCourse.id))
+            select(DBUser.role, func.count(DBCourse.id))
             .join(DBCourse, DBUser.id == DBCourse.mentor_id)
             .group_by(DBUser.role)
         )
         course_authors = course_result.all()
 
         product_result = await db.execute(
-            db.query(DBUser.role, func.count(DBProduct.id))
+            select(DBUser.role, func.count(DBProduct.id))
             .join(DBProduct, DBUser.id == DBProduct.seller_id)
             .group_by(DBUser.role)
         )

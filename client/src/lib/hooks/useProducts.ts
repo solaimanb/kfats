@@ -50,6 +50,7 @@ export function useProductBySlug(slug: string) {
   return useQuery({
     queryKey: [...productsKeys.details(), 'slug', slug] as const,
     queryFn: () => ProductsAPI.getProductBySlug(slug),
+    enabled: !!slug && slug.trim().length > 0,
     staleTime: 5 * 60 * 1000,
   })
 }

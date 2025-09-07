@@ -4,6 +4,8 @@ from .user import User, RoleApplication
 from .course import Course, Enrollment
 from .article import Article
 from .product import Product
+from .order import Order
+from .order_item import OrderItem
 
 # Export all models
 __all__ = [
@@ -14,5 +16,7 @@ __all__ = [
     "Course", 
     "Enrollment",
     "Article",
-    "Product"
+    "Product",
+    "Order",
+    "OrderItem"
 ]

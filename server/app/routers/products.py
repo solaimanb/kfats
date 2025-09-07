@@ -193,13 +193,22 @@ async def get_product_by_slug(slug: str, db: AsyncSession = Depends(get_async_db
     """Get product by slug (slug is derived from product name)."""
     normalized = slug.lower()
 
-    # Try to match a slugified name (replace spaces with '-') or match name directly
+    # First try to match by exact slug
     stmt = select(DBProduct).where(
         DBProduct.status == ProductStatus.ACTIVE,
-        func.lower(func.replace(DBProduct.name, " ", "-")) == normalized,
+        DBProduct.slug == normalized,
     )
     res = await db.execute(stmt)
     product = res.scalars().first()
+
+    # If no exact slug match, try to match a slugified name (replace spaces with '-') or match name directly
+    if not product:
+        stmt = select(DBProduct).where(
+            DBProduct.status == ProductStatus.ACTIVE,
+            func.lower(func.replace(DBProduct.name, " ", "-")) == normalized,
+        )
+        res = await db.execute(stmt)
+        product = res.scalars().first()
 
     # fallback: try matching by exact lowercased name
     if not product:

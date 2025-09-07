@@ -1,5 +1,6 @@
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from fastapi import HTTPException, status
 from app.models import User as DBUser
 from app.schemas import User, UserCreate, UserUpdate, UserRole
@@ -13,7 +14,7 @@ class UserService:
     async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[DBUser]:
         """Get user by ID."""
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.id == user_id)
+            select(DBUser).where(DBUser.id == user_id)
         )
         return result.scalars().first()
     
@@ -21,7 +22,7 @@ class UserService:
     async def get_user_by_email(db: AsyncSession, email: str) -> Optional[DBUser]:
         """Get user by email."""
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.email == email)
+            select(DBUser).where(DBUser.email == email)
         )
         return result.scalars().first()
     
@@ -29,7 +30,7 @@ class UserService:
     async def get_user_by_username(db: AsyncSession, username: str) -> Optional[DBUser]:
         """Get user by username."""
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.username == username)
+            select(DBUser).where(DBUser.username == username)
         )
         return result.scalars().first()
     
@@ -38,7 +39,7 @@ class UserService:
         """Create a new user."""
         # Check if user already exists
         result = await db.execute(
-            db.query(DBUser).filter(
+            select(DBUser).where(
                 (DBUser.email == user_create.email) | (DBUser.username == user_create.username)
             )
         )
@@ -87,7 +88,7 @@ class UserService:
         # Check username uniqueness if being updated
         if user_update.username and user_update.username != db_user.username:
             result = await db.execute(
-                db.query(DBUser).filter(
+                select(DBUser).where(
                     DBUser.username == user_update.username,
                     DBUser.id != user_id
                 )

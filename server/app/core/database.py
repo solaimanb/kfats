@@ -133,11 +133,10 @@ def create_sync_tables() -> None:
 
 async def create_tables_async() -> None:
     """Create DB tables using an async engine (for async startup)."""
-    async_url = (
-        DATABASE_URL.replace("+asyncpg", "").replace("+aiosqlite", "")
-        if "+asyncpg" in DATABASE_URL or "+aiosqlite" in DATABASE_URL
-        else DATABASE_URL
-    )
+    async_url = DATABASE_URL
+    if DATABASE_URL.startswith("sqlite://"):
+        async_url = DATABASE_URL.replace("sqlite://", "sqlite+aiosqlite://")
+    
     local_engine = create_async_engine(async_url)
     async with local_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
