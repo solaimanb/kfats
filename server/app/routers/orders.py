@@ -1,7 +1,7 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Body, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func
+from sqlalchemy import func, select
 from app.core.database import get_async_db
 from app.core.dependencies import get_current_active_user, get_seller_or_admin, require_roles
 from app.schemas.order import OrderCreate, Order
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 @router.post("/", response_model=Order)
 async def create_order(order_data: OrderCreate, db: AsyncSession = Depends(get_async_db), current_user: User = Depends(get_current_active_user)):
     result = await db.execute(
-        db.query(DBUser).filter(DBUser.id == current_user.id)
+        select(DBUser).where(DBUser.id == current_user.id)
     )
     buyer = result.scalars().first()
     if not buyer:
@@ -78,7 +78,7 @@ async def update_order_status(order_id: int, status_payload: dict = Body(...), d
     if not new_status:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing status in payload")
     result = await db.execute(
-        db.query(DBUser).filter(DBUser.id == current_user.id)
+        select(DBUser).where(DBUser.id == current_user.id)
     )
     db_user = result.scalars().first()
     updated = await OrderService.update_order_status(db, order_id, new_status, db_user)
@@ -88,7 +88,7 @@ async def update_order_status(order_id: int, status_payload: dict = Body(...), d
 @router.post("/{order_id}/refund", response_model=Order)
 async def refund_order(order_id: int, db: AsyncSession = Depends(get_async_db), current_user: User = Depends(get_current_active_user)):
     result = await db.execute(
-        db.query(DBUser).filter(DBUser.id == current_user.id)
+        select(DBUser).where(DBUser.id == current_user.id)
     )
     db_user = result.scalars().first()
     refunded = await OrderService.initiate_refund(db, order_id, db_user)

@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func
+from sqlalchemy import func, select
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from app.core.database import get_async_db
@@ -48,12 +48,14 @@ async def get_courses(
 ):
     """Get paginated list of published courses."""
     # Build base query
-    query = db.query(DBCourse).filter(DBCourse.status == CourseStatus.PUBLISHED)
+    query = select(DBCourse).where(DBCourse.status == CourseStatus.PUBLISHED)
     if mentor_id:
-        query = query.filter(DBCourse.mentor_id == mentor_id)
+        query = query.where(DBCourse.mentor_id == mentor_id)
     
     # Get total count
-    count_query = query.with_entities(func.count(DBCourse.id))
+    count_query = select(func.count(DBCourse.id)).where(DBCourse.status == CourseStatus.PUBLISHED)
+    if mentor_id:
+        count_query = count_query.where(DBCourse.mentor_id == mentor_id)
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -81,10 +83,10 @@ async def get_my_courses(
     """Get paginated list of courses created by current mentor."""
     
     # Build base query
-    query = db.query(DBCourse).filter(DBCourse.mentor_id == current_user.id)
+    query = select(DBCourse).where(DBCourse.mentor_id == current_user.id)
     
     # Get total count
-    count_query = query.with_entities(func.count(DBCourse.id))
+    count_query = select(func.count(DBCourse.id)).where(DBCourse.mentor_id == current_user.id)
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -107,7 +109,7 @@ async def get_course(course_id: int, db: AsyncSession = Depends(get_async_db)):
     """Get course by ID."""
     
     result = await db.execute(
-        db.query(DBCourse).filter(DBCourse.id == course_id)
+        select(DBCourse).where(DBCourse.id == course_id)
     )
     course = result.scalars().first()
     if not course:
@@ -129,7 +131,7 @@ async def update_course(
     """Update course (only by course mentor or admin)."""
     
     result = await db.execute(
-        db.query(DBCourse).filter(DBCourse.id == course_id)
+        select(DBCourse).where(DBCourse.id == course_id)
     )
     course = result.scalars().first()
     if not course:
@@ -165,7 +167,7 @@ async def delete_course(
     """Delete course (only by course mentor or admin)."""
     
     result = await db.execute(
-        db.query(DBCourse).filter(DBCourse.id == course_id)
+        select(DBCourse).where(DBCourse.id == course_id)
     )
     course = result.scalars().first()
     if not course:
@@ -200,7 +202,7 @@ async def enroll_in_course(
     
     # Check if course exists and is published
     result = await db.execute(
-        db.query(DBCourse).filter(
+        select(DBCourse).where(
             DBCourse.id == course_id,
             DBCourse.status == CourseStatus.PUBLISHED
         )
@@ -215,7 +217,7 @@ async def enroll_in_course(
     
     # Check if already enrolled
     result = await db.execute(
-        db.query(DBEnrollment).filter(
+        select(DBEnrollment).where(
             DBEnrollment.student_id == current_user.id,
             DBEnrollment.course_id == course_id
         )
@@ -274,7 +276,7 @@ async def get_course_enrollments(
     
     # Check if course exists and user has access
     result = await db.execute(
-        db.query(DBCourse).filter(DBCourse.id == course_id)
+        select(DBCourse).where(DBCourse.id == course_id)
     )
     course = result.scalars().first()
     if not course:
@@ -290,10 +292,10 @@ async def get_course_enrollments(
         )
     
     # Build base query
-    query = db.query(DBEnrollment).filter(DBEnrollment.course_id == course_id)
+    query = select(DBEnrollment).where(DBEnrollment.course_id == course_id)
     
     # Get total count
-    count_query = query.with_entities(func.count(DBEnrollment.id))
+    count_query = select(func.count(DBEnrollment.id)).where(DBEnrollment.course_id == course_id)
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -321,10 +323,10 @@ async def get_my_enrollments(
     """Get paginated enrollments for the current student/user."""
     
     # Build base query
-    query = db.query(DBEnrollment).filter(DBEnrollment.student_id == current_user.id)
+    query = select(DBEnrollment).where(DBEnrollment.student_id == current_user.id)
     
     # Get total count
-    count_query = query.with_entities(func.count(DBEnrollment.id))
+    count_query = select(func.count(DBEnrollment.id)).where(DBEnrollment.student_id == current_user.id)
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -355,7 +357,7 @@ async def update_enrollment_progress(
 ):
     """Update progress for an enrollment owned by current user (or mentor/admin of the course)."""
     result = await db.execute(
-        db.query(DBEnrollment).filter(DBEnrollment.id == enrollment_id)
+        select(DBEnrollment).where(DBEnrollment.id == enrollment_id)
     )
     enrollment = result.scalars().first()
     if not enrollment:
@@ -365,7 +367,7 @@ async def update_enrollment_progress(
     if enrollment.student_id != current_user.id:
         # check mentor/admin
         result = await db.execute(
-            db.query(DBCourse).filter(DBCourse.id == enrollment.course_id)
+            select(DBCourse).where(DBCourse.id == enrollment.course_id)
         )
         course = result.scalars().first()
         if not course:

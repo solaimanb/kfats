@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ImageGallery } from "@/components/common/image-gallery";
+import { PurchaseActions } from "@/components/common/purchase-actions";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -104,22 +105,7 @@ export default function ProductDetailPage() {
             <p>{product.description}</p>
           </div>
 
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <div className="text-3xl font-extrabold">
-                ${Number(product.price).toFixed(2)}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {product.stock_quantity ?? 0} in stock
-              </div>
-            </div>
-            <div className="space-x-2">
-              <Button size="lg">Buy now</Button>
-              <Button variant="outline" size="lg">
-                Add to cart
-              </Button>
-            </div>
-          </div>
+          <PurchaseActions product={product} />
 
           <div className="space-y-4">
             <Card>

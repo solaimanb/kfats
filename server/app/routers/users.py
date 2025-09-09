@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import or_, String
+from sqlalchemy import or_, String, select
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from app.core.database import get_async_db
@@ -35,14 +35,14 @@ async def update_current_user_profile(
 
     try:
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.id == current_user.id)
+            select(DBUser).where(DBUser.id == current_user.id)
         )
         db_user = result.scalars().first()
         ensure_user_exists(current_user.id, db_user)
 
         if user_update.username and user_update.username != current_user.username:
             result = await db.execute(
-                db.query(DBUser).filter(
+                select(DBUser).where(
                     DBUser.username == user_update.username,
                     DBUser.id != current_user.id
                 )
@@ -71,28 +71,28 @@ async def update_current_user_profile(
 
 
 @router.get("/", response_model=PaginatedResponse[User])
-async def get_users(
+async def list_users(
+    role: Optional[UserRole] = None,
+    status: Optional[UserStatus] = None,
+    email: Optional[str] = Query(None, description="Search by email, name, username, or role"),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    role: Optional[UserRole] = None,
-    status: Optional[str] = None,
-    email: Optional[str] = None,
     admin_user: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_async_db)
 ):
     """Get paginated list of users (Admin only)."""
     
-    query = db.query(DBUser)
+    query = select(DBUser)
     
     if role:
-        query = query.filter(DBUser.role == role)
+        query = query.where(DBUser.role == role)
     
     if status:
-        query = query.filter(DBUser.status == status)
+        query = query.where(DBUser.status == status)
     
     if email:
         search_term = f"%{email}%"
-        query = query.filter(
+        query = query.where(
             or_(
                 DBUser.email.ilike(search_term),
                 DBUser.full_name.ilike(search_term),
@@ -103,7 +103,20 @@ async def get_users(
     
     # Get total count
     from sqlalchemy import func
-    count_query = query.with_entities(func.count(DBUser.id))
+    count_query = select(func.count(DBUser.id))
+    if role:
+        count_query = count_query.where(DBUser.role == role)
+    if status:
+        count_query = count_query.where(DBUser.status == status)
+    if email:
+        count_query = count_query.where(
+            or_(
+                DBUser.email.ilike(search_term),
+                DBUser.full_name.ilike(search_term),
+                DBUser.username.ilike(search_term),
+                DBUser.role.cast(String).ilike(search_term)
+            )
+        )
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -133,7 +146,7 @@ async def get_user_by_id(
 
     try:
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.id == user_id)
+            select(DBUser).where(DBUser.id == user_id)
         )
         user = result.scalars().first()
         ensure_user_exists(user_id, user)
@@ -158,7 +171,7 @@ async def update_user_role(
     """Update user role (Admin only)."""
     
     result = await db.execute(
-        db.query(DBUser).filter(DBUser.id == user_id)
+        select(DBUser).where(DBUser.id == user_id)
     )
     user = result.scalars().first()
     if not user:
@@ -187,7 +200,7 @@ async def delete_user(
 
     try:
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.id == user_id)
+            select(DBUser).where(DBUser.id == user_id)
         )
         user = result.scalars().first()
         ensure_user_exists(user_id, user)
@@ -222,7 +235,7 @@ async def toggle_user_status(
 ):
     """Toggle a user's active status (Admin only)."""
     result = await db.execute(
-        db.query(DBUser).filter(DBUser.id == user_id)
+        select(DBUser).where(DBUser.id == user_id)
     )
     user = result.scalars().first()
     if not user:

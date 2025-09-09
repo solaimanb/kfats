@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, select
 from fastapi import APIRouter, Depends
 from app.core.database import get_async_db
 from app.core.dependencies import get_current_active_user, require_role
@@ -23,41 +23,41 @@ async def get_overview_analytics(
     """Get system overview analytics."""
     
     # Basic counts
-    total_users_result = await db.execute(db.query(func.count(DBUser.id)))
+    total_users_result = await db.execute(select(func.count(DBUser.id)))
     total_users = total_users_result.scalar()
     
-    total_courses_result = await db.execute(db.query(func.count(DBCourse.id)))
+    total_courses_result = await db.execute(select(func.count(DBCourse.id)))
     total_courses = total_courses_result.scalar()
     
-    total_articles_result = await db.execute(db.query(func.count(DBArticle.id)))
+    total_articles_result = await db.execute(select(func.count(DBArticle.id)))
     total_articles = total_articles_result.scalar()
     
-    total_products_result = await db.execute(db.query(func.count(DBProduct.id)))
+    total_products_result = await db.execute(select(func.count(DBProduct.id)))
     total_products = total_products_result.scalar()
     
-    total_enrollments_result = await db.execute(db.query(func.count(DBEnrollment.id)))
+    total_enrollments_result = await db.execute(select(func.count(DBEnrollment.id)))
     total_enrollments = total_enrollments_result.scalar()
     
     # Recent activity (last 30 days)
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     new_users_result = await db.execute(
-        db.query(func.count(DBUser.id)).filter(DBUser.created_at >= thirty_days_ago)
+        select(func.count(DBUser.id)).where(DBUser.created_at >= thirty_days_ago)
     )
     new_users_this_month = new_users_result.scalar()
     
     new_courses_result = await db.execute(
-        db.query(func.count(DBCourse.id)).filter(DBCourse.created_at >= thirty_days_ago)
+        select(func.count(DBCourse.id)).where(DBCourse.created_at >= thirty_days_ago)
     )
     new_courses_this_month = new_courses_result.scalar()
     
     new_articles_result = await db.execute(
-        db.query(func.count(DBArticle.id)).filter(DBArticle.created_at >= thirty_days_ago)
+        select(func.count(DBArticle.id)).where(DBArticle.created_at >= thirty_days_ago)
     )
     new_articles_this_month = new_articles_result.scalar()
     
     # User role distribution
     user_roles_result = await db.execute(
-        db.query(DBUser.role, func.count(DBUser.id)).group_by(DBUser.role)
+        select(DBUser.role, func.count(DBUser.id)).group_by(DBUser.role)
     )
     user_roles = user_roles_result.all()
     
@@ -90,7 +90,7 @@ async def get_user_analytics(
     
     # User status distribution
     user_statuses_result = await db.execute(
-        db.query(DBUser.status, func.count(DBUser.id)).group_by(DBUser.status)
+        select(DBUser.status, func.count(DBUser.id)).group_by(DBUser.status)
     )
     user_statuses = user_statuses_result.all()
     
@@ -99,10 +99,10 @@ async def get_user_analytics(
     # User growth over time (last 12 months)
     twelve_months_ago = datetime.utcnow() - timedelta(days=365)
     monthly_registrations_result = await db.execute(
-        db.query(
+        select(
             func.date_trunc('month', DBUser.created_at).label('month'),
             func.count(DBUser.id).label('count')
-        ).filter(
+        ).where(
             DBUser.created_at >= twelve_months_ago
         ).group_by(
             func.date_trunc('month', DBUser.created_at)
@@ -121,7 +121,7 @@ async def get_user_analytics(
     # Active users (logged in within last 30 days)
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
     active_users_result = await db.execute(
-        db.query(func.count(DBUser.id)).filter(
+        select(func.count(DBUser.id)).where(
             and_(
                 DBUser.last_login.isnot(None),
                 DBUser.last_login >= thirty_days_ago
@@ -130,7 +130,7 @@ async def get_user_analytics(
     )
     active_users = active_users_result.scalar()
     
-    total_users_result = await db.execute(db.query(func.count(DBUser.id)))
+    total_users_result = await db.execute(select(func.count(DBUser.id)))
     total_users = total_users_result.scalar()
     
     return {
@@ -150,17 +150,17 @@ async def get_course_analytics(
     """Get course performance analytics."""
     
     # Basic course stats
-    total_courses_result = await db.execute(db.query(func.count(DBCourse.id)))
+    total_courses_result = await db.execute(select(func.count(DBCourse.id)))
     total_courses = total_courses_result.scalar()
     
     published_courses_result = await db.execute(
-        db.query(func.count(DBCourse.id)).filter(DBCourse.status == CourseStatus.PUBLISHED)
+        select(func.count(DBCourse.id)).where(DBCourse.status == CourseStatus.PUBLISHED)
     )
     published_courses = published_courses_result.scalar()
     
     # Enrollment trends
     enrollment_trends_result = await db.execute(
-        db.query(
+        select(
             func.date_trunc('month', DBEnrollment.enrolled_at).label('month'),
             func.count(DBEnrollment.id).label('enrollments')
         ).group_by(
@@ -179,12 +179,12 @@ async def get_course_analytics(
     
     # Popular courses
     popular_courses_result = await db.execute(
-        db.query(
+        select(
             DBCourse.id,
             DBCourse.title,
             DBCourse.enrolled_count,
             func.count(DBEnrollment.id).label('actual_enrollments')
-        ).outerjoin(DBEnrollment).group_by(
+        ).outerjoin(DBEnrollment, DBCourse.id == DBEnrollment.course_id).group_by(
             DBCourse.id, DBCourse.title, DBCourse.enrolled_count
         ).order_by(
             func.count(DBEnrollment.id).desc()
@@ -205,7 +205,7 @@ async def get_course_analytics(
     # Mentor performance
     if current_user.role in [UserRole.ADMIN, UserRole.MENTOR]:
         mentor_stats_result = await db.execute(
-            db.query(
+            select(
                 DBUser.id,
                 DBUser.full_name,
                 func.count(DBCourse.id).label('total_courses'),
@@ -230,7 +230,7 @@ async def get_course_analytics(
     else:
         mentor_performance = []
     
-    total_enrollments_result = await db.execute(db.query(func.count(DBEnrollment.id)))
+    total_enrollments_result = await db.execute(select(func.count(DBEnrollment.id)))
     total_enrollments = total_enrollments_result.scalar()
     
     return {
@@ -254,27 +254,27 @@ async def get_article_analytics(
     """Get article and content analytics."""
     
     # Basic article stats
-    total_articles_result = await db.execute(db.query(func.count(DBArticle.id)))
+    total_articles_result = await db.execute(select(func.count(DBArticle.id)))
     total_articles = total_articles_result.scalar()
     
     published_articles_result = await db.execute(
-        db.query(func.count(DBArticle.id)).filter(DBArticle.status == ArticleStatus.PUBLISHED)
+        select(func.count(DBArticle.id)).where(DBArticle.status == ArticleStatus.PUBLISHED)
     )
     published_articles = published_articles_result.scalar()
     
     total_views_result = await db.execute(
-        db.query(func.sum(DBArticle.views_count))
+        select(func.sum(DBArticle.views_count))
     )
     total_views = total_views_result.scalar() or 0
     
     # Popular articles
     popular_articles_result = await db.execute(
-        db.query(
+        select(
             DBArticle.id,
             DBArticle.title,
             DBArticle.views_count,
             DBUser.full_name.label('author_name')
-        ).join(DBUser, DBArticle.author_id == DBUser.id).filter(
+        ).join(DBUser, DBArticle.author_id == DBUser.id).where(
             DBArticle.status == ArticleStatus.PUBLISHED
         ).order_by(DBArticle.views_count.desc()).limit(10)
     )
@@ -293,7 +293,7 @@ async def get_article_analytics(
     # Writer performance
     if current_user.role in [UserRole.ADMIN, UserRole.WRITER]:
         writer_stats_result = await db.execute(
-            db.query(
+            select(
                 DBUser.id,
                 DBUser.full_name,
                 func.count(DBArticle.id).label('total_articles'),
@@ -338,19 +338,19 @@ async def get_product_analytics(
     """Get product and marketplace analytics."""
     
     # Basic product stats
-    total_products_result = await db.execute(db.query(func.count(DBProduct.id)))
+    total_products_result = await db.execute(select(func.count(DBProduct.id)))
     total_products = total_products_result.scalar()
     
     active_products_result = await db.execute(
-        db.query(func.count(DBProduct.id)).filter(DBProduct.status == ProductStatus.ACTIVE)
+        select(func.count(DBProduct.id)).where(DBProduct.status == ProductStatus.ACTIVE)
     )
     active_products = active_products_result.scalar()
     
     # Inventory value
     total_inventory_value_result = await db.execute(
-        db.query(
+        select(
             func.sum(DBProduct.price * DBProduct.stock_quantity)
-        ).filter(
+        ).where(
             and_(
                 DBProduct.status == ProductStatus.ACTIVE,
                 DBProduct.stock_quantity.isnot(None)
@@ -361,12 +361,12 @@ async def get_product_analytics(
     
     # Low stock alerts
     low_stock_products_result = await db.execute(
-        db.query(
+        select(
             DBProduct.id,
             DBProduct.name,
             DBProduct.stock_quantity,
             DBUser.full_name.label('seller_name')
-        ).join(DBUser, DBProduct.seller_id == DBUser.id).filter(
+        ).join(DBUser, DBProduct.seller_id == DBUser.id).where(
             and_(
                 DBProduct.status == ProductStatus.ACTIVE,
                 DBProduct.stock_quantity.isnot(None),
@@ -388,10 +388,10 @@ async def get_product_analytics(
     
     # Category distribution
     category_distribution_result = await db.execute(
-        db.query(
+        select(
             DBProduct.category,
             func.count(DBProduct.id).label('count')
-        ).filter(
+        ).where(
             DBProduct.status == ProductStatus.ACTIVE
         ).group_by(DBProduct.category)
     )
@@ -425,7 +425,7 @@ async def get_recent_activity(
     
     # Recent user registrations
     recent_users_result = await db.execute(
-        db.query(DBUser).order_by(DBUser.created_at.desc()).limit(10)
+        select(DBUser).order_by(DBUser.created_at.desc()).limit(10)
     )
     recent_users = recent_users_result.scalars().all()
     
@@ -439,7 +439,7 @@ async def get_recent_activity(
     
     # Recent course creations
     recent_courses_result = await db.execute(
-        db.query(DBCourse).order_by(DBCourse.created_at.desc()).limit(10)
+        select(DBCourse).order_by(DBCourse.created_at.desc()).limit(10)
     )
     recent_courses = recent_courses_result.scalars().all()
     
@@ -453,7 +453,7 @@ async def get_recent_activity(
     
     # Recent article publications
     recent_articles_result = await db.execute(
-        db.query(DBArticle).filter(
+        select(DBArticle).where(
             DBArticle.status == ArticleStatus.PUBLISHED
         ).order_by(DBArticle.published_at.desc()).limit(10)
     )

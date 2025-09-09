@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func
+from sqlalchemy import func, select
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_async_db
 from app.models.article import Article as DBArticle
@@ -49,16 +49,18 @@ async def get_articles(
 ):
     """Get paginated list of articles."""
     
-    query = db.query(DBArticle)
+    query = select(DBArticle)
     
     # Only show published articles to regular users
-    query = query.filter(DBArticle.status == ArticleStatus.PUBLISHED)
+    query = query.where(DBArticle.status == ArticleStatus.PUBLISHED)
     
     if author_id:
-        query = query.filter(DBArticle.author_id == author_id)
+        query = query.where(DBArticle.author_id == author_id)
     
     # Get total count
-    count_query = query.with_entities(func.count(DBArticle.id))
+    count_query = select(func.count(DBArticle.id)).where(DBArticle.status == ArticleStatus.PUBLISHED)
+    if author_id:
+        count_query = count_query.where(DBArticle.author_id == author_id)
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -86,10 +88,10 @@ async def get_my_articles(
     """Get paginated articles created by current writer."""
     
     # Build base query
-    query = db.query(DBArticle).filter(DBArticle.author_id == current_user.id)
+    query = select(DBArticle).where(DBArticle.author_id == current_user.id)
     
     # Get total count
-    count_query = query.with_entities(func.count(DBArticle.id))
+    count_query = select(func.count(DBArticle.id)).where(DBArticle.author_id == current_user.id)
     total_result = await db.execute(count_query)
     total = total_result.scalar()
     
@@ -112,7 +114,7 @@ async def get_article(article_id: int, db: AsyncSession = Depends(get_async_db))
     """Get article by ID."""
     
     result = await db.execute(
-        db.query(DBArticle).filter(DBArticle.id == article_id)
+        select(DBArticle).where(DBArticle.id == article_id)
     )
     article = result.scalars().first()
     if not article:
@@ -138,7 +140,7 @@ async def update_article(
     """Update article (only by article author or admin)."""
     
     result = await db.execute(
-        db.query(DBArticle).filter(DBArticle.id == article_id)
+        select(DBArticle).where(DBArticle.id == article_id)
     )
     article = result.scalars().first()
     if not article:
@@ -179,7 +181,7 @@ async def delete_article(
     """Delete article (only by article author or admin)."""
     
     result = await db.execute(
-        db.query(DBArticle).filter(DBArticle.id == article_id)
+        select(DBArticle).where(DBArticle.id == article_id)
     )
     article = result.scalars().first()
     if not article:

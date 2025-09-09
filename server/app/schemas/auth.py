@@ -1,5 +1,4 @@
 from typing import Optional
-from datetime import datetime
 from pydantic import BaseModel, EmailStr
 from .common import UserRole
 
@@ -9,6 +8,8 @@ class Token(BaseModel):
     token_type: str
     expires_in: int
     user: "User"
+    refresh_token: Optional[str] = None
+    refresh_expires_in: Optional[int] = None
 
 
 class TokenData(BaseModel):
@@ -33,6 +34,12 @@ class RegisterRequest(BaseModel):
     password: str
     confirm_password: str
     role: UserRole = UserRole.USER
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_new_password: str
 
 
 # Resolve forward reference

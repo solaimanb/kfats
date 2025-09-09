@@ -1,5 +1,5 @@
-from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.database import get_async_db
@@ -8,9 +8,8 @@ from app.schemas.user import User
 from app.schemas.common import UserRole, UserStatus
 from app.core.security import verify_token
 
-# Security scheme
-security = HTTPBearer()
 
+security = HTTPBearer()
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -21,7 +20,7 @@ async def get_current_user(
     token_data = verify_token(token)
     
     result = await db.execute(
-        db.query(DBUser).filter(DBUser.id == token_data.user_id)
+        select(DBUser).where(DBUser.id == token_data["user_id"])
     )
     user = result.scalars().first()
     
@@ -32,7 +31,23 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    return User.model_validate(user)
+    # Extract user data before session closes to avoid detached session issues
+    user_data = {
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "full_name": user.full_name,
+        "phone": user.phone,
+        "bio": user.bio,
+        "avatar_url": user.avatar_url,
+        "role": user.role,
+        "status": user.status,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+        "last_login": user.last_login,
+    }
+    
+    return User.model_validate(user_data)
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:

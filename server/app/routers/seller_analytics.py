@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func
+from sqlalchemy import func, select
 from fastapi import APIRouter, Depends
 from app.core.database import get_async_db
 from app.core.dependencies import require_role
@@ -24,21 +24,21 @@ async def get_seller_revenue_analytics(
 
     # Total revenue from order_items for seller's products
     total_revenue_result = await db.execute(
-        db.query(func.coalesce(func.sum(DBOrderItem.unit_price * DBOrderItem.quantity), 0))
+        select(func.coalesce(func.sum(DBOrderItem.unit_price * DBOrderItem.quantity), 0))
         .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
-        .filter(DBProduct.seller_id == seller_id)
+        .where(DBProduct.seller_id == seller_id)
     )
     total_revenue = total_revenue_result.scalar() or 0
 
     # Monthly revenue (last 12 months) from order_items.sold_at
     twelve_months_ago = datetime.utcnow() - timedelta(days=365)
     monthly_revenue_result = await db.execute(
-        db.query(
+        select(
             func.date_trunc('month', DBOrderItem.sold_at).label('month'),
             func.sum(DBOrderItem.unit_price * DBOrderItem.quantity).label('revenue')
         ).join(
             DBProduct, DBOrderItem.product_id == DBProduct.id
-        ).filter(
+        ).where(
             DBProduct.seller_id == seller_id,
             DBOrderItem.sold_at >= twelve_months_ago
         ).group_by(
@@ -68,18 +68,18 @@ async def get_seller_order_analytics(
 
     # Total unique orders containing seller's products
     total_orders_result = await db.execute(
-        db.query(func.count(func.distinct(DBOrderItem.order_id)))
+        select(func.count(func.distinct(DBOrderItem.order_id)))
         .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
-        .filter(DBProduct.seller_id == seller_id)
+        .where(DBProduct.seller_id == seller_id)
     )
     total_orders = total_orders_result.scalar() or 0
 
     # Order status breakdown (count distinct orders per status)
     status_counts_result = await db.execute(
-        db.query(DBOrder.status, func.count(func.distinct(DBOrder.id)))
+        select(DBOrder.status, func.count(func.distinct(DBOrder.id)))
         .join(DBOrderItem, DBOrder.id == DBOrderItem.order_id)
         .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
-        .filter(DBProduct.seller_id == seller_id)
+        .where(DBProduct.seller_id == seller_id)
         .group_by(DBOrder.status)
     )
 
@@ -88,10 +88,10 @@ async def get_seller_order_analytics(
 
     # Average order value for orders that include seller items
     avg_order_value_result = await db.execute(
-        db.query(func.avg(DBOrder.total_amount))
+        select(func.avg(DBOrder.total_amount))
         .join(DBOrderItem, DBOrder.id == DBOrderItem.order_id)
         .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
-        .filter(DBProduct.seller_id == seller_id)
+        .where(DBProduct.seller_id == seller_id)
         .group_by(DBOrder.id)
     )
 
@@ -102,7 +102,7 @@ async def get_seller_order_analytics(
     # Monthly order trends (by order.created_at)
     twelve_months_ago = datetime.utcnow() - timedelta(days=365)
     monthly_orders_result = await db.execute(
-        db.query(
+        select(
             func.date_trunc('month', DBOrder.created_at).label('month'),
             func.count(func.distinct(DBOrder.id)).label('orders'),
             func.sum(DBOrder.total_amount).label('revenue')
@@ -110,7 +110,7 @@ async def get_seller_order_analytics(
             DBOrderItem, DBOrder.id == DBOrderItem.order_id
         ).join(
             DBProduct, DBOrderItem.product_id == DBProduct.id
-        ).filter(
+        ).where(
             DBProduct.seller_id == seller_id,
             DBOrder.created_at >= twelve_months_ago
         ).group_by(
@@ -142,7 +142,7 @@ async def get_seller_product_performance(
 
     # Left join products with aggregated order_items
     product_stats_result = await db.execute(
-        db.query(
+        select(
             DBProduct.id.label('product_id'),
             DBProduct.name.label('name'),
             DBProduct.price.label('price'),
@@ -152,7 +152,7 @@ async def get_seller_product_performance(
             DBProduct.status.label('status')
         ).outerjoin(
             DBOrderItem, DBOrderItem.product_id == DBProduct.id
-        ).filter(
+        ).where(
             DBProduct.seller_id == seller_id
         ).group_by(
             DBProduct.id, DBProduct.name, DBProduct.price, DBProduct.stock_quantity, DBProduct.status

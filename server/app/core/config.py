@@ -1,4 +1,3 @@
-import os
 from typing import Optional, List
 from pathlib import Path
 from pydantic_settings import BaseSettings
@@ -14,8 +13,8 @@ class Settings(BaseSettings):
     # Database
     database_url: Optional[str] = None
 
-    # Security
-    secret_key: str = "your-secret-key-change-this-in-production"
+    # Security - CRITICAL: Change these in production!
+    secret_key: str = "CHANGE_THIS_SECRET_KEY_IN_PRODUCTION_TO_A_LONG_RANDOM_STRING_64_CHARS_MINIMUM"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 

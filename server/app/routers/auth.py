@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from app.core.database import get_async_db
@@ -33,10 +34,10 @@ async def login_oauth(form_data: OAuth2PasswordRequestForm = Depends(), db: Asyn
     
     from app.schemas.auth import LoginRequest
     
-    result = await db.execute(db.query(DBUser).filter(DBUser.email == form_data.username))
+    result = await db.execute(select(DBUser).where(DBUser.email == form_data.username))
     user = result.scalars().first()
     if not user:
-        result = await db.execute(db.query(DBUser).filter(DBUser.username == form_data.username))
+        result = await db.execute(select(DBUser).where(DBUser.username == form_data.username))
         user = result.scalars().first()
     
     if not user:
@@ -76,7 +77,7 @@ async def upgrade_user_role(
             detail=f"Cannot upgrade from {current_role} to {body.new_role}"
         )
     
-    result = await db.execute(db.query(DBUser).filter(DBUser.id == current_user.id))
+    result = await db.execute(select(DBUser).where(DBUser.id == current_user.id))
     db_user = result.scalars().first()
     db_user.role = body.new_role
     await db.commit()

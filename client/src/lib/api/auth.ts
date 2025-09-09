@@ -7,6 +7,7 @@ import {
   LoginFormData,
   RegisterFormData
 } from '../types/api'
+import Cookies from 'js-cookie'
 
 export class AuthAPI {
   /**
@@ -67,9 +68,9 @@ export class AuthAPI {
    */
   static logout(): void {
     if (typeof window !== 'undefined') {
-      document.cookie = 'kfats_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-      document.cookie = 'kfats_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-
+      Cookies.remove('kfats_token', { path: '/' })
+      Cookies.remove('kfats_user', { path: '/' })
+      Cookies.remove('kfats_role', { path: '/' })
       window.location.href = '/'
     }
   }
@@ -80,51 +81,34 @@ export const tokenUtils = {
    * Store authentication token
    */
   setToken(token: string): void {
-    if (typeof window !== 'undefined') {
-      document.cookie = `kfats_token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`
-    }
+    Cookies.set('kfats_token', token, { expires: 7, path: '/' })
   },
 
   /**
    * Store user data
    */
   setUser(user: User): void {
-    if (typeof window !== 'undefined') {
-      document.cookie = `kfats_user=${JSON.stringify(user)}; path=/; max-age=${30 * 24 * 60 * 60}`
-      document.cookie = `kfats_role=${user.role}; path=/; max-age=${30 * 24 * 60 * 60}`
-    }
+    Cookies.set('kfats_user', JSON.stringify(user), { expires: 30, path: '/' })
+    Cookies.set('kfats_role', user.role, { expires: 30, path: '/' })
   },
 
   /**
    * Get stored token
    */
   getToken(): string | null {
-    if (typeof window === 'undefined') return null
-
-    const value = `; ${document.cookie}`
-    const parts = value.split(`; kfats_token=`)
-    if (parts.length === 2) {
-      return parts.pop()?.split(';').shift() || null
-    }
-    return null
+    return Cookies.get('kfats_token') || null
   },
 
   /**
    * Get stored user
    */
   getUser(): User | null {
-    if (typeof window === 'undefined') return null
-
-    const value = `; ${document.cookie}`
-    const parts = value.split(`; kfats_user=`)
-    if (parts.length === 2) {
-      const userStr = parts.pop()?.split(';').shift()
-      if (userStr) {
-        try {
-          return JSON.parse(userStr)
-        } catch {
-          return null
-        }
+    const userStr = Cookies.get('kfats_user')
+    if (userStr) {
+      try {
+        return JSON.parse(userStr)
+      } catch {
+        return null
       }
     }
     return null
@@ -134,10 +118,8 @@ export const tokenUtils = {
    * Remove all auth data
    */
   clearAuth(): void {
-    if (typeof window !== 'undefined') {
-      document.cookie = 'kfats_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-      document.cookie = 'kfats_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-      document.cookie = 'kfats_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-    }
+    Cookies.remove('kfats_token', { path: '/' })
+    Cookies.remove('kfats_user', { path: '/' })
+    Cookies.remove('kfats_role', { path: '/' })
   }
 }

@@ -1,6 +1,7 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from fastapi import HTTPException, status
 from app.models import RoleApplication as DBRoleApplication, User as DBUser
 from app.schemas import RoleApplication, RoleApplicationCreate, RoleApplicationUpdate, UserRole
@@ -13,7 +14,7 @@ class RoleService:
     async def get_application_by_id(db: AsyncSession, app_id: int) -> Optional[DBRoleApplication]:
         """Get role application by ID."""
         result = await db.execute(
-            db.query(DBRoleApplication).filter(DBRoleApplication.id == app_id)
+            select(DBRoleApplication).where(DBRoleApplication.id == app_id)
         )
         return result.scalars().first()
     
@@ -21,7 +22,7 @@ class RoleService:
     async def get_user_applications(db: AsyncSession, user_id: int) -> List[DBRoleApplication]:
         """Get all applications for a user."""
         result = await db.execute(
-            db.query(DBRoleApplication).filter(DBRoleApplication.user_id == user_id)
+            select(DBRoleApplication).where(DBRoleApplication.user_id == user_id)
         )
         return result.scalars().all()
     
@@ -29,7 +30,7 @@ class RoleService:
     async def get_pending_applications(db: AsyncSession) -> List[DBRoleApplication]:
         """Get all pending applications."""
         result = await db.execute(
-            db.query(DBRoleApplication).filter(DBRoleApplication.status == "pending")
+            select(DBRoleApplication).where(DBRoleApplication.status == "pending")
         )
         return result.scalars().all()
     
@@ -38,7 +39,7 @@ class RoleService:
         """Create a new role application."""
         # Check if user already has the requested role
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.id == user_id)
+            select(DBUser).where(DBUser.id == user_id)
         )
         user = result.scalars().first()
         if not user:
@@ -55,7 +56,7 @@ class RoleService:
         
         # Check for existing pending application for the same role
         result = await db.execute(
-            db.query(DBRoleApplication).filter(
+            select(DBRoleApplication).where(
                 DBRoleApplication.user_id == user_id,
                 DBRoleApplication.requested_role == app_data.requested_role,
                 DBRoleApplication.status == "pending"
@@ -71,7 +72,7 @@ class RoleService:
         
         # Check for recent rejection (30-day cooldown)
         result = await db.execute(
-            db.query(DBRoleApplication).filter(
+            select(DBRoleApplication).where(
                 DBRoleApplication.user_id == user_id,
                 DBRoleApplication.requested_role == app_data.requested_role,
                 DBRoleApplication.status == "rejected",
@@ -129,7 +130,7 @@ class RoleService:
         # If approved, upgrade user role
         if review_data.status == "approved":
             result = await db.execute(
-                db.query(DBUser).filter(DBUser.id == application.user_id)
+                select(DBUser).where(DBUser.id == application.user_id)
             )
             user = result.scalars().first()
             if user:

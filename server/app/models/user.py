@@ -5,9 +5,6 @@ from .base import BaseModel
 from ..schemas.common import UserRole, UserStatus
 
 
-
-
-
 class User(BaseModel):
     """User database model."""
     __tablename__ = "users"

@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func
+from sqlalchemy import func, select
 from fastapi import HTTPException, status
 from app.models.product import Product as DBProduct
 from app.models.order import Order as DBOrder
@@ -27,7 +27,7 @@ class OrderService:
         try:
             for item in order_create.items:
                 result = await db.execute(
-                    db.query(DBProduct).filter(DBProduct.id == item.product_id).with_for_update()
+                    select(DBProduct).where(DBProduct.id == item.product_id).with_for_update()
                 )
                 product = result.scalars().first()
                 if not product:
@@ -160,7 +160,7 @@ class OrderService:
     @staticmethod
     async def get_order(db: AsyncSession, order_id: int):
         result = await db.execute(
-            db.query(DBOrder).filter(DBOrder.id == int(order_id))
+            select(DBOrder).where(DBOrder.id == int(order_id))
         )
         order = result.scalars().first()
         if order is not None:
@@ -169,12 +169,14 @@ class OrderService:
 
     @staticmethod
     async def list_orders(db: AsyncSession, buyer_id: Optional[int] = None, skip: int = 0, limit: int = 20):
-        query = db.query(DBOrder)
+        query = select(DBOrder)
         if buyer_id is not None:
-            query = query.filter(DBOrder.buyer_id == int(buyer_id))
+            query = query.where(DBOrder.buyer_id == int(buyer_id))
         
         # Get total count
-        count_query = query.with_entities(func.count(DBOrder.id))
+        count_query = select(func.count(DBOrder.id))
+        if buyer_id is not None:
+            count_query = count_query.where(DBOrder.buyer_id == int(buyer_id))
         total_result = await db.execute(count_query)
         total = total_result.scalar()
         
@@ -192,14 +194,19 @@ class OrderService:
     async def list_orders_by_seller(db: AsyncSession, seller_id: int, skip: int = 0, limit: int = 20):
         """List orders that include items sold by the given seller (join on order_items/products)."""
         query = (
-            db.query(DBOrder)
+            select(DBOrder)
             .join(DBOrderItem, DBOrder.id == DBOrderItem.order_id)
             .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
-            .filter(DBProduct.seller_id == int(seller_id))
+            .where(DBProduct.seller_id == int(seller_id))
         )
         
         # Get total count
-        count_query = query.with_entities(func.count(DBOrder.id))
+        count_query = (
+            select(func.count(DBOrder.id))
+            .join(DBOrderItem, DBOrder.id == DBOrderItem.order_id)
+            .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
+            .where(DBProduct.seller_id == int(seller_id))
+        )
         total_result = await db.execute(count_query)
         total = total_result.scalar()
         
@@ -220,7 +227,7 @@ class OrderService:
         Admins can update any order.
         """
         result = await db.execute(
-            db.query(DBOrder).filter(DBOrder.id == int(order_id))
+            select(DBOrder).where(DBOrder.id == int(order_id))
         )
         db_order = result.scalars().first()
         if not db_order:
@@ -235,9 +242,9 @@ class OrderService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid actor id")
             actor_id = int(actor_id_attr)
             result = await db.execute(
-                db.query(DBOrderItem)
+                select(DBOrderItem)
                 .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
-                .filter(DBOrderItem.order_id == int(order_id), DBProduct.seller_id == actor_id)
+                .where(DBOrderItem.order_id == int(order_id), DBProduct.seller_id == actor_id)
             )
             seller_match = result.scalars().first()
             if not seller_match:
@@ -259,7 +266,7 @@ class OrderService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing payment_reference")
 
         result = await db.execute(
-            db.query(DBOrder).filter(DBOrder.payment_reference == payment_ref)
+            select(DBOrder).where(DBOrder.payment_reference == payment_ref)
         )
         db_order = result.scalars().first()
         if not db_order:
@@ -287,7 +294,7 @@ class OrderService:
         This is a logical refund; integration with payment gateway should be implemented separately.
         """
         result = await db.execute(
-            db.query(DBOrder).filter(DBOrder.id == int(order_id))
+            select(DBOrder).where(DBOrder.id == int(order_id))
         )
         db_order = result.scalars().first()
         if not db_order:
@@ -302,9 +309,9 @@ class OrderService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid actor id")
             actor_id = int(actor_id_attr)
             result = await db.execute(
-                db.query(DBOrderItem)
+                select(DBOrderItem)
                 .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
-                .filter(DBOrderItem.order_id == int(order_id), DBProduct.seller_id == actor_id)
+                .where(DBOrderItem.order_id == int(order_id), DBProduct.seller_id == actor_id)
             )
             seller_items = result.scalars().all()
             if not seller_items:
@@ -313,7 +320,7 @@ class OrderService:
         # Perform refund logic: mark refunded and restock products (for items belonging to the refunding actor or all if admin)
         try:
             result = await db.execute(
-                db.query(DBOrderItem).filter(DBOrderItem.order_id == int(order_id))
+                select(DBOrderItem).where(DBOrderItem.order_id == int(order_id))
             )
             items_to_handle = result.scalars().all()
             for item in items_to_handle:
@@ -321,7 +328,7 @@ class OrderService:
                 if prod_id is None:
                     continue
                 result = await db.execute(
-                    db.query(DBProduct).filter(DBProduct.id == prod_id)
+                    select(DBProduct).where(DBProduct.id == prod_id)
                 )
                 prod = result.scalars().first()
                 if prod:

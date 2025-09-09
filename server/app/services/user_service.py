@@ -13,30 +13,28 @@ class UserService:
     @staticmethod
     async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[DBUser]:
         """Get user by ID."""
-        result = await db.execute(
-            select(DBUser).where(DBUser.id == user_id)
-        )
+        from sqlalchemy import select
+        result = await db.execute(select(DBUser).where(DBUser.id == user_id))
         return result.scalars().first()
     
     @staticmethod
     async def get_user_by_email(db: AsyncSession, email: str) -> Optional[DBUser]:
         """Get user by email."""
-        result = await db.execute(
-            select(DBUser).where(DBUser.email == email)
-        )
+        from sqlalchemy import select
+        result = await db.execute(select(DBUser).where(DBUser.email == email))
         return result.scalars().first()
     
     @staticmethod
     async def get_user_by_username(db: AsyncSession, username: str) -> Optional[DBUser]:
         """Get user by username."""
-        result = await db.execute(
-            select(DBUser).where(DBUser.username == username)
-        )
+        from sqlalchemy import select
+        result = await db.execute(select(DBUser).where(DBUser.username == username))
         return result.scalars().first()
     
     @staticmethod
     async def create_user(db: AsyncSession, user_create: UserCreate) -> DBUser:
         """Create a new user."""
+        from sqlalchemy import select
         # Check if user already exists
         result = await db.execute(
             select(DBUser).where(
@@ -44,7 +42,7 @@ class UserService:
             )
         )
         existing_user = result.scalars().first()
-        
+
         if existing_user:
             if existing_user.email == user_create.email:
                 raise HTTPException(
@@ -56,7 +54,7 @@ class UserService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Username already taken"
                 )
-        
+
         # Create new user
         hashed_password = get_password_hash(user_create.password)
         db_user = DBUser(
@@ -69,7 +67,7 @@ class UserService:
             hashed_password=hashed_password,
             role=user_create.role
         )
-        
+
         db.add(db_user)
         await db.commit()
         await db.refresh(db_user)
@@ -87,6 +85,7 @@ class UserService:
         
         # Check username uniqueness if being updated
         if user_update.username and user_update.username != db_user.username:
+            from sqlalchemy import select
             result = await db.execute(
                 select(DBUser).where(
                     DBUser.username == user_update.username,

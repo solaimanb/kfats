@@ -1,7 +1,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import or_
+from sqlalchemy import or_, select
 from app.core.database import get_async_db
 from app.models.article import Article as DBArticle
 from app.models.course import Course as DBCourse
@@ -26,7 +26,7 @@ async def global_search(
     # Articles
     if type in (None, "all", "article"):
         article_result = await db.execute(
-            db.query(DBArticle).filter(
+            select(DBArticle).where(
                 or_(
                     DBArticle.title.ilike(search_term),
                     DBArticle.content.ilike(search_term),
@@ -46,7 +46,7 @@ async def global_search(
     # Courses
     if type in (None, "all", "course"):
         course_result = await db.execute(
-            db.query(DBCourse).filter(
+            select(DBCourse).where(
                 or_(
                     DBCourse.title.ilike(search_term),
                     DBCourse.description.ilike(search_term)
@@ -65,7 +65,7 @@ async def global_search(
     # Products
     if type in (None, "all", "product"):
         product_result = await db.execute(
-            db.query(DBProduct).filter(
+            select(DBProduct).where(
                 or_(
                     DBProduct.name.ilike(search_term),
                     DBProduct.description.ilike(search_term)

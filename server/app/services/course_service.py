@@ -1,5 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from fastapi import HTTPException, status
 from app.models import Course as DBCourse, Enrollment as DBEnrollment, User as DBUser
 from app.schemas import Course, CourseCreate, CourseUpdate, Enrollment, UserRole
@@ -12,7 +13,7 @@ class CourseService:
     async def get_course_by_id(db: AsyncSession, course_id: int) -> Optional[DBCourse]:
         """Get course by ID."""
         result = await db.execute(
-            db.query(DBCourse).filter(DBCourse.id == course_id)
+            select(DBCourse).where(DBCourse.id == course_id)
         )
         return result.scalars().first()
     
@@ -20,7 +21,7 @@ class CourseService:
     async def get_courses(db: AsyncSession, skip: int = 0, limit: int = 20) -> List[DBCourse]:
         """Get list of courses."""
         result = await db.execute(
-            db.query(DBCourse).offset(skip).limit(limit)
+            select(DBCourse).offset(skip).limit(limit)
         )
         return result.scalars().all()
     
@@ -49,7 +50,7 @@ class CourseService:
         
         # Check if user is the mentor of the course or admin
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.id == user_id)
+            select(DBUser).where(DBUser.id == user_id)
         )
         user = result.scalars().first()
         if not user:
@@ -86,7 +87,7 @@ class CourseService:
         
         # Check if already enrolled
         result = await db.execute(
-            db.query(DBEnrollment).filter(
+            select(DBEnrollment).where(
                 DBEnrollment.course_id == course_id,
                 DBEnrollment.student_id == student_id
             )
@@ -112,7 +113,7 @@ class CourseService:
         
         # Auto-upgrade user to student role if they're just a user
         result = await db.execute(
-            db.query(DBUser).filter(DBUser.id == student_id)
+            select(DBUser).where(DBUser.id == student_id)
         )
         student = result.scalars().first()
         if student and student.role == UserRole.USER:
