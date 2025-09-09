@@ -1,55 +1,55 @@
-"use client"
+"use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
-import { useWriterArticles } from "@/lib/hooks/useArticles"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { useWriterArticles } from "@/lib/hooks/useArticles";
 import {
   calculateWriterOverview,
-  generateContentAnalytics
-} from "./_components/utils"
-import { ContentAnalyticsSection, MyArticlesSection, WriterOverviewStats } from "./_components"
+  generateContentAnalytics,
+} from "./_components/utils";
 import {
-  BarChart3,
-  PenTool,
-  ExternalLink
-} from "lucide-react"
-
+  ContentAnalyticsSection,
+  MyArticlesSection,
+  WriterOverviewStats,
+} from "./_components";
+import { BarChart3, PenTool, ExternalLink } from "lucide-react";
+import { PaginatedResponse, Article } from "@/lib/types/api";
 
 interface WriterDashboardProps {
-  userId?: number
+  userId?: number;
 }
 
-export function WriterDashboard({ }: WriterDashboardProps) {
-  const router = useRouter()
-  const { data: myArticles, isLoading } = useWriterArticles()
+export function WriterDashboard({}: WriterDashboardProps) {
+  const router = useRouter();
+  const { data: myArticles, isLoading } = useWriterArticles();
 
-  const overviewData = myArticles ? calculateWriterOverview(myArticles) : null
-  const contentAnalytics = myArticles ? generateContentAnalytics(myArticles) : null
+  const articlesArray = (myArticles as PaginatedResponse<Article>)?.items || [];
+  const overviewData =
+    articlesArray.length > 0 ? calculateWriterOverview(articlesArray) : null;
+  const contentAnalytics =
+    articlesArray.length > 0 ? generateContentAnalytics(articlesArray) : null;
 
   const handleCreateArticle = () => {
-    router.push('/articles/create')
-  }
+    router.push("/articles/create");
+  };
 
   const handleEditArticle = (articleId: number) => {
-    router.push(`/articles/${articleId}/edit`)
-  }
+    router.push(`/articles/${articleId}/edit`);
+  };
 
   const handleViewArticle = (articleId: number) => {
-    router.push(`/articles/${articleId}`)
-  }
+    router.push(`/articles/${articleId}`);
+  };
 
   const handleGoToMyArticles = () => {
-    router.push('/dashboard/my-articles')
-  }
+    router.push("/dashboard/my-articles");
+  };
 
   return (
     <div className="space-y-6">
       {overviewData && (
-        <WriterOverviewStats
-          data={overviewData}
-          isLoading={isLoading}
-        />
+        <WriterOverviewStats data={overviewData} isLoading={isLoading} />
       )}
 
       <div className="flex flex-wrap items-center gap-3">
@@ -78,7 +78,7 @@ export function WriterDashboard({ }: WriterDashboardProps) {
 
         <TabsContent value="articles" className="space-y-4">
           <MyArticlesSection
-            articles={myArticles || []}
+            articles={articlesArray}
             isLoading={isLoading}
             onCreateArticle={handleCreateArticle}
             onEditArticle={handleEditArticle}
@@ -98,5 +98,5 @@ export function WriterDashboard({ }: WriterDashboardProps) {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

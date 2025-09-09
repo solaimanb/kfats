@@ -19,6 +19,10 @@ async def change_password(
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_async_db)
 ):
+    # Validate that new passwords match
+    if payload.new_password != payload.confirm_new_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New passwords do not match.")
+
     result = await db.execute(select(DBUser).where(DBUser.id == current_user.id))
     db_user = result.scalar_one_or_none()
     if not db_user:
