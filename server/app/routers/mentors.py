@@ -1,23 +1,29 @@
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import and_, distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, and_, distinct, select
 
 from app.core.database import get_async_db
 from app.core.dependencies import get_mentor_or_admin
-from app.models.user import User as DBUser
 from app.models.course import Course as DBCourse, Enrollment as DBEnrollment
+from app.models.user import User as DBUser
 from app.schemas.mentor import (
-    MentorOverviewResponse,
-    MentorOverview,
-    MonthlyEnrollment,
     CoursePerformanceItem,
-    MentorStudentItem,
     MentorActivityItem,
+    MentorOverview,
+    MentorOverviewResponse,
+    MentorStudentItem,
+    MonthlyEnrollment,
 )
 from app.schemas.user import User
+
+
+class CoursePerformanceData(TypedDict):
+    """Type definition for course performance data."""
+    enrolled: int
+    avg_completion: float
 
 router = APIRouter(prefix="/mentors", tags=["Mentors"])
 
@@ -26,24 +32,31 @@ router = APIRouter(prefix="/mentors", tags=["Mentors"])
 async def get_mentor_overview(
     current_user: User = Depends(get_mentor_or_admin),
     db: AsyncSession = Depends(get_async_db)
-):
-    # Total courses
-    count_result = await db.execute(
-        select(func.count(DBCourse.id)).where(DBCourse.mentor_id == current_user.id)
-    )
-    total_courses = count_result.scalar()
+) -> MentorOverviewResponse:
+    """Get comprehensive overview statistics for a mentor.
 
-    # Total students (distinct across mentor's courses)
-    result = await db.execute(
+    Returns total courses, students, enrollments, completion rates,
+    and monthly enrollment trends for the authenticated mentor.
+    """
+    # Total courses count
+    courses_count_result = await db.execute(
+        select(func.count(DBCourse.id)).where(
+            DBCourse.mentor_id == current_user.id
+        )
+    )
+    total_courses = courses_count_result.scalar()
+
+    # Total unique students across all mentor's courses
+    students_result = await db.execute(
         select(func.count(distinct(DBEnrollment.student_id)))
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .where(DBCourse.mentor_id == current_user.id)
     )
-    total_students = result.scalar() or 0
+    total_students = students_result.scalar() or 0
 
-    # Enrollments last 30 days
+    # Enrollments in the last 30 days
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-    result = await db.execute(
+    recent_enrollments_result = await db.execute(
         select(func.count(DBEnrollment.id))
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .where(
@@ -53,21 +66,24 @@ async def get_mentor_overview(
             )
         )
     )
-    enrollments_last_30d = result.scalar() or 0
+    enrollments_last_30d = recent_enrollments_result.scalar() or 0
 
-    # Average completion across mentor's enrollments
-    result = await db.execute(
+    # Average completion rate across mentor's courses
+    completion_result = await db.execute(
         select(func.avg(DBEnrollment.progress_percentage))
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .where(DBCourse.mentor_id == current_user.id)
     )
-    avg_completion = result.scalar()
-    avg_completion = float(avg_completion) if avg_completion is not None else 0.0
+    avg_completion_raw = completion_result.scalar()
+    avg_completion = (
+        float(avg_completion_raw) if avg_completion_raw is not None else 0.0
+    )
 
-    # Monthly enrollments (last 6 months) - DB-agnostic grouping in Python
+    # Monthly enrollment trends for the last 6 months
     six_months_ago = datetime.utcnow() - timedelta(days=180)
     monthly_enrollments_map: dict[str, int] = {}
-    result = await db.execute(
+
+    enrollment_dates_result = await db.execute(
         select(DBEnrollment.enrolled_at)
         .join(DBCourse, DBEnrollment.course_id == DBCourse.id)
         .where(
@@ -77,28 +93,37 @@ async def get_mentor_overview(
             )
         )
     )
-    enroll_dates = result.all()
-    for (enrolled_at,) in enroll_dates:
+    enrollment_dates = enrollment_dates_result.all()
+
+    for (enrolled_at,) in enrollment_dates:
         if not enrolled_at:
             continue
-        key = enrolled_at.strftime("%Y-%m")
-        monthly_enrollments_map[key] = monthly_enrollments_map.get(key, 0) + 1
-    # Sort by month key
+        month_key = enrolled_at.strftime("%Y-%m")
+        monthly_enrollments_map[month_key] = (
+            monthly_enrollments_map.get(month_key, 0) + 1
+        )
+
+    # Sort by month and create MonthlyEnrollment objects
     monthly_enrollments: List[MonthlyEnrollment] = [
-        MonthlyEnrollment(month=k, count=v)
-        for k, v in sorted(monthly_enrollments_map.items())
+        MonthlyEnrollment(month=month_key, count=count)
+        for month_key, count in sorted(monthly_enrollments_map.items())
     ]
 
-    # Course performance for mentor's courses
-    result = await db.execute(
+    # Get course performance data
+    courses_result = await db.execute(
         select(DBCourse).where(DBCourse.mentor_id == current_user.id)
     )
-    courses = result.scalars().all()
-    course_ids = [c.id for c in courses]
+    courses = courses_result.scalars().all()
+    course_ids = [course.id for course in courses]
 
-    perf_map = {cid: {"enrolled": 0, "avg": 0.0} for cid in course_ids}
+    # Initialize performance map with proper int keys
+    performance_map: Dict[int, CoursePerformanceData] = {}
+    for course in courses:
+        course_id = int(getattr(course, 'id', 0))
+        performance_map[course_id] = {"enrolled": 0, "avg_completion": 0.0}
+
     if course_ids:
-        result = await db.execute(
+        enrollment_stats_result = await db.execute(
             select(
                 DBEnrollment.course_id,
                 func.count(DBEnrollment.id),
@@ -107,26 +132,44 @@ async def get_mentor_overview(
             .where(DBEnrollment.course_id.in_(course_ids))
             .group_by(DBEnrollment.course_id)
         )
-        enrollment_stats = result.all()
-        for cid, cnt, avgp in enrollment_stats:
-            perf_map[cid] = {"enrolled": int(cnt or 0), "avg": float(avgp or 0.0)}
+        enrollment_stats = enrollment_stats_result.all()
 
-    course_performance: List[CoursePerformanceItem] = [
-        CoursePerformanceItem(
-            course_id=c.id,
-            title=c.title,
-            enrolled_count=perf_map.get(c.id, {}).get("enrolled", 0),
-            avg_completion=perf_map.get(c.id, {}).get("avg", 0.0),
-            status=str(c.status.value if hasattr(c.status, 'value') else c.status),
-            created_at=c.created_at,
-            last_updated=c.updated_at,
+        for course_id, count, avg_progress in enrollment_stats:
+            performance_map[int(course_id)] = {
+                "enrolled": int(count or 0),
+                "avg_completion": float(avg_progress or 0.0)
+            }
+
+    # Build course performance items
+    course_performance: List[CoursePerformanceItem] = []
+    for course in courses:
+        course_id = int(getattr(course, 'id', 0))
+        title = str(getattr(course, 'title', ''))
+        created_at = getattr(course, 'created_at')
+        updated_at = getattr(course, 'updated_at')
+
+        # Get performance data for this course
+        perf_data = performance_map.get(course_id, {"enrolled": 0, "avg_completion": 0.0})
+
+        course_performance.append(
+            CoursePerformanceItem(
+                course_id=course_id,
+                title=title,
+                enrolled_count=perf_data["enrolled"],
+                avg_completion=perf_data["avg_completion"],
+                status=str(
+                    course.status.value
+                    if hasattr(course.status, 'value')
+                    else course.status
+                ),
+                created_at=created_at,
+                last_updated=updated_at,
+            )
         )
-        for c in courses
-    ]
 
     return MentorOverviewResponse(
         overview=MentorOverview(
-            total_courses=total_courses,
+            total_courses=int(total_courses or 0),
             total_students=total_students,
             enrollments_last_30d=enrollments_last_30d,
             avg_completion=avg_completion,
@@ -143,7 +186,19 @@ async def get_mentor_students(
     course_id: Optional[int] = None,
     current_user: User = Depends(get_mentor_or_admin),
     db: AsyncSession = Depends(get_async_db)
-):
+) -> Dict[str, Any]:
+    """Get paginated list of students enrolled in mentor's courses.
+
+    Args:
+        page: Page number (1-based)
+        size: Number of items per page (max 100)
+        course_id: Optional filter by specific course
+        current_user: Authenticated mentor user
+        db: Database session
+
+    Returns:
+        Paginated response with student enrollment data
+    """
     # Get total count for pagination
     count_query = (
         select(func.count(DBEnrollment.id))
@@ -186,21 +241,21 @@ async def get_mentor_students(
             status_value = str(enrollment.status)
         results.append(
             MentorStudentItem(
-                user_id=student.id,
-                full_name=student.full_name,
-                email=student.email,
-                course_id=course.id,
-                course_title=course.title,
-                enrolled_at=enrollment.enrolled_at,
+                user_id=int(getattr(student, 'id', 0)),
+                full_name=str(getattr(student, 'full_name', '')),
+                email=str(getattr(student, 'email', '')),
+                course_id=int(getattr(course, 'id', 0)),
+                course_title=str(getattr(course, 'title', '')),
+                enrolled_at=getattr(enrollment, 'enrolled_at'),
                 progress_percentage=float(enrollment.progress_percentage or 0.0),
                 status=status_value,
             )
         )
 
-    pages = (total + size - 1) // size
+    pages = (int(total or 0) + size - 1) // size
     return {
         "items": results,
-        "total": total,
+        "total": int(total or 0),
         "page": page,
         "size": size,
         "pages": pages,
@@ -212,7 +267,20 @@ async def get_mentor_activity(
     limit: int = Query(50, ge=1, le=200),
     current_user: User = Depends(get_mentor_or_admin),
     db: AsyncSession = Depends(get_async_db)
-):
+) -> Dict[str, List[MentorActivityItem]]:
+    """Get recent activity for mentor's courses.
+
+    Returns course creation and student enrollment activities,
+    sorted by timestamp in descending order.
+
+    Args:
+        limit: Maximum number of activities to return (1-200)
+        current_user: Authenticated mentor user
+        db: Database session
+
+    Returns:
+        Dictionary containing list of activity items
+    """
     activities: List[MentorActivityItem] = []
 
     # Recent course creations
@@ -227,10 +295,10 @@ async def get_mentor_activity(
         activities.append(
             MentorActivityItem(
                 type="course_created",
-                description=f"Course created: {c.title}",
-                timestamp=c.created_at,
-                course_id=c.id,
-                course_title=c.title,
+                description=str(getattr(c, 'title', '')),
+                timestamp=getattr(c, 'created_at'),
+                course_id=int(getattr(c, 'id', 0)),
+                course_title=str(getattr(c, 'title', '')),
             )
         )
 
@@ -248,12 +316,12 @@ async def get_mentor_activity(
         activities.append(
             MentorActivityItem(
                 type="student_enrolled",
-                description=f"{student.full_name} enrolled in {course.title}",
-                timestamp=e.enrolled_at,
-                course_id=course.id,
-                course_title=course.title,
-                user_id=student.id,
-                student_name=student.full_name,
+                description=f"{getattr(student, 'full_name', '')} enrolled in {getattr(course, 'title', '')}",
+                timestamp=getattr(e, 'enrolled_at'),
+                course_id=int(getattr(course, 'id', 0)),
+                course_title=str(getattr(course, 'title', '')),
+                user_id=int(getattr(student, 'id', 0)),
+                student_name=str(getattr(student, 'full_name', '')),
             )
         )
 

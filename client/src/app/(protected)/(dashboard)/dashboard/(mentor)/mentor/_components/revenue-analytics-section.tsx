@@ -1,22 +1,25 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { DollarSign, TrendingUp } from "lucide-react"
-import { formatCurrency } from "./utils"
-import type { RevenueAnalytics } from "./types"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { DollarSign, TrendingUp } from "lucide-react";
+import { formatCurrency } from "./utils";
+import type { RevenueAnalytics } from "./types";
 
 interface RevenueAnalyticsSectionProps {
-  data: RevenueAnalytics | undefined
-  isLoading: boolean
+  data: RevenueAnalytics | undefined;
+  isLoading: boolean;
 }
 
-export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSectionProps) {
+export function RevenueAnalyticsSection({
+  data,
+  isLoading,
+}: RevenueAnalyticsSectionProps) {
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2">
         {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="rounded-none">
             <CardHeader>
               <div className="h-6 bg-muted rounded w-32 animate-pulse" />
             </CardHeader>
@@ -33,12 +36,12 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
           </Card>
         ))}
       </div>
-    )
+    );
   }
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card>
+      <Card className="rounded-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -53,7 +56,7 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
                 {formatCurrency(data?.total_revenue || 0)}
               </Badge>
             </div>
-            
+
             <div className="flex justify-between items-center">
               <span className="text-sm">This Month</span>
               <Badge className="bg-green-100 text-green-800 border-green-200">
@@ -69,9 +72,16 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
                 </div>
                 <div className="space-y-2">
                   {data.revenue_trends.slice(-3).map((trend, index) => (
-                    <div key={index} className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">{trend.month}</span>
-                      <span className="font-medium">{formatCurrency(trend.revenue)}</span>
+                    <div
+                      key={index}
+                      className="flex justify-between items-center text-sm"
+                    >
+                      <span className="text-muted-foreground">
+                        {trend.month}
+                      </span>
+                      <span className="font-medium">
+                        {formatCurrency(trend.revenue)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -81,7 +91,7 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
@@ -92,7 +102,10 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
           {data?.revenue_by_course && data.revenue_by_course.length > 0 ? (
             <div className="space-y-3">
               {data.revenue_by_course.slice(0, 5).map((course, index) => (
-                <div key={course.course_id} className="flex items-center justify-between">
+                <div
+                  key={course.course_id}
+                  className="flex items-center justify-between"
+                >
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-medium">
                       {index + 1}
@@ -116,5 +129,5 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

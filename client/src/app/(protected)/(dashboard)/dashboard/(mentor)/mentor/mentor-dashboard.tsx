@@ -1,30 +1,30 @@
-"use client"
+"use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useRouter } from "next/navigation"
+import { useRouter } from "next/navigation";
 import {
   MentorOverviewStats,
   MyCoursesSection,
   StudentEngagementSection,
   RevenueAnalyticsSection,
   MentorRecentActivity,
-} from "./_components"
+} from "./_components";
 import type {
   CoursePerformance,
   MentorOverviewData,
   StudentEngagement,
   RevenueAnalytics,
   MentorActivity,
-} from "./_components/types"
+} from "./_components/types";
 
 interface MentorDashboardProps {
-  userId?: number
-  overviewData?: MentorOverviewData
-  coursePerformance?: CoursePerformance[]
-  studentEngagement?: StudentEngagement
-  revenueAnalytics?: RevenueAnalytics
-  recentActivity?: MentorActivity[]
-  isLoading?: boolean
+  userId?: number;
+  overviewData?: MentorOverviewData;
+  coursePerformance?: CoursePerformance[];
+  studentEngagement?: StudentEngagement;
+  revenueAnalytics?: RevenueAnalytics;
+  recentActivity?: MentorActivity[];
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 export function MentorDashboard({
@@ -34,55 +34,102 @@ export function MentorDashboard({
   revenueAnalytics,
   recentActivity,
   isLoading = false,
+  error,
 }: MentorDashboardProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleCreateCourse = () => {
-    router.push('/dashboard/mentor/courses/create')
-  }
+    router.push("/dashboard/mentor/courses/create");
+  };
 
   const handleViewCourse = (courseId: number) => {
-    router.push(`/dashboard/mentor/courses/${courseId}`)
-  }
+    router.push(`/dashboard/mentor/courses/${courseId}`);
+  };
 
   const handleEditCourse = (courseId: number) => {
-    router.push(`/dashboard/mentor/courses/${courseId}/edit`)
-  }
+    router.push(`/dashboard/mentor/courses/${courseId}/edit`);
+  };
+
+  const handleViewAllCourses = () => {
+    router.push("/dashboard/mentor/courses");
+  };
+
+  const handleViewAllStudents = () => {
+    router.push("/dashboard/mentor/students");
+  };
+
+  const handleViewAllActivity = () => {
+    // For now, this could navigate to a dedicated activity page or just scroll to activity section
+    // Since we don't have a dedicated activity page, we'll just keep it as a placeholder
+    console.log("View all activity clicked");
+  };
 
   return (
-    <div className="space-y-6">
-      <MentorOverviewStats data={overviewData} isLoading={isLoading} />
+    <div className="min-h-screen">
+      <div className="container mx-auto px-4 space-y-8">
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-red-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                  Error Loading Dashboard
+                </h3>
+                <div className="mt-2 text-sm text-red-700 dark:text-red-300">
+                  {error}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-      <Tabs defaultValue="courses" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="courses">Courses</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="activity">Activity</TabsTrigger>
-        </TabsList>
+        <MentorOverviewStats data={overviewData} isLoading={isLoading} />
 
-        <TabsContent value="courses" className="space-y-6">
-          <MyCoursesSection
-            courses={coursePerformance || []}
-            isLoading={isLoading}
-            onCreateCourse={handleCreateCourse}
-            onViewCourse={handleViewCourse}
-            onEditCourse={handleEditCourse}
-          />
-        </TabsContent>
+        <div className="grid gap-8 lg:grid-cols-12">
+          <div className="lg:col-span-8 space-y-6">
+            <MyCoursesSection
+              courses={coursePerformance || []}
+              isLoading={isLoading}
+              onCreateCourse={handleCreateCourse}
+              onViewCourse={handleViewCourse}
+              onEditCourse={handleEditCourse}
+              onViewAllCourses={handleViewAllCourses}
+            />
 
-        <TabsContent value="students" className="space-y-6">
-          <StudentEngagementSection data={studentEngagement} isLoading={isLoading} />
-        </TabsContent>
+            <RevenueAnalyticsSection
+              data={revenueAnalytics}
+              isLoading={isLoading}
+            />
+          </div>
 
-        <TabsContent value="analytics" className="space-y-6">
-          <RevenueAnalyticsSection data={revenueAnalytics} isLoading={isLoading} />
-        </TabsContent>
+          <div className="lg:col-span-4 space-y-6">
+            <StudentEngagementSection
+              data={studentEngagement}
+              isLoading={isLoading}
+              onViewAllStudents={handleViewAllStudents}
+            />
 
-        <TabsContent value="activity" className="space-y-6">
-          <MentorRecentActivity activities={recentActivity || []} isLoading={isLoading} />
-        </TabsContent>
-      </Tabs>
+            <MentorRecentActivity
+              activities={recentActivity || []}
+              isLoading={isLoading}
+              onViewAllActivity={handleViewAllActivity}
+            />
+          </div>
+        </div>
+      </div>
     </div>
-  )
+  );
 }

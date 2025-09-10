@@ -446,7 +446,7 @@ async def get_recent_activity(
     for course in recent_courses:
         activities.append({
             "type": "course_created",
-            "description": f"Course created: {course.title}",
+            "description": f"{course.title}",
             "timestamp": course.created_at,
             "course_id": course.id
         })

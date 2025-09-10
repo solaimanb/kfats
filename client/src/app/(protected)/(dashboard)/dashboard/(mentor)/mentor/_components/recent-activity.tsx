@@ -1,27 +1,35 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Activity } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
-import { getMentorActivityIcon, getMentorActivityColor } from "./utils"
-import type { MentorActivity } from "./types"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Activity, ArrowRight } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import type { MentorActivity } from "./types";
 
 interface MentorRecentActivityProps {
-  activities: MentorActivity[]
-  isLoading: boolean
+  activities: MentorActivity[];
+  isLoading: boolean;
+  onViewAllActivity?: () => void;
 }
 
-export function MentorRecentActivity({ activities, isLoading }: MentorRecentActivityProps) {
+export function MentorRecentActivity({
+  activities,
+  isLoading,
+  onViewAllActivity,
+}: MentorRecentActivityProps) {
   if (isLoading) {
     return (
-      <Card>
+      <Card className="rounded-none">
         <CardHeader>
           <div className="h-6 bg-muted rounded w-32 animate-pulse" />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center space-x-4 animate-pulse">
+              <div
+                key={i}
+                className="flex items-center space-x-4 animate-pulse"
+              >
                 <div className="h-10 w-10 bg-muted rounded-full" />
                 <div className="space-y-2">
                   <div className="h-4 bg-muted rounded w-40" />
@@ -32,14 +40,16 @@ export function MentorRecentActivity({ activities, isLoading }: MentorRecentActi
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Activity className="h-5 w-5" />
+    <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm rounded-none">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-3 text-lg">
+          <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+            <Activity className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          </div>
           Recent Activity
         </CardTitle>
       </CardHeader>
@@ -50,38 +60,48 @@ export function MentorRecentActivity({ activities, isLoading }: MentorRecentActi
             <p className="text-sm">No recent activity</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {activities.slice(0, 8).map((activity) => {
-              const IconComponent = getMentorActivityIcon(activity.type)
-              const colorClass = getMentorActivityColor(activity.type)
-              
-              return (
-                <div key={activity.id} className="flex items-center space-x-4">
-                  <div className={`p-2 rounded-full bg-muted ${colorClass}`}>
-                    <IconComponent className="h-4 w-4" />
-                  </div>
-                  <div className="space-y-1 flex-1">
-                    <p className="text-sm font-medium leading-none">
-                      {activity.description}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>
-                        {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                      </span>
-                      {activity.course_title && (
-                        <>
-                          <span>•</span>
-                          <span className="font-medium">{activity.course_title}</span>
-                        </>
-                      )}
+          <>
+            <div className="space-y-4">
+              {activities.slice(0, 8).map((activity) => {
+                return (
+                  <div
+                    key={activity.id}
+                    className="flex items-start space-x-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-none border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-all duration-200"
+                  >
+                    <div className="space-y-2 flex-1">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-tight">
+                        {activity.description}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <Activity className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(activity.timestamp), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                );
+              })}
+            </div>
+
+            {onViewAllActivity && activities.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onViewAllActivity}
+                  className="w-full rounded-none"
+                >
+                  View All Activity
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
