@@ -31,27 +31,15 @@ export default async function MentorDashboardPage() {
       average_rating: 0,
     };
 
-    coursePerformance = overview.course_performance.map(
-      (cp: {
-        course_id: number;
-        title: string;
-        enrolled_count: number;
-        avg_completion: number;
-        status: string;
-        created_at: string;
-        last_updated: string;
-      }) => ({
-        course_id: cp.course_id,
-        title: cp.title,
-        enrolled_count: cp.enrolled_count,
-        completion_rate: cp.avg_completion,
-        average_rating: 0,
-        total_revenue: 0,
-        status: cp.status,
-        created_at: cp.created_at,
-        last_updated: cp.last_updated,
-      })
-    );
+    coursePerformance = overview.course_performance.map((cp) => ({
+      course_id: cp.course_id,
+      title: cp.title,
+      enrolled_count: cp.enrolled_count,
+      avg_completion: cp.avg_completion,
+      status: cp.status,
+      created_at: cp.created_at,
+      last_updated: cp.last_updated,
+    }));
 
     studentEngagement = {
       active_students: Math.round(overview.overview.total_students * 0.7),

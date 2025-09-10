@@ -2,6 +2,7 @@ import { apiClient } from "./client";
 import {
   Course,
   CourseCreate,
+  CourseUpdate,
   Enrollment,
   PaginatedResponse,
   ApiResponse,
@@ -58,7 +59,7 @@ export class CoursesAPI {
    */
   static async updateCourse(
     courseId: number,
-    courseData: Partial<CourseCreate>
+    courseData: CourseUpdate
   ): Promise<Course> {
     const response = await apiClient.put<Course>(
       `/courses/${courseId}`,

@@ -124,11 +124,11 @@ export function MyCoursesSection({
                       </span>
                       <span className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4" />
-                        {formatPercentage(course.completion_rate)} completion
+                        {formatPercentage(course.avg_completion)} completion
                       </span>
                       <span className="flex items-center gap-2">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        {course.average_rating?.toFixed(1) || "0.0"}
+                        N/A
                       </span>
                     </div>
                   </div>
