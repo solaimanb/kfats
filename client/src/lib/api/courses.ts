@@ -33,10 +33,10 @@ export class CoursesAPI {
   }
 
   /**
-   * Get course by ID
+   * Get course by slug
    */
-  static async getCourseById(courseId: number): Promise<Course> {
-    const response = await apiClient.get<Course>(`/courses/${courseId}`);
+  static async getCourseBySlug(slug: string): Promise<Course> {
+    const response = await apiClient.get<Course>(`/courses/slug/${slug}`);
     return response.data;
   }
 

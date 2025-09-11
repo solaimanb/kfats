@@ -7,6 +7,7 @@ from .common import CourseStatus, CourseLevel, EnrollmentStatus
 # Course Models
 class CourseBase(BaseModel):
     title: str
+    slug: Optional[str] = None
     description: str
     short_description: Optional[str] = None
     thumbnail_url: Optional[str] = None
@@ -22,6 +23,7 @@ class CourseCreate(CourseBase):
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
+    slug: Optional[str] = None
     description: Optional[str] = None
     short_description: Optional[str] = None
     thumbnail_url: Optional[str] = None

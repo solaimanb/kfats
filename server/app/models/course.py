@@ -10,6 +10,7 @@ class Course(BaseModel):
     __tablename__ = "courses"
     
     title = Column(String, nullable=False, index=True)
+    slug = Column(String, nullable=True, unique=True, index=True)
     description = Column(Text, index=True, nullable=False)
     short_description = Column(String, nullable=True)
     thumbnail_url = Column(String, nullable=True)

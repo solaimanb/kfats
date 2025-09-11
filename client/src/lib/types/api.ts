@@ -100,6 +100,7 @@ export interface AuthToken {
 export interface Course {
   id: number;
   title: string;
+  slug?: string;
   description: string;
   short_description?: string;
   thumbnail_url?: string;
@@ -128,6 +129,7 @@ export enum CourseStatus {
 
 export interface CourseCreate {
   title: string;
+  slug?: string;
   description: string;
   short_description?: string;
   thumbnail_url?: string;
@@ -139,6 +141,7 @@ export interface CourseCreate {
 
 export interface CourseUpdate {
   title?: string;
+  slug?: string;
   description?: string;
   short_description?: string;
   thumbnail_url?: string;

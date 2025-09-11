@@ -40,8 +40,8 @@ async def get_current_user(
         "phone": user.phone,
         "bio": user.bio,
         "avatar_url": user.avatar_url,
-        "role": user.role,
-        "status": user.status,
+        "role": user.role,  # This should be the enum value
+        "status": user.status,  # This should be the enum value
         "created_at": user.created_at,
         "updated_at": user.updated_at,
         "last_login": user.last_login,
