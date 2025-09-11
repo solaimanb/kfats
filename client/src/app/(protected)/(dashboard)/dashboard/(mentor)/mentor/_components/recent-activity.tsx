@@ -45,7 +45,7 @@ export function MentorRecentActivity({
 
   return (
     <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-sm rounded-none">
-      <CardHeader className="pb-4">
+      <CardHeader>
         <CardTitle className="flex items-center gap-3 text-lg">
           <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
             <Activity className="h-5 w-5 text-orange-600 dark:text-orange-400" />
@@ -56,13 +56,13 @@ export function MentorRecentActivity({
       <CardContent>
         {activities.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <Activity className="h-12 w-12 mx-auto opacity-50" />
             <p className="text-sm">No recent activity</p>
           </div>
         ) : (
           <>
             <div className="space-y-4">
-              {activities.slice(0, 8).map((activity) => {
+              {activities.slice(0, 5).map((activity) => {
                 return (
                   <div
                     key={activity.id}

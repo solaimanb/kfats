@@ -168,11 +168,11 @@ export default function CreateCoursePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen">
       <div className="container mx-auto px-6 py-8 max-w-6xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
             <Button
               asChild
               variant="outline"
@@ -184,30 +184,31 @@ export default function CreateCoursePage() {
                 Back to Courses
               </Link>
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Create New Course
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Build an amazing learning experience for your students
-              </p>
+
+            {/* Auto-save indicator */}
+            <div className="flex items-center gap-2">
+              {autoSaveStatus === "saving" && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  Saving draft...
+                </div>
+              )}
+              {autoSaveStatus === "saved" && (
+                <div className="flex items-center gap-2 text-sm text-green-600">
+                  <Save className="h-4 w-4" />
+                  Draft saved
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Auto-save indicator */}
-          <div className="flex items-center gap-2">
-            {autoSaveStatus === "saving" && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                Saving draft...
-              </div>
-            )}
-            {autoSaveStatus === "saved" && (
-              <div className="flex items-center gap-2 text-sm text-green-600">
-                <Save className="h-4 w-4" />
-                Draft saved
-              </div>
-            )}
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Create New Course
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Build an amazing learning experience for your students
+            </p>
           </div>
         </div>
 
@@ -269,7 +270,7 @@ export default function CreateCoursePage() {
           {/* Main Form */}
           <div className="lg:col-span-2">
             <Card className="rounded-none shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+              <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   {currentStep === "basic" && <BookOpen className="h-5 w-5" />}
                   {currentStep === "details" && (

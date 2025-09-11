@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
-import { getActivityIcon, getActivityColor } from "./utils"
-import type { ActivityData } from "./types"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { getActivityIcon, getActivityColor } from "./utils";
+import type { ActivityData } from "./types";
 
 interface RecentActivityProps {
-  data: ActivityData | undefined
-  isLoading: boolean
+  data: ActivityData | undefined;
+  isLoading: boolean;
 }
 
 export function RecentActivity({ data, isLoading }: RecentActivityProps) {
@@ -24,7 +24,10 @@ export function RecentActivity({ data, isLoading }: RecentActivityProps) {
         {isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center space-x-4 animate-pulse">
+              <div
+                key={i}
+                className="flex items-center space-x-4 animate-pulse"
+              >
                 <div className="h-10 w-10 bg-muted rounded-full" />
                 <div className="space-y-2">
                   <div className="h-4 bg-muted rounded w-40" />
@@ -36,11 +39,15 @@ export function RecentActivity({ data, isLoading }: RecentActivityProps) {
         ) : (
           <div className="space-y-4">
             {data?.activities.slice(0, 5).map((activity, index) => {
-              const IconComponent = getActivityIcon(activity.type)
-              
+              const IconComponent = getActivityIcon(activity.type);
+
               return (
                 <div key={index} className="flex items-center space-x-4">
-                  <div className={`p-2 rounded-full bg-muted ${getActivityColor(activity.type)}`}>
+                  <div
+                    className={`p-2 rounded-full bg-muted ${getActivityColor(
+                      activity.type
+                    )}`}
+                  >
                     <IconComponent className="h-4 w-4" />
                   </div>
                   <div className="space-y-1">
@@ -48,13 +55,15 @@ export function RecentActivity({ data, isLoading }: RecentActivityProps) {
                       {activity.description}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(activity.timestamp), {
+                        addSuffix: true,
+                      })}
                     </p>
                   </div>
                 </div>
-              )
+              );
             })}
-            
+
             {(!data?.activities || data.activities.length === 0) && (
               <div className="text-center py-8 text-muted-foreground">
                 No recent activity
@@ -64,5 +73,5 @@ export function RecentActivity({ data, isLoading }: RecentActivityProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
