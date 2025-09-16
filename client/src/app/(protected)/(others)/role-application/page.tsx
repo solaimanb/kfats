@@ -55,14 +55,14 @@ export default function RoleApplicationPage() {
             return { canApply: false, reason: "Current Role" }
         }
 
-        const pendingApp = myApplications?.find(
+        const pendingApp = myApplications?.items?.find(
             (app: RoleApplication) => app.requested_role === role && app.status === "pending"
         )
         if (pendingApp) {
             return { canApply: false, reason: "Application Pending" }
         }
 
-        const rejectedApp = myApplications?.find(
+        const rejectedApp = myApplications?.items?.find(
             (app: RoleApplication) => app.requested_role === role && app.status === "rejected"
         )
         if (rejectedApp) {
@@ -129,7 +129,7 @@ export default function RoleApplicationPage() {
                         <Loader2 className="h-6 w-6 animate-spin" />
                     </CardContent>
                 </Card>
-            ) : myApplications && myApplications.length > 0 && (
+            ) : myApplications && myApplications.items.length > 0 && (
                 <Card>
                     <CardHeader>
                         <CardTitle>My Applications</CardTitle>
@@ -137,7 +137,7 @@ export default function RoleApplicationPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {myApplications.map((app: RoleApplication) => (
+                            {myApplications.items.map((app: RoleApplication) => (
                                 <div key={app.id} className="flex items-center justify-between p-4 border rounded-lg">
                                     <div className="flex items-center space-x-3">
                                         {getRoleIcon(app.requested_role, { context: 'application' })}

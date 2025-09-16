@@ -27,9 +27,9 @@ import {
 } from "lucide-react";
 
 export default function EditCoursePage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ slug: string }>();
   const router = useRouter();
-  const id = Number(params.id);
+  const slug = params.slug;
 
   const [formData, setFormData] = useState({
     title: "",
@@ -45,15 +45,17 @@ export default function EditCoursePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [courseData, setCourseData] = useState<Course | null>(null);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       try {
-        const data: Course = await CoursesAPI.getCourseById(id);
+        const data: Course = await CoursesAPI.getCourseBySlug(slug);
         if (!mounted) return;
 
+        setCourseData(data);
         setFormData({
           title: data.title,
           description: data.description,
@@ -72,11 +74,11 @@ export default function EditCoursePage() {
         setLoading(false);
       }
     };
-    if (id) load();
+    if (slug) load();
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [slug]);
 
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({
@@ -92,10 +94,10 @@ export default function EditCoursePage() {
     setSuccess(false);
 
     try {
-      await CoursesAPI.updateCourse(id, formData);
+      await CoursesAPI.updateCourse(courseData!.id, formData);
       setSuccess(true);
       setTimeout(() => {
-        router.push(`/dashboard/mentor/courses/${id}`);
+        router.push(`/dashboard/mentor/courses/${slug}`);
       }, 1500);
     } catch (err: unknown) {
       const message =
@@ -128,7 +130,7 @@ export default function EditCoursePage() {
           <div className="mb-6">
             <Button asChild variant="ghost" size="sm" className="h-8 px-2">
               <Link
-                href={`/dashboard/mentor/courses/${id}`}
+                href={`/dashboard/mentor/courses/${slug}`}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -346,7 +348,7 @@ export default function EditCoursePage() {
               asChild
               className="rounded-sm"
             >
-              <Link href={`/dashboard/mentor/courses/${id}`}>Cancel</Link>
+              <Link href={`/dashboard/mentor/courses/${slug}`}>Cancel</Link>
             </Button>
 
             <Button

@@ -109,11 +109,44 @@ async def get_my_courses(
     )
 
 
-@router.get("/{course_id}", response_model=Course)
-async def get_course(course_id: int, db: AsyncSession = Depends(get_async_db)):
-    """Get course by ID."""
+@router.get("/my-enrollments", response_model=PaginatedResponse[Enrollment])
+async def get_my_enrollments(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Get paginated enrollments for the current student/user."""
 
-    result = await db.execute(select(DBCourse).where(DBCourse.id == course_id))
+    # Build base query
+    query = select(DBEnrollment).where(DBEnrollment.student_id == current_user.id)
+
+    # Get total count
+    count_query = select(func.count(DBEnrollment.id)).where(
+        DBEnrollment.student_id == current_user.id
+    )
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Apply pagination
+    skip = (page - 1) * size
+    result = await db.execute(query.offset(skip).limit(size))
+    enrollments = result.scalars().all()
+
+    return PaginatedResponse(
+        items=[Enrollment.model_validate(e) for e in enrollments],
+        total=total,
+        page=page,
+        size=size,
+        pages=(total + size - 1) // size,
+    )
+
+
+@router.get("/slug/{slug}", response_model=Course)
+async def get_course_by_slug(slug: str, db: AsyncSession = Depends(get_async_db)):
+    """Get course by slug."""
+
+    result = await db.execute(select(DBCourse).where(DBCourse.slug == slug))
     course = result.scalars().first()
     if not course:
         raise HTTPException(
@@ -123,11 +156,11 @@ async def get_course(course_id: int, db: AsyncSession = Depends(get_async_db)):
     return Course.model_validate(course)
 
 
-@router.get("/slug/{slug}", response_model=Course)
-async def get_course_by_slug(slug: str, db: AsyncSession = Depends(get_async_db)):
-    """Get course by slug."""
+@router.get("/{course_id}", response_model=Course)
+async def get_course(course_id: int, db: AsyncSession = Depends(get_async_db)):
+    """Get course by ID."""
 
-    result = await db.execute(select(DBCourse).where(DBCourse.slug == slug))
+    result = await db.execute(select(DBCourse).where(DBCourse.id == course_id))
     course = result.scalars().first()
     if not course:
         raise HTTPException(
@@ -320,39 +353,6 @@ async def get_course_enrollments(
 
     return PaginatedResponse(
         items=[Enrollment.model_validate(enrollment) for enrollment in enrollments],
-        total=total,
-        page=page,
-        size=size,
-        pages=(total + size - 1) // size,
-    )
-
-
-@router.get("/my-enrollments", response_model=PaginatedResponse[Enrollment])
-async def get_my_enrollments(
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=100),
-    current_user: User = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_async_db),
-):
-    """Get paginated enrollments for the current student/user."""
-
-    # Build base query
-    query = select(DBEnrollment).where(DBEnrollment.student_id == current_user.id)
-
-    # Get total count
-    count_query = select(func.count(DBEnrollment.id)).where(
-        DBEnrollment.student_id == current_user.id
-    )
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
-
-    # Apply pagination
-    skip = (page - 1) * size
-    result = await db.execute(query.offset(skip).limit(size))
-    enrollments = result.scalars().all()
-
-    return PaginatedResponse(
-        items=[Enrollment.model_validate(e) for e in enrollments],
         total=total,
         page=page,
         size=size,

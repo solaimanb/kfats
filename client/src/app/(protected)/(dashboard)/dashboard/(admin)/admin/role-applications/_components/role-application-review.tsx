@@ -89,8 +89,8 @@ export function RoleApplicationReview({ onlyPending = false }: RoleApplicationRe
   }
 
   const filteredApplications = onlyPending
-    ? applications?.filter(app => app.status === "pending")
-    : applications
+    ? applications?.items?.filter(app => app.status === "pending")
+    : applications?.items
 
   return (
     <div className="space-y-6">

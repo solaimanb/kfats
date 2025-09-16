@@ -29,7 +29,6 @@ export default function CourseDetailsPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedCourses, setRelatedCourses] = useState<Course[]>([]);
-  const [enrolling, setEnrolling] = useState(false);
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -58,21 +57,6 @@ export default function CourseDetailsPage() {
       fetchCourseDetails();
     }
   }, [courseSlug]);
-  const handleEnroll = async () => {
-    if (!course) return;
-
-    try {
-      setEnrolling(true);
-      await CoursesAPI.enrollInCourse(course.id);
-      // Refresh course data to update enrolled count
-      const updatedCourse = await CoursesAPI.getCourseBySlug(courseSlug);
-      setCourse(updatedCourse);
-    } catch (error) {
-      console.error("Failed to enroll in course:", error);
-    } finally {
-      setEnrolling(false);
-    }
-  };
 
   const getLevelColor = (level: CourseLevel) => {
     switch (level) {
@@ -187,10 +171,9 @@ export default function CourseDetailsPage() {
                 <Button
                   size="lg"
                   className="bg-white text-blue-600 hover:bg-blue-50 px-8"
-                  onClick={handleEnroll}
-                  disabled={enrolling}
+                  asChild
                 >
-                  {enrolling ? "Enrolling..." : "Enroll Now"}
+                  <Link href={`/courses/${courseSlug}/enroll`}>Enroll Now</Link>
                 </Button>
               </div>
             </div>
@@ -382,12 +365,11 @@ export default function CourseDetailsPage() {
                 <Button
                   size="lg"
                   className="w-full bg-white text-blue-600 hover:bg-blue-50"
-                  onClick={handleEnroll}
-                  disabled={enrolling}
+                  asChild
                 >
-                  {enrolling
-                    ? "Enrolling..."
-                    : `Enroll for ${formatPrice(course.price)}`}
+                  <Link href={`/courses/${courseSlug}/enroll`}>
+                    Enroll for {formatPrice(course.price)}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

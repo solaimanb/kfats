@@ -41,6 +41,14 @@ export class CoursesAPI {
   }
 
   /**
+   * Get course by ID
+   */
+  static async getCourseById(courseId: number): Promise<Course> {
+    const response = await apiClient.get<Course>(`/courses/${courseId}`);
+    return response.data;
+  }
+
+  /**
    * Get mentor's courses
    */
   static async getMentorCourses(params?: {

@@ -150,7 +150,7 @@ export function RoleApplicationsTable() {
                 <CardContent>
                     <DataTable
                         columns={columns}
-                        data={applications || []}
+                        data={applications?.items || []}
                         pageSize={pagination.pageSize}
                         showPagination={true}
                         toolbar={(table) => (

@@ -1,66 +1,48 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '../api/client'
+import { RoleApplicationsAPI } from '../api/role-applications'
 import {
   RoleApplication,
-  RoleApplicationCreate,
   RoleApplicationUpdate,
   ApplicationableRole,
-  RoleApplicationStatus
+  RoleApplicationStatus,
+  PaginatedResponse
 } from '../types/api'
 
 const roleApplicationsApi = {
-  apply: async (data: RoleApplicationCreate): Promise<{ message: string; data: { application_id: number } }> => {
-    const response = await apiClient.post('/role-applications/apply', data)
-    return response.data
+  apply: RoleApplicationsAPI.applyForRole,
+  getMyApplications: async (): Promise<PaginatedResponse<RoleApplication>> => {
+    return RoleApplicationsAPI.getMyApplications()
   },
-
-  getMyApplications: async (): Promise<RoleApplication[]> => {
-    const response = await apiClient.get('/role-applications/my-applications')
-    return response.data
-  },
-
   getAllApplications: async (
     status?: RoleApplicationStatus,
     role?: ApplicationableRole,
     skip = 0,
     limit = 20
-  ): Promise<RoleApplication[]> => {
-    const params = new URLSearchParams()
-    if (status) params.append('status', status)
-    if (role) params.append('role', role)
-    params.append('skip', skip.toString())
-    params.append('limit', limit.toString())
-
-    const response = await apiClient.get(`/role-applications/all?${params}`)
-    return response.data
+  ): Promise<PaginatedResponse<RoleApplication>> => {
+    const page = Math.floor(skip / limit) + 1
+    const statusParam = status ? (status === RoleApplicationStatus.PENDING ? "PENDING" as const :
+                                   status === RoleApplicationStatus.APPROVED ? "APPROVED" as const :
+                                   "REJECTED" as const) : undefined
+    const roleParam = role ? (role === ApplicationableRole.MENTOR ? "MENTOR" as const :
+                               role === ApplicationableRole.SELLER ? "SELLER" as const :
+                               "WRITER" as const) : undefined
+    return RoleApplicationsAPI.getAllApplications({
+      status: statusParam,
+      role: roleParam,
+      page,
+      size: limit
+    })
   },
-
-  review: async (applicationId: number, data: RoleApplicationUpdate): Promise<{ message: string }> => {
-    const response = await apiClient.put(`/role-applications/${applicationId}/review`, data)
-    return response.data
+  review: async (applicationId: number, data: RoleApplicationUpdate) => {
+    if (!data.status) throw new Error('Status is required for review')
+    const status = data.status === RoleApplicationStatus.APPROVED ? RoleApplicationStatus.APPROVED : RoleApplicationStatus.REJECTED
+    return RoleApplicationsAPI.reviewApplication(applicationId, {
+      status,
+      admin_notes: data.admin_notes
+    })
   },
-
-  withdraw: async (applicationId: number): Promise<{ message: string }> => {
-    const response = await apiClient.delete(`/role-applications/${applicationId}`)
-    return response.data
-  },
-
-  getStats: async (): Promise<{
-    total_applications: number
-    pending_applications: number
-    approved_applications: number
-    rejected_applications: number
-    by_role: Record<string, number>
-    by_status?: {
-      pending: number
-      approved: number
-      rejected: number
-      total: number
-    }
-  }> => {
-    const response = await apiClient.get('/role-applications/stats')
-    return response.data
-  }
+  withdraw: RoleApplicationsAPI.withdrawApplication,
+  getStats: RoleApplicationsAPI.getApplicationStats
 }
 
 export const useRoleApplications = () => {

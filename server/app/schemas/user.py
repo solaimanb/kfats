@@ -1,6 +1,7 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
+import json
 from .common import UserRole, UserStatus
 
 
@@ -84,6 +85,18 @@ class RoleApplication(RoleApplicationInDB):
     # For API responses with user details
     user: Optional["User"] = None
     reviewed_by_user: Optional["User"] = None
+
+    @field_validator('application_data', mode='before')
+    @classmethod
+    def parse_application_data(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return v
 
     class Config:
         from_attributes = True

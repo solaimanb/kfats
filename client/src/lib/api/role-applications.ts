@@ -1,39 +1,5 @@
 import { apiClient } from "./client";
-import { PaginatedResponse, ApiResponse } from "@/lib/types/api";
-
-export interface RoleApplicationCreate {
-  requested_role: "MENTOR" | "SELLER" | "WRITER";
-  reason: string;
-  application_data?: Record<string, unknown>;
-}
-
-export interface RoleApplicationUpdate {
-  status: "APPROVED" | "REJECTED";
-  admin_notes?: string;
-}
-
-export interface RoleApplication {
-  id: number;
-  user_id: number;
-  requested_role: string;
-  reason: string;
-  application_data?: Record<string, unknown>;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  applied_at: string;
-  reviewed_at?: string;
-  reviewed_by?: number;
-  admin_notes?: string;
-  user?: {
-    id: number;
-    full_name: string;
-    email: string;
-  };
-  reviewed_by_user?: {
-    id: number;
-    full_name: string;
-    email: string;
-  };
-}
+import { PaginatedResponse, ApiResponse, RoleApplication, RoleApplicationCreate, RoleApplicationUpdate } from "@/lib/types/api";
 
 export interface RoleApplicationStats {
   total_applications: number;
