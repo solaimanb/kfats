@@ -214,11 +214,11 @@ raise HTTPException(status_code=404, detail="User not found")
 ```python
 # ✅ Good
 raise ValidationError(
-    message="Invalid course duration",
+    message="Invalid course price",
     details={
-        "field": "duration_hours",
-        "provided_value": duration,
-        "expected_range": "1-100"
+        "field": "price",
+        "provided_value": price,
+        "expected_range": "0-10000"
     }
 )
 ```

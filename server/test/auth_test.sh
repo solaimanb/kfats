@@ -511,7 +511,6 @@ main() {
             \"description\": \"A comprehensive test course\",
             \"level\": \"beginner\",
             \"price\": 99.99,
-            \"duration_hours\": 10,
             \"status\": \"published\"
         }"
         

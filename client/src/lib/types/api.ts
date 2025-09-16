@@ -135,8 +135,8 @@ export interface CourseCreate {
   thumbnail_url?: string;
   level: CourseLevel;
   price: number;
-  duration_hours?: number;
   max_students?: number;
+  status?: CourseStatus;
 }
 
 export interface CourseUpdate {
@@ -147,7 +147,6 @@ export interface CourseUpdate {
   thumbnail_url?: string;
   level?: CourseLevel;
   price?: number;
-  duration_hours?: number;
   max_students?: number;
   status?: CourseStatus;
 }

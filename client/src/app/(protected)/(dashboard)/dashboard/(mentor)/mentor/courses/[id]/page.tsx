@@ -24,14 +24,15 @@ export const revalidate = 0;
 export default async function MentorCourseDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }) {
   unstable_noStore();
 
-  const { slug } = await params;
+  const { id } = await params;
+  const courseId = parseInt(id);
 
   // Get fresh course data directly from API
-  const course = await CoursesAPI.getCourseBySlug(slug);
+  const course = await CoursesAPI.getCourseById(courseId);
 
   const overview = await getMentorOverview();
   const overviewCourse = overview.course_performance.find(
@@ -79,13 +80,13 @@ export default async function MentorCourseDetailPage({
             <p className="text-sm text-gray-500">Course Management Dashboard</p>
             <div className="flex items-center gap-3">
               <Button asChild variant="outline" size="sm">
-                <Link href={`/dashboard/mentor/courses/${course.slug}/edit`}>
+                <Link href={`/dashboard/mentor/courses/${courseId}/edit`}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Course
                 </Link>
               </Button>
               <Button asChild size="sm">
-                <Link href={`/courses/${course.slug}`}>
+                <Link href={`/courses/${courseId}`}>
                   <Eye className="h-4 w-4 mr-2" />
                   View Public
                 </Link>

@@ -14,8 +14,17 @@ from app.schemas.common import (
 )
 from app.schemas.user import User
 from app.core.dependencies import get_current_active_user, get_mentor_or_admin
+import re
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
+
+
+def generate_slug(title: str) -> str:
+    """Generate a URL-friendly slug from a title."""
+    # Convert to lowercase, replace spaces with hyphens, remove special characters
+    slug = re.sub(r'[^\w\s-]', '', title.lower())
+    slug = re.sub(r'[-\s]+', '-', slug)
+    return slug.strip('-')
 
 
 @router.post("/", response_model=Course)
@@ -30,6 +39,23 @@ async def create_course(
     course_dict = course_data.model_dump()
     if "status" not in course_dict or course_dict["status"] is None:
         course_dict["status"] = CourseStatus.PUBLISHED
+
+    # Generate slug if not provided
+    if not course_dict.get("slug"):
+        base_slug = generate_slug(course_dict["title"])
+        slug = base_slug
+        counter = 1
+        
+        # Ensure slug uniqueness
+        while True:
+            result = await db.execute(select(DBCourse).where(DBCourse.slug == slug))
+            existing = result.scalars().first()
+            if not existing:
+                break
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        
+        course_dict["slug"] = slug
 
     db_course = DBCourse(**course_dict, mentor_id=current_user.id)
 
@@ -198,6 +224,29 @@ async def update_course(
 
     # Update fields
     update_data = course_update.model_dump(exclude_unset=True)
+    
+    # Regenerate slug if title is being updated
+    if "title" in update_data and update_data["title"]:
+        base_slug = generate_slug(update_data["title"])
+        slug = base_slug
+        counter = 1
+        
+        # Ensure slug uniqueness (excluding current course)
+        while True:
+            result = await db.execute(
+                select(DBCourse).where(
+                    DBCourse.slug == slug,
+                    DBCourse.id != course_id
+                )
+            )
+            existing = result.scalars().first()
+            if not existing:
+                break
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        
+        update_data["slug"] = slug
+    
     for field, value in update_data.items():
         setattr(course, field, value)
 

@@ -16,7 +16,7 @@ class Course(BaseModel):
     thumbnail_url = Column(String, nullable=True)
     level = Column(SQLEnum(CourseLevel), nullable=False)
     price = Column(Float, nullable=False)
-    duration_hours = Column(Integer, nullable=True)
+    duration_hours = Column(Float, nullable=True, default=None)  # Calculated from content
     max_students = Column(Integer, nullable=True)
     status = Column(SQLEnum(CourseStatus), default=CourseStatus.DRAFT, nullable=False)
     mentor_id = Column(ForeignKey("users.id"), nullable=False)

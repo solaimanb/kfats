@@ -1,10 +1,9 @@
 "use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CoursesAPI } from "@/lib/api/courses";
-import { CourseLevel, CourseStatus } from "@/lib/types/api";
+import { Course, CourseLevel, CourseStatus } from "@/lib/types/api";
 import {
   Card,
   CardContent,
@@ -23,30 +22,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  BookOpen,
   ArrowLeft,
+  Save,
+  Loader2,
+  BookOpen,
   DollarSign,
-  Target,
+  Users,
   FileText,
+  Target,
   AlertCircle,
   CheckCircle2,
-  Upload,
-  Image as ImageIcon,
-  Save,
-  Eye,
   Sparkles,
-  Clock,
-  Users,
-  TrendingUp,
 } from "lucide-react";
 
 type FormStep = "basic" | "details" | "preview";
 
-export default function CreateCoursePage() {
+export default function EditCoursePage() {
+  const params = useParams<{ id: string }>();
   const router = useRouter();
+  const courseId = parseInt(params.id);
+
   const [currentStep, setCurrentStep] = useState<FormStep>("basic");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -55,12 +53,43 @@ export default function CreateCoursePage() {
   const [price, setPrice] = useState<number>(0);
   const [maxStudents, setMaxStudents] = useState<number | undefined>();
   const [status, setStatus] = useState<CourseStatus>(CourseStatus.DRAFT);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [courseData, setCourseData] = useState<Course | null>(null);
   const [success, setSuccess] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<
     "idle" | "saving" | "saved"
   >("idle");
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const data: Course = await CoursesAPI.getCourseById(courseId);
+        if (!mounted) return;
+
+        setCourseData(data);
+        setTitle(data.title);
+        setDescription(data.description);
+        setShortDescription(data.short_description || "");
+        setLevel(data.level);
+        setPrice(data.price);
+        setMaxStudents(data.max_students);
+        setStatus(data.status);
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : "Failed to load course";
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (courseId) load();
+    return () => {
+      mounted = false;
+    };
+  }, [courseId]);
 
   useEffect(() => {
     if (title || description || shortDescription || maxStudents) {
@@ -75,12 +104,12 @@ export default function CreateCoursePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     setError(undefined);
     setSuccess(false);
 
     try {
-      const course = await CoursesAPI.createCourse({
+      await CoursesAPI.updateCourse(courseId, {
         title,
         description,
         short_description: shortDescription || undefined,
@@ -91,14 +120,14 @@ export default function CreateCoursePage() {
       });
       setSuccess(true);
       setTimeout(() => {
-        router.push(`/dashboard/mentor/courses/${course.id}`);
+        router.push(`/dashboard/mentor/courses/${courseId}`);
       }, 2000);
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : "Failed to create course";
+        err instanceof Error ? err.message : "Failed to update course";
       setError(message);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -118,6 +147,26 @@ export default function CreateCoursePage() {
     return true;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg rounded-none shadow-xl">
+          <CardContent className="p-8 text-center">
+            <div className="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+              <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              Loading Course...
+            </h2>
+            <p className="text-gray-600 leading-relaxed">
+              Please wait while we load your course data.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
@@ -127,26 +176,16 @@ export default function CreateCoursePage() {
               <CheckCircle2 className="h-10 w-10 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-3">
-              Course Created Successfully! 🎉
+              Course Updated Successfully! 🎉
             </h2>
             <p className="text-gray-600 mb-6 leading-relaxed">
               Your course{" "}
               <span className="font-semibold text-gray-900">
                 &quot;{title}&quot;
               </span>{" "}
-              has been created and is ready for content. You&apos;ll be
-              redirected to the course management page shortly.
+              has been updated and saved. You&apos;ll be redirected to the
+              course management page shortly.
             </p>
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                <Clock className="h-4 w-4" />
-                <span>Next: Add course content and lessons</span>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                <Users className="h-4 w-4" />
-                <span>Ready to accept student enrollments</span>
-              </div>
-            </div>
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
               <div className="bg-green-600 h-2 rounded-full animate-pulse"></div>
             </div>
@@ -171,9 +210,9 @@ export default function CreateCoursePage() {
               size="sm"
               className="rounded-none"
             >
-              <Link href="/dashboard/mentor/courses">
+              <Link href={`/dashboard/mentor/courses/${courseId}`}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Courses
+                Back to Course
               </Link>
             </Button>
 
@@ -196,10 +235,10 @@ export default function CreateCoursePage() {
 
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Create New Course
+              Edit Course
             </h1>
             <p className="text-gray-600 mt-1">
-              Build an amazing learning experience for your students
+              Update your course information and settings
             </p>
           </div>
         </div>
@@ -211,7 +250,7 @@ export default function CreateCoursePage() {
               {[
                 { key: "basic", label: "Basic Info", icon: BookOpen },
                 { key: "details", label: "Details", icon: FileText },
-                { key: "preview", label: "Preview", icon: Eye },
+                { key: "preview", label: "Preview", icon: Target },
               ].map((step, index) => {
                 const Icon = step.icon;
                 const isActive = currentStep === step.key;
@@ -268,10 +307,10 @@ export default function CreateCoursePage() {
                   {currentStep === "details" && (
                     <FileText className="h-5 w-5" />
                   )}
-                  {currentStep === "preview" && <Eye className="h-5 w-5" />}
+                  {currentStep === "preview" && <Target className="h-5 w-5" />}
                   {currentStep === "basic" && "Course Basic Information"}
                   {currentStep === "details" && "Course Details & Settings"}
-                  {currentStep === "preview" && "Preview & Publish"}
+                  {currentStep === "preview" && "Preview & Save Changes"}
                 </CardTitle>
               </CardHeader>
 
@@ -306,12 +345,7 @@ export default function CreateCoursePage() {
                           </Badge>
                         </div>
                       </div>
-                    </div>
-                  )}
 
-                  {/* Step 2: Details */}
-                  {currentStep === "details" && (
-                    <div className="space-y-6">
                       <div className="grid gap-3">
                         <Label
                           htmlFor="description"
@@ -339,7 +373,12 @@ export default function CreateCoursePage() {
                           </Badge>
                         </div>
                       </div>
+                    </div>
+                  )}
 
+                  {/* Step 2: Details */}
+                  {currentStep === "details" && (
+                    <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="grid gap-3">
                           <Label className="text-base font-semibold flex items-center gap-2">
@@ -448,21 +487,24 @@ export default function CreateCoursePage() {
 
                         <div className="grid gap-3">
                           <Label className="text-base font-semibold">
-                            Initial Status
+                            Status
                           </Label>
                           <Select
                             value={status}
                             onValueChange={(val) => setStatus(val as CourseStatus)}
                           >
                             <SelectTrigger className="rounded-none">
-                              <SelectValue placeholder="Select initial status" />
+                              <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value={CourseStatus.DRAFT}>
-                                Draft - Keep private while building
+                                Draft - Keep private while editing
                               </SelectItem>
                               <SelectItem value={CourseStatus.PUBLISHED}>
                                 Published - Make available to students
+                              </SelectItem>
+                              <SelectItem value={CourseStatus.ARCHIVED}>
+                                Archived - Hide from students
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -510,7 +552,9 @@ export default function CreateCoursePage() {
                             <span className={`px-2 py-1 rounded text-xs ${
                               status === CourseStatus.PUBLISHED
                                 ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
+                                : status === CourseStatus.DRAFT
+                                ? "bg-gray-100 text-gray-800"
+                                : "bg-red-100 text-red-800"
                             }`}>
                               {status}
                             </span>
@@ -521,9 +565,8 @@ export default function CreateCoursePage() {
                       <Alert className="rounded-none">
                         <CheckCircle2 className="h-4 w-4" />
                         <AlertDescription>
-                          Your course is ready to be published! Review the
-                          information above and click &quot;Create Course&quot;
-                          when you&apos;re satisfied.
+                          Review the information above and click &quot;Save Changes&quot;
+                          when you&apos;re satisfied with your updates.
                         </AlertDescription>
                       </Alert>
                     </div>
@@ -565,19 +608,19 @@ export default function CreateCoursePage() {
                       <Button
                         type="submit"
                         disabled={
-                          loading || !title.trim() || !description.trim()
+                          saving || !title.trim() || !description.trim()
                         }
                         className="bg-green-600 hover:bg-green-700 rounded-none"
                       >
-                        {loading ? (
+                        {saving ? (
                           <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Creating Course...
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving Changes...
                           </>
                         ) : (
                           <>
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Create Course
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
                           </>
                         )}
                       </Button>
@@ -594,14 +637,16 @@ export default function CreateCoursePage() {
             <Card className="rounded-none">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Expected Performance
+                  <Users className="h-5 w-5" />
+                  Current Performance
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <div className="text-lg font-bold text-blue-600">0</div>
+                    <div className="text-lg font-bold text-blue-600">
+                      {courseData?.enrolled_count || 0}
+                    </div>
                     <div className="text-xs text-blue-600">Students</div>
                   </div>
                   <div className="text-center p-3 bg-green-50 rounded-lg">
@@ -620,7 +665,7 @@ export default function CreateCoursePage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Success Tips
+                  Editing Tips
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -630,9 +675,9 @@ export default function CreateCoursePage() {
                       <span className="text-sm font-bold text-blue-600">1</span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Compelling Title</p>
+                      <p className="text-sm font-medium">Clear Updates</p>
                       <p className="text-xs text-gray-600">
-                        Make it specific and benefit-focused
+                        Make sure changes are clear and beneficial
                       </p>
                     </div>
                   </div>
@@ -644,9 +689,9 @@ export default function CreateCoursePage() {
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Clear Description</p>
+                      <p className="text-sm font-medium">Test Changes</p>
                       <p className="text-xs text-gray-600">
-                        Explain what students will learn and achieve
+                        Preview your course before publishing updates
                       </p>
                     </div>
                   </div>
@@ -658,39 +703,12 @@ export default function CreateCoursePage() {
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Right Price</p>
+                      <p className="text-sm font-medium">Notify Students</p>
                       <p className="text-xs text-gray-600">
-                        Balance value with accessibility
+                        Consider informing enrolled students of major changes
                       </p>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Thumbnail Upload */}
-            <Card className="rounded-none">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5" />
-                  Course Thumbnail
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                    <div className="text-center">
-                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Upload thumbnail</p>
-                      <p className="text-xs text-gray-400">
-                        1280x720px recommended
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="outline" className="w-full rounded-none">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Choose Image
-                  </Button>
                 </div>
               </CardContent>
             </Card>

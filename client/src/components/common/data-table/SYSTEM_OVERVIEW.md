@@ -139,7 +139,6 @@ const columns = [
 ### Courses Management
 - Thumbnail image support
 - Price formatting (including free courses)
-- Duration display (hours/days)
 - Enrollment progress tracking
 
 ### Advanced Features

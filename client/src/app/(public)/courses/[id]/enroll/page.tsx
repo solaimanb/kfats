@@ -7,7 +7,6 @@ import Image from "next/image";
 import {
   ArrowLeft,
   CheckCircle,
-  Clock,
   Users,
   BookOpen,
   CreditCard,
@@ -85,14 +84,6 @@ export default function CourseEnrollmentPage() {
 
   const formatPrice = (price: number) => {
     return price === 0 ? "Free" : `$${price.toFixed(2)}`;
-  };
-
-  const formatDuration = (hours?: number) => {
-    if (!hours) return "Self-paced";
-    if (hours >= 1) {
-      return `${hours}h`;
-    }
-    return `${Math.round(hours * 60)}m`;
   };
 
   if (loading) {
@@ -202,23 +193,12 @@ export default function CourseEnrollmentPage() {
             </div>
 
             {/* Course Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <Clock className="h-5 w-5 text-gray-600" />
-                <div>
-                  <div className="font-medium text-gray-900">Duration</div>
-                  <div className="text-sm text-gray-600">
-                    {formatDuration(course.duration_hours)}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <Users className="h-5 w-5 text-gray-600" />
-                <div>
-                  <div className="font-medium text-gray-900">Students</div>
-                  <div className="text-sm text-gray-600">
-                    {course.enrolled_count}
-                  </div>
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+              <Users className="h-5 w-5 text-gray-600" />
+              <div>
+                <div className="font-medium text-gray-900">Students</div>
+                <div className="text-sm text-gray-600">
+                  {course.enrolled_count}
                 </div>
               </div>
             </div>

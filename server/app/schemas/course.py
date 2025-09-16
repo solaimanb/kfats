@@ -13,7 +13,7 @@ class CourseBase(BaseModel):
     thumbnail_url: Optional[str] = None
     level: CourseLevel
     price: float
-    duration_hours: Optional[int] = None
+    duration_hours: Optional[float] = None  # Read-only, calculated from content
     max_students: Optional[int] = None
 
 
@@ -29,7 +29,6 @@ class CourseUpdate(BaseModel):
     thumbnail_url: Optional[str] = None
     level: Optional[CourseLevel] = None
     price: Optional[float] = None
-    duration_hours: Optional[int] = None
     max_students: Optional[int] = None
     status: Optional[CourseStatus] = None
 

@@ -24,7 +24,7 @@ import { Course, CourseLevel } from "@/lib/types/api";
 
 export default function CourseDetailsPage() {
   const params = useParams();
-  const courseSlug = params.slug as string;
+  const courseId = parseInt(params.id as string);
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,7 @@ export default function CourseDetailsPage() {
     const fetchCourseDetails = async () => {
       try {
         setLoading(true);
-        const courseData = await CoursesAPI.getCourseBySlug(courseSlug);
+        const courseData = await CoursesAPI.getCourseById(courseId);
         setCourse(courseData);
 
         // Fetch related courses (same level or by same mentor)
@@ -53,10 +53,10 @@ export default function CourseDetailsPage() {
       }
     };
 
-    if (courseSlug) {
+    if (courseId) {
       fetchCourseDetails();
     }
-  }, [courseSlug]);
+  }, [courseId]);
 
   const getLevelColor = (level: CourseLevel) => {
     switch (level) {
@@ -173,7 +173,7 @@ export default function CourseDetailsPage() {
                   className="bg-white text-blue-600 hover:bg-blue-50 px-8"
                   asChild
                 >
-                  <Link href={`/courses/${courseSlug}/enroll`}>Enroll Now</Link>
+                  <Link href={`/courses/${courseId}/enroll`}>Enroll Now</Link>
                 </Button>
               </div>
             </div>
@@ -367,7 +367,7 @@ export default function CourseDetailsPage() {
                   className="w-full bg-white text-blue-600 hover:bg-blue-50"
                   asChild
                 >
-                  <Link href={`/courses/${courseSlug}/enroll`}>
+                  <Link href={`/courses/${courseId}/enroll`}>
                     Enroll for {formatPrice(course.price)}
                   </Link>
                 </Button>

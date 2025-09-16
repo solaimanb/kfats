@@ -37,7 +37,10 @@ export function CourseCard({ course }: CourseCardProps) {
 
   const formatDuration = (hours?: number) => {
     if (!hours) return null;
-    return hours >= 1 ? `${hours}h` : `${Math.round(hours * 60)}m`;
+    if (hours >= 1) {
+      return `${hours}h`;
+    }
+    return `${Math.round(hours * 60)}m`;
   };
 
   return (
