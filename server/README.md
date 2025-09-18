@@ -144,7 +144,7 @@ Key environment variables in `.env`:
 ```env
 # Security
 SECRET_KEY="your-secret-key"
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
 # Database
 DATABASE_URL="sqlite:///./kfats.db"

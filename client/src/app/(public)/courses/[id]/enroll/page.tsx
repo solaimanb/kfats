@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -23,35 +23,75 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CoursesAPI } from "@/lib/api/courses";
 import { Course, CourseLevel } from "@/lib/types/api";
 import { useEnrollInCourse } from "@/lib/hooks/useCourses";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function CourseEnrollmentPage() {
   const params = useParams();
   const router = useRouter();
-  const courseSlug = params.slug as string;
+  const courseParam = params.id as string;
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrollmentSuccess, setEnrollmentSuccess] = useState(false);
+  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
 
   const enrollMutation = useEnrollInCourse();
 
-  useEffect(() => {
-    const fetchCourseDetails = async () => {
-      try {
-        setLoading(true);
-        const courseData = await CoursesAPI.getCourseBySlug(courseSlug);
-        setCourse(courseData);
-      } catch (error) {
-        console.error("Failed to fetch course details:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchCourseDetails = useCallback(async () => {
+    try {
+      setLoading(true);
 
-    if (courseSlug) {
-      fetchCourseDetails();
+      let courseData: Course;
+
+      // Determine if parameter is an ID or slug
+      const courseId = parseInt(courseParam);
+      if (!isNaN(courseId) && courseId > 0) {
+        // Valid ID - fetch by ID
+        courseData = await CoursesAPI.getCourseById(courseId);
+      } else {
+        // Not a valid ID - try as slug
+        courseData = await CoursesAPI.getCourseBySlug(courseParam);
+      }
+
+      setCourse(courseData);
+
+      // Check if user is already enrolled
+      try {
+        const enrollments = await CoursesAPI.getStudentEnrollments();
+        const isEnrolled = enrollments.items.some(
+          (enrollment) => enrollment.course_id === courseData.id
+        );
+        setIsAlreadyEnrolled(isEnrolled);
+      } catch (error) {
+        console.error("Failed to check enrollment status:", error);
+        // Don't fail the whole page load if enrollment check fails
+        setIsAlreadyEnrolled(false);
+      }
+    } catch (error) {
+      console.error("Failed to fetch course details:", error);
+    } finally {
+      setLoading(false);
     }
-  }, [courseSlug]);
+  }, [courseParam]);
+
+  useEffect(() => {
+    // Check authentication first
+    if (!authLoading && !isAuthenticated) {
+      // Store the current URL to redirect back after login
+      const currentPath = `/courses/${courseParam}/enroll`;
+      sessionStorage.setItem('redirectAfterLogin', currentPath);
+      router.push('/login');
+      return;
+    }
+
+    // Only fetch course if authenticated
+    if (!authLoading && isAuthenticated && courseParam && courseParam.trim()) {
+      fetchCourseDetails();
+    } else if (!authLoading && isAuthenticated) {
+      setLoading(false);
+    }
+  }, [courseParam, isAuthenticated, authLoading, router, fetchCourseDetails]);
 
   const handleEnroll = async () => {
     if (!course) return;
@@ -62,7 +102,7 @@ export default function CourseEnrollmentPage() {
 
       // Redirect to course page after a short delay
       setTimeout(() => {
-        router.push(`/courses/${courseSlug}`);
+        router.push(`/courses/${course.slug || course.id}`);
       }, 3000);
     } catch (error) {
       console.error("Failed to enroll in course:", error);
@@ -86,8 +126,26 @@ export default function CourseEnrollmentPage() {
     return price === 0 ? "Free" : `$${price.toFixed(2)}`;
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return <EnrollmentPageSkeleton />;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Authentication Required
+          </h1>
+          <p className="text-gray-600 mb-6">
+            You need to be logged in to enroll in courses.
+          </p>
+          <Button asChild>
+            <Link href="/login">Sign In</Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (!course) {
@@ -109,7 +167,35 @@ export default function CourseEnrollmentPage() {
     );
   }
 
-  if (enrollmentSuccess) {
+  if (isAlreadyEnrolled) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="h-8 w-8 text-blue-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Already Enrolled!
+            </h2>
+            <p className="text-gray-600 mb-6">
+              You are already enrolled in <strong>{course.title}</strong>.
+              You can access all course materials and continue learning.
+            </p>
+            <div className="space-y-3">
+              <Button asChild className="w-full">
+                <Link href={`/courses/${course.slug || course.id}`}>Continue Learning</Link>
+              </Button>
+              <Button variant="outline" asChild className="w-full">
+                <Link href="/courses">Browse More Courses</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+    if (enrollmentSuccess) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -126,7 +212,7 @@ export default function CourseEnrollmentPage() {
             </p>
             <div className="space-y-3">
               <Button asChild className="w-full">
-                <Link href={`/courses/${courseSlug}`}>Start Learning Now</Link>
+                <Link href={`/courses/${course.slug || course.id}`}>Start Learning Now</Link>
               </Button>
               <Button variant="outline" asChild className="w-full">
                 <Link href="/courses">Browse More Courses</Link>
@@ -145,7 +231,7 @@ export default function CourseEnrollmentPage() {
         <div className="container mx-auto px-4 py-4">
           <Button variant="ghost" asChild className="mb-0">
             <Link
-              href={`/courses/${courseSlug}`}
+              href={`/courses/${course.slug || course.id}`}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />

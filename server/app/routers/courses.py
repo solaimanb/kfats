@@ -71,20 +71,51 @@ async def get_courses(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     mentor_id: Optional[int] = None,
+    search: Optional[str] = None,
+    level: Optional[str] = None,
+    sort_by: Optional[str] = Query(None, regex="^(title|price|created_at|enrolled_count)$"),
+    sort_order: Optional[str] = Query("desc", regex="^(asc|desc)$"),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Get paginated list of published courses."""
     # Build base query
     query = select(DBCourse).where(DBCourse.status == CourseStatus.PUBLISHED)
-    if mentor_id:
-        query = query.where(DBCourse.mentor_id == mentor_id)
-
-    # Get total count
     count_query = select(func.count(DBCourse.id)).where(
         DBCourse.status == CourseStatus.PUBLISHED
     )
+
+    # Apply filters
     if mentor_id:
+        query = query.where(DBCourse.mentor_id == mentor_id)
         count_query = count_query.where(DBCourse.mentor_id == mentor_id)
+
+    if search:
+        search_filter = f"%{search}%"
+        query = query.where(
+            (DBCourse.title.ilike(search_filter)) |
+            (DBCourse.description.ilike(search_filter))
+        )
+        count_query = count_query.where(
+            (DBCourse.title.ilike(search_filter)) |
+            (DBCourse.description.ilike(search_filter))
+        )
+
+    if level and level != "all":
+        query = query.where(DBCourse.level == level)
+        count_query = count_query.where(DBCourse.level == level)
+
+    # Apply sorting
+    if sort_by:
+        sort_column = getattr(DBCourse, sort_by)
+        if sort_order == "desc":
+            query = query.order_by(sort_column.desc())
+        else:
+            query = query.order_by(sort_column.asc())
+    else:
+        # Default sorting by creation date (newest first)
+        query = query.order_by(DBCourse.created_at.desc())
+
+    # Get total count
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 

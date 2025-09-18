@@ -1,7 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { CoursesAPI } from "@/lib/api/courses";
 import { Course, CourseLevel, CourseStatus } from "@/lib/types/api";
 import {
@@ -36,6 +37,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 
 type FormStep = "basic" | "details" | "preview";
@@ -53,6 +56,9 @@ export default function EditCoursePage() {
   const [price, setPrice] = useState<number>(0);
   const [maxStudents, setMaxStudents] = useState<number | undefined>();
   const [status, setStatus] = useState<CourseStatus>(CourseStatus.DRAFT);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -77,6 +83,7 @@ export default function EditCoursePage() {
         setPrice(data.price);
         setMaxStudents(data.max_students);
         setStatus(data.status);
+        setThumbnailUrl(data.thumbnail_url || "");
       } catch (e: unknown) {
         const message =
           e instanceof Error ? e.message : "Failed to load course";
@@ -117,6 +124,7 @@ export default function EditCoursePage() {
         price,
         max_students: maxStudents,
         status,
+        thumbnail_url: thumbnailUrl || undefined,
       });
       setSuccess(true);
       setTimeout(() => {
@@ -145,6 +153,41 @@ export default function EditCoursePage() {
     if (currentStep === "basic") return title.trim().length >= 5;
     if (currentStep === "details") return description.trim().length >= 20;
     return true;
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setThumbnailUrl(result);
+      setUploading(false);
+    };
+    reader.onerror = () => {
+      alert('Failed to read file');
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleChooseImage = () => {
+    fileInputRef.current?.click();
   };
 
   if (loading) {
@@ -524,6 +567,20 @@ export default function EditCoursePage() {
                           Course Preview
                         </h3>
                         <div className="space-y-4">
+                          {thumbnailUrl && (
+                            <div className="mb-4">
+                              <Image
+                                src={thumbnailUrl}
+                                alt="Course thumbnail"
+                                width={400}
+                                height={200}
+                                className="w-full h-48 object-cover rounded-lg"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
                           <div>
                             <h4 className="font-medium text-gray-900">
                               {title || "Course Title"}
@@ -709,6 +766,103 @@ export default function EditCoursePage() {
                       </p>
                     </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Thumbnail Upload */}
+            <Card className="rounded-none">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5" />
+                  Course Thumbnail
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {thumbnailUrl ? (
+                    <div className="space-y-4">
+                      <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border">
+                        <Image
+                          src={thumbnailUrl}
+                          alt="Current thumbnail"
+                          width={400}
+                          height={225}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                      <div className="grid gap-3">
+                        <Label
+                          htmlFor="thumbnailUrl"
+                          className="text-sm font-semibold"
+                        >
+                          Thumbnail URL
+                        </Label>
+                        <Input
+                          id="thumbnailUrl"
+                          value={thumbnailUrl}
+                          onChange={(e) => setThumbnailUrl(e.target.value)}
+                          placeholder="https://example.com/thumbnail.jpg"
+                          className="rounded-none text-sm"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                        <div className="text-center">
+                          <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-sm text-gray-600">Upload thumbnail</p>
+                          <p className="text-xs text-gray-400">
+                            1280x720px recommended
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid gap-3">
+                        <Label
+                          htmlFor="thumbnailUrl"
+                          className="text-sm font-semibold"
+                        >
+                          Or enter URL
+                        </Label>
+                        <Input
+                          id="thumbnailUrl"
+                          value={thumbnailUrl}
+                          onChange={(e) => setThumbnailUrl(e.target.value)}
+                          placeholder="https://example.com/thumbnail.jpg"
+                          className="rounded-none text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full rounded-none"
+                    onClick={handleChooseImage}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {thumbnailUrl ? "Change Image" : "Choose Image"}
+                      </>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

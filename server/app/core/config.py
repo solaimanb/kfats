@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Security - CRITICAL: Change these in production!
     secret_key: str = "CHANGE_THIS_SECRET_KEY_IN_PRODUCTION_TO_A_LONG_RANDOM_STRING_64_CHARS_MINIMUM"
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 1440
 
     # CORS
     cors_origins: str = "http://localhost:3000,https://kfats.vercel.app"

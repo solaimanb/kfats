@@ -25,6 +25,8 @@ export function useCourses(params?: {
   level?: string;
   mentor_id?: number;
   search?: string;
+  sort_by?: string;
+  sort_order?: string;
 }) {
   return useQuery({
     queryKey: coursesKeys.list(params || {}),
@@ -41,6 +43,36 @@ export function useCourse(courseId: number) {
     queryKey: coursesKeys.detail(courseId),
     queryFn: () => CoursesAPI.getCourseById(courseId),
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook to get course by slug
+ */
+export function useCourseBySlug(slug: string) {
+  return useQuery({
+    queryKey: [...coursesKeys.details(), "slug", slug],
+    queryFn: () => CoursesAPI.getCourseBySlug(slug),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook to get course by ID or slug (handles both cases)
+ */
+export function useCourseByIdOrSlug(idOrSlug: string) {
+  const courseId = parseInt(idOrSlug);
+  const isId = !isNaN(courseId) && courseId > 0;
+
+  return useQuery({
+    queryKey: isId
+      ? coursesKeys.detail(courseId)
+      : [...coursesKeys.details(), "slug", idOrSlug],
+    queryFn: () => isId
+      ? CoursesAPI.getCourseById(courseId)
+      : CoursesAPI.getCourseBySlug(idOrSlug),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!idOrSlug, // Only run if have a valid idOrSlug
   });
 }
 

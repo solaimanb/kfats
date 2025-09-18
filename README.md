@@ -290,7 +290,7 @@ DATABASE_URL=postgresql://username:password@host:5432/kfats_db
 # Security
 SECRET_KEY=your-super-secret-jwt-key-here
 ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
 # CORS
 CORS_ORIGINS=http://localhost:3000,https://your-domain.com

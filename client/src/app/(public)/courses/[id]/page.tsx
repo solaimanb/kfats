@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,44 +18,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { CourseCard } from "@/components/common/cards/course-card";
-import { CoursesAPI } from "@/lib/api/courses";
-import { Course, CourseLevel } from "@/lib/types/api";
+import { useCourseByIdOrSlug, useCourses } from "@/lib/hooks/useCourses";
+import { CourseLevel } from "@/lib/types/api";
+import { useAuth, useRoleAccess } from "@/providers/auth-provider";
+import { useStudentEnrollments } from "@/lib/hooks/useCourses";
 
 export default function CourseDetailsPage() {
   const params = useParams();
-  const courseId = parseInt(params.id as string);
+  const courseParam = params.id as string;
+  const { isAuthenticated } = useAuth();
+  const { isStudent } = useRoleAccess();
+  const { data: enrollments } = useStudentEnrollments();
 
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [relatedCourses, setRelatedCourses] = useState<Course[]>([]);
+  // Use React Query for course details with caching
+  const {
+    data: course,
+    isLoading,
+    error,
+  } = useCourseByIdOrSlug(courseParam);
 
-  useEffect(() => {
-    const fetchCourseDetails = async () => {
-      try {
-        setLoading(true);
-        const courseData = await CoursesAPI.getCourseById(courseId);
-        setCourse(courseData);
+  // Use React Query for related courses
+  const { data: relatedCoursesResponse } = useCourses({
+    page: 1,
+    size: 4,
+  });
 
-        // Fetch related courses (same level or by same mentor)
-        const relatedResponse = await CoursesAPI.getAllCourses({
-          page: 1,
-          size: 4,
-        });
-        const filtered = relatedResponse.items.filter(
-          (c) => c.id !== courseData.id && c.level === courseData.level
-        );
-        setRelatedCourses(filtered.slice(0, 3));
-      } catch (error) {
-        console.error("Failed to fetch course details:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Compute enrollment status from enrollments data
+  const isEnrolled = isAuthenticated && enrollments
+    ? enrollments.items.some(enrollment => enrollment.course_id === course?.id)
+    : false;
 
-    if (courseId) {
-      fetchCourseDetails();
-    }
-  }, [courseId]);
+  // Filter related courses (exclude current course and match level)
+  const relatedCourses = relatedCoursesResponse?.items.filter(
+    (c) => c.id !== course?.id && c.level === course?.level
+  ).slice(0, 3) || [];
 
   const getLevelColor = (level: CourseLevel) => {
     switch (level) {
@@ -83,11 +78,11 @@ export default function CourseDetailsPage() {
     return `${Math.round(hours * 60)}m`;
   };
 
-  if (loading) {
+  if (isLoading) {
     return <CourseDetailsSkeleton />;
   }
 
-  if (!course) {
+  if (error || !course) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -95,8 +90,7 @@ export default function CourseDetailsPage() {
             Course Not Found
           </h1>
           <p className="text-gray-600 mb-6">
-            The course you&apos;re looking for doesn&apos;t exist or has been
-            removed.
+            {error?.message || "The course you're looking for doesn't exist or has been removed."}
           </p>
           <Button asChild>
             <Link href="/courses">Browse All Courses</Link>
@@ -168,13 +162,43 @@ export default function CourseDetailsPage() {
                 <div className="text-3xl font-bold">
                   {formatPrice(course.price)}
                 </div>
-                <Button
-                  size="lg"
-                  className="bg-white text-blue-600 hover:bg-blue-50 px-8"
-                  asChild
-                >
-                  <Link href={`/courses/${courseId}/enroll`}>Enroll Now</Link>
-                </Button>
+                {isAuthenticated && isStudent ? (
+                  <Button
+                    size="lg"
+                    className={`px-8 ${
+                      isEnrolled
+                        ? "bg-green-600 hover:bg-green-700 cursor-not-allowed"
+                        : "bg-white text-blue-600 hover:bg-blue-50"
+                    }`}
+                    disabled={isEnrolled}
+                    asChild={!isEnrolled}
+                  >
+                    {isEnrolled ? (
+                      <span className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        Enrolled
+                      </span>
+                    ) : (
+                      <Link href={`/courses/${course.id}/enroll`}>Enroll Now</Link>
+                    )}
+                  </Button>
+                ) : isAuthenticated && !isStudent ? (
+                  <Button
+                    size="lg"
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-8 cursor-not-allowed"
+                    disabled
+                  >
+                    Enrollment Not Available
+                  </Button>
+                ) : (
+                  <Button
+                    size="lg"
+                    className="bg-white text-blue-600 hover:bg-blue-50 px-8"
+                    asChild
+                  >
+                    <Link href={`/login?redirect=/courses/${course.id}`}>Sign In to Enroll</Link>
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -353,26 +377,92 @@ export default function CourseDetailsPage() {
             </Card>
 
             {/* Enroll CTA */}
-            <Card className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-              <CardContent className="p-6 text-center">
-                <h3 className="text-xl font-bold mb-2">
-                  Ready to Start Learning?
-                </h3>
-                <p className="text-blue-100 mb-6">
-                  Join {course.enrolled_count} students already learning this
-                  course
-                </p>
-                <Button
-                  size="lg"
-                  className="w-full bg-white text-blue-600 hover:bg-blue-50"
-                  asChild
-                >
-                  <Link href={`/courses/${courseId}/enroll`}>
-                    Enroll for {formatPrice(course.price)}
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+            {isAuthenticated && isStudent ? (
+              <Card className={`${
+                isEnrolled
+                  ? "bg-gradient-to-r from-green-600 to-green-700"
+                  : "bg-gradient-to-r from-blue-600 to-blue-700"
+              } text-white`}>
+                <CardContent className="p-6 text-center">
+                  <h3 className="text-xl font-bold mb-2">
+                    {isEnrolled ? "You're Enrolled!" : "Ready to Start Learning?"}
+                  </h3>
+                  <p className="text-blue-100 mb-6">
+                    {isEnrolled
+                      ? "You have access to all course materials. Start learning now!"
+                      : `Join ${course.enrolled_count} students already learning this course`
+                    }
+                  </p>
+                  <Button
+                    size="lg"
+                    className={`w-full ${
+                      isEnrolled
+                        ? "bg-green-600 hover:bg-green-700 text-white cursor-not-allowed"
+                        : "bg-white text-blue-600 hover:bg-blue-50"
+                    }`}
+                    disabled={isEnrolled}
+                    asChild={!isEnrolled}
+                  >
+                    {isEnrolled ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        Enrolled
+                      </span>
+                    ) : (
+                      <Link href={`/courses/${course.id}/enroll`}>
+                        Enroll for {formatPrice(course.price)}
+                      </Link>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : isAuthenticated && !isStudent ? (
+              <Card className="bg-gradient-to-r from-gray-600 to-gray-700 text-white">
+                <CardContent className="p-6 text-center">
+                  <h3 className="text-xl font-bold mb-2">
+                    Enrollment Not Available
+                  </h3>
+                  <p className="text-gray-200 mb-6">
+                    Only students can enroll in courses. Please contact support if you need to upgrade your account.
+                  </p>
+                  <Button
+                    size="lg"
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white cursor-not-allowed"
+                    disabled
+                  >
+                    Not Available for Your Role
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="bg-gradient-to-r from-gray-600 to-gray-700 text-white">
+                <CardContent className="p-6 text-center">
+                  <h3 className="text-xl font-bold mb-2">
+                    Sign In to Enroll
+                  </h3>
+                  <p className="text-gray-200 mb-6">
+                    Create an account or sign in to access this course
+                  </p>
+                  <div className="space-y-3">
+                    <Button
+                      size="lg"
+                      className="w-full bg-white text-gray-700 hover:bg-gray-50"
+                      asChild
+                    >
+                      <Link href={`/login?redirect=/courses/${course.id}`}>Sign In</Link>
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="w-full border-white text-white hover:bg-white hover:text-gray-700"
+                      asChild
+                    >
+                      <Link href={`/signup?redirect=/courses/${course.id}`}>Create Account</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 

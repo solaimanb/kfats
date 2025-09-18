@@ -136,6 +136,16 @@ export function SignupForm({
 
             toast.success(TOAST_MESSAGES.AUTH.SIGNUP.SUCCESS, { id: TOAST_IDS.AUTH.SIGNUP })
 
+            // Check for redirect path in sessionStorage first, then default
+            const sessionRedirect = sessionStorage.getItem('redirectAfterLogin')
+            if (sessionRedirect) {
+                sessionStorage.removeItem('redirectAfterLogin')
+                setTimeout(() => {
+                    router.push(sessionRedirect)
+                }, 1000)
+                return
+            }
+
             const redirectPath = getPostAuthRedirectPath(user)
 
             setTimeout(() => {
