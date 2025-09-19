@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends
 from app.core.database import get_async_db
 from app.core.dependencies import require_role
@@ -42,7 +42,8 @@ async def get_seller_revenue_analytics(
             DBProduct.seller_id == seller_id,
             DBOrderItem.sold_at >= twelve_months_ago
         ).group_by(
-            func.date_trunc('month', DBOrderItem.sold_at)
+            func.date_trunc('month', DBOrderItem.sold_at),
+            DBOrderItem.sold_at
         ).order_by('month')
     )
 
@@ -114,7 +115,8 @@ async def get_seller_order_analytics(
             DBProduct.seller_id == seller_id,
             DBOrder.created_at >= twelve_months_ago
         ).group_by(
-            func.date_trunc('month', DBOrder.created_at)
+            func.date_trunc('month', DBOrder.created_at),
+            DBOrder.created_at
         ).order_by('month')
     )
 
@@ -162,7 +164,7 @@ async def get_seller_product_performance(
     rows = product_stats_result.all()
     product_data = [
         {
-            "product_id": int(r.product_id),
+            "id": int(r.product_id),
             "name": r.name,
             "price": float(r.price or 0),
             "stock_quantity": r.stock_quantity,
