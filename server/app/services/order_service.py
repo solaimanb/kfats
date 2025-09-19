@@ -193,11 +193,14 @@ class OrderService:
     @staticmethod
     async def list_orders_by_seller(db: AsyncSession, seller_id: int, skip: int = 0, limit: int = 20):
         """List orders that include items sold by the given seller (join on order_items/products)."""
+        from sqlalchemy.orm import selectinload
+        
         query = (
             select(DBOrder)
             .join(DBOrderItem, DBOrder.id == DBOrderItem.order_id)
             .join(DBProduct, DBOrderItem.product_id == DBProduct.id)
             .where(DBProduct.seller_id == int(seller_id))
+            .options(selectinload(DBOrder.items))
         )
         
         # Get total count

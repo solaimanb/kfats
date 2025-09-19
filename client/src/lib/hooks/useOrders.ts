@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { OrdersAPI } from '../api/orders'
 import { OrderCreate } from '../types/orders'
+import { PaginatedResponse } from '../types/api'
+import { Order } from '../types/orders'
 
 export const ordersKeys = {
     all: ['orders'] as const,
@@ -56,9 +58,35 @@ export function useUpdateOrderStatus() {
     return useMutation({
         mutationFn: ({ orderId, status }: { orderId: number; status: string }) =>
             OrdersAPI.updateOrderStatus(orderId, status),
-        onSuccess: (updatedOrder) => {
-            queryClient.setQueryData(ordersKeys.detail(updatedOrder.id), updatedOrder)
-            queryClient.invalidateQueries({ queryKey: ordersKeys.lists() })
+        onMutate: async ({ orderId, status }) => {
+            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+            await queryClient.cancelQueries({ queryKey: ordersKeys.sellerLists() })
+
+            // Snapshot the previous value
+            const previousData = queryClient.getQueryData<PaginatedResponse<Order>>(ordersKeys.sellerLists())
+
+            // Optimistically update to the new value
+            queryClient.setQueryData<PaginatedResponse<Order>>(ordersKeys.sellerLists(), (old) => {
+                if (!old?.items) return old
+                return {
+                    ...old,
+                    items: old.items.map(order =>
+                        order.id === orderId ? { ...order, status } : order
+                    )
+                }
+            })
+
+            // Return a context object with the snapshotted value
+            return { previousData, orderId, newStatus: status }
+        },
+        onError: (err, variables, context) => {
+            // If the mutation fails, use the context returned from onMutate to roll back
+            if (context?.previousData) {
+                queryClient.setQueryData(ordersKeys.sellerLists(), context.previousData)
+            }
+        },
+        onSettled: () => {
+            // Always refetch after error or success to ensure server state is correct
             queryClient.invalidateQueries({ queryKey: ordersKeys.sellerLists() })
         },
     })

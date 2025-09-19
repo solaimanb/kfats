@@ -1,10 +1,6 @@
-export type OrderStatus =
-    | 'pending'
-    | 'paid'
-    | 'payment_failed'
-    | 'refunded'
-    | 'cancelled'
-    | string
+import { OrderStatus } from "@/lib/utils/order-status";
+
+export type { OrderStatus };
 
 export interface OrderItemCreate {
     product_id: number

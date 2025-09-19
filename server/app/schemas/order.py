@@ -23,6 +23,7 @@ class OrderItem(OrderItemBase):
 
 class OrderBase(BaseModel):
     buyer_id: int
+    seller_id: Optional[int] = None
     shipping_address: Optional[str] = None
 
 
@@ -32,6 +33,7 @@ class OrderCreate(OrderBase):
 
 class Order(OrderBase):
     id: int
+    seller_id: Optional[int] = None
     total_amount: float
     status: str
     payment_reference: Optional[str] = None

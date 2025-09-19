@@ -5,6 +5,7 @@ import {
   ColumnFiltersState,
   SortingState,
   VisibilityState,
+  Table as TanStackTable,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -78,7 +79,7 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center justify-between">
           <div className="flex flex-1 items-center space-x-2">
             {typeof toolbar === 'function'
-              ? (toolbar as (t: import("@tanstack/react-table").Table<TData>) => React.ReactNode)(table)
+              ? (toolbar as (t: TanStackTable<TData>) => React.ReactNode)(table)
               : toolbar}
           </div>
         </div>
