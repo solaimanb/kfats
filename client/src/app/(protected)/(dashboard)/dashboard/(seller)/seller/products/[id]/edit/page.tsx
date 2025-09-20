@@ -18,8 +18,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { toast } from "sonner"
-import { Package, DollarSign, ImageIcon, Warehouse, Plus, X, Eye, AlertCircle, Loader2 } from "lucide-react"
+import { Package, DollarSign, ImageIcon, Warehouse, Plus, X, Eye, AlertCircle } from "lucide-react"
 import Image from "next/image"
+import Loading from "./loading"
 
 const productSchema = z.object({
   name: z.string().min(1, "Product name is required").max(100, "Name too long"),
@@ -127,16 +128,7 @@ export default function EditProductPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-          <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Loading product...</span>
-          </CardContent>
-        </Card>
-      </div>
-    )
+    return <Loading/>
   }
 
   if (isError || !product) {
@@ -162,7 +154,7 @@ export default function EditProductPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+      <Card className="border-none shadow-none">
         <CardHeader className="pb-6">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Package className="w-5 h-5" />

@@ -7,6 +7,7 @@ import { DataTableColumnHeader } from "@/components/common/data-table/data-table
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import Loading from "./loading";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -290,7 +291,9 @@ export default function OrdersPage() {
     [handleViewOrder, handleUpdateStatus]
   );
 
-  if (isLoading) return <div>Loading orders...</div>;
+  if (isLoading) {
+    return <Loading />;
+  }
   if (isError)
     return <div>Error loading orders: {(error as Error)?.message}</div>;
 

@@ -142,8 +142,9 @@ export function OrderManagementSection({ data, isLoading }: OrderManagementSecti
           {recentTrends.length > 0 ? (
             <div className="space-y-4">
               {recentTrends.map((trend, index) => {
-                const growthRate = index > 0 ? 
-                  ((trend.orders - recentTrends[index - 1].orders) / recentTrends[index - 1].orders * 100) : 0
+                const prevOrders = recentTrends[index - 1]?.orders || 0
+                const growthRate = index > 0 && prevOrders > 0 ? 
+                  ((trend.orders - prevOrders) / prevOrders * 100) : 0
                 
                 return (
                   <div key={trend.month} className="flex items-center justify-between p-3 border rounded-lg">

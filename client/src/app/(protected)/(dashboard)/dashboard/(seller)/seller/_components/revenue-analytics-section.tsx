@@ -133,7 +133,7 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data.revenue_by_product.length > 0 ? (
+            {data.revenue_by_product && data.revenue_by_product.length > 0 ? (
               <div className="space-y-4">
                 {data.revenue_by_product.slice(0, 5).map((product, index) => (
                   <div key={product.product_id} className="flex items-center justify-between">
@@ -181,7 +181,7 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data.revenue_by_category.length > 0 ? (
+            {data.revenue_by_category && data.revenue_by_category.length > 0 ? (
               <div className="space-y-4">
                 {data.revenue_by_category.map((category) => (
                   <div key={category.category} className="space-y-2">
@@ -218,7 +218,7 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
       </div>
 
       {/* Revenue Trends */}
-      {data.revenue_trends.length > 0 && (
+      {data.revenue_trends && data.revenue_trends.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -240,7 +240,7 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
                     <div className="font-medium text-green-600">
                       {formatCurrency(trend.revenue)}
                     </div>
-                    {trend.growth_rate !== 0 && (
+                    {trend.growth_rate !== undefined && trend.growth_rate !== null && !isNaN(trend.growth_rate) && trend.growth_rate !== 0 && (
                       <div className={`text-sm ${trend.growth_rate > 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {formatPercentage(trend.growth_rate)} vs prev month
                       </div>

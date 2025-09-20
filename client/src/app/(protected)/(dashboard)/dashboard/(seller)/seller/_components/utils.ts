@@ -84,28 +84,37 @@ export function getProductCategoryColor(category: ProductCategory): string {
  * Format currency value
  */
 export function formatCurrency(amount: number): string {
+  const value = Number(amount) || 0
+  if (isNaN(value)) return '$0.00'
+  
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).format(amount)
+  }).format(value)
 }
 
 /**
  * Format percentage with sign
  */
 export function formatPercentage(value: number, showSign: boolean = true): string {
-  const formatted = `${Math.abs(value).toFixed(1)}%`
+  const numValue = Number(value) || 0
+  if (isNaN(numValue)) return '0.0%'
+  
+  const formatted = `${Math.abs(numValue).toFixed(1)}%`
   if (!showSign) return formatted
-  return value > 0 ? `+${formatted}` : value < 0 ? `-${formatted}` : formatted
+  return numValue > 0 ? `+${formatted}` : numValue < 0 ? `-${formatted}` : formatted
 }
 
 /**
  * Format number with commas
  */
 export function formatNumber(num: number): string {
-  return new Intl.NumberFormat('en-US').format(num)
+  const value = Number(num) || 0
+  if (isNaN(value)) return '0'
+  
+  return new Intl.NumberFormat('en-US').format(value)
 }
 
 /**
