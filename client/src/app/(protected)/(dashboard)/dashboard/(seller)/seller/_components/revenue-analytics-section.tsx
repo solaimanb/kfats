@@ -228,8 +228,8 @@ export function RevenueAnalyticsSection({ data, isLoading }: RevenueAnalyticsSec
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentTrends.map((trend) => (
-                <div key={trend.month} className="flex items-center justify-between p-3 border rounded-lg">
+              {recentTrends.map((trend, index) => (
+                <div key={`${trend.month}-${index}`} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
                     <div className="font-medium">{trend.month}</div>
                     <div className="text-sm text-muted-foreground">
