@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, Users, DollarSign, Star } from "lucide-react";
 import type { MentorOverviewData } from "./types";
 import { formatCurrency } from "./utils";
@@ -20,15 +21,15 @@ export function MentorOverviewStats({
         {Array.from({ length: 4 }).map((_, i) => (
           <Card
             key={i}
-            className="relative overflow-hidden animate-pulse bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-none"
+            className="relative overflow-hidden bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-none"
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20" />
-              <div className="h-5 w-5 bg-slate-200 dark:bg-slate-700 rounded" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-5 rounded-lg" />
             </CardHeader>
             <CardContent>
-              <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-16 mb-2" />
-              <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-24" />
+              <Skeleton className="h-8 w-16 mb-2" />
+              <Skeleton className="h-3 w-24" />
             </CardContent>
           </Card>
         ))}

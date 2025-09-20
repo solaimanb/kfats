@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Users, TrendingUp, UserCheck, ArrowRight } from "lucide-react";
 import type { StudentEngagement } from "./types";
 
@@ -21,14 +22,14 @@ export function StudentEngagementSection({
     return (
       <Card className="rounded-none">
         <CardHeader>
-          <div className="h-6 bg-muted rounded w-40 animate-pulse" />
+          <Skeleton className="h-6 w-40" />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="flex justify-between items-center">
-                <div className="h-4 bg-muted rounded w-24" />
-                <div className="h-6 bg-muted rounded w-16" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-6 w-16" />
               </div>
             ))}
           </div>

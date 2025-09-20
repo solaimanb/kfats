@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, TrendingUp } from "lucide-react";
 import { formatCurrency } from "./utils";
 import type { RevenueAnalytics } from "./types";
@@ -21,14 +22,14 @@ export function RevenueAnalyticsSection({
         {Array.from({ length: 2 }).map((_, i) => (
           <Card key={i} className="rounded-none">
             <CardHeader>
-              <div className="h-6 bg-muted rounded w-32 animate-pulse" />
+              <Skeleton className="h-6 w-32" />
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, j) => (
                   <div key={j} className="flex justify-between items-center">
-                    <div className="h-4 bg-muted rounded w-20" />
-                    <div className="h-6 bg-muted rounded w-16" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-6 w-16" />
                   </div>
                 ))}
               </div>

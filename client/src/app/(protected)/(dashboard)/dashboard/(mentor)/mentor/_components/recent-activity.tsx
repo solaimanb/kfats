@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import type { MentorActivity } from "./types";
@@ -21,19 +22,19 @@ export function MentorRecentActivity({
     return (
       <Card className="rounded-none">
         <CardHeader>
-          <div className="h-6 bg-muted rounded w-32 animate-pulse" />
+          <Skeleton className="h-6 w-32" />
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className="flex items-center space-x-4 animate-pulse"
+                className="flex items-center space-x-4"
               >
-                <div className="h-10 w-10 bg-muted rounded-full" />
+                <Skeleton className="h-10 w-10 rounded-full" />
                 <div className="space-y-2">
-                  <div className="h-4 bg-muted rounded w-40" />
-                  <div className="h-3 bg-muted rounded w-24" />
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
               </div>
             ))}
