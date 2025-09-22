@@ -3,12 +3,14 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Star } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/common/data-table/data-table-column-header";
 import { DataTableRowActions } from "@/components/common/data-table/data-table-row-actions";
+import { createSelectionColumn } from "@/components/common/data-table/column-helpers";
 import { StatusBadge } from "../_components/badges/status-badge";
 import { TypeBadge } from "../_components/badges/type-badge";
 import type { ContentOverviewItem, ContentActions } from "../_types/types";
 
 export function useContentColumns({ onToggleFeature, onArchive }: ContentActions) {
     return useMemo((): ColumnDef<ContentOverviewItem>[] => [
+        createSelectionColumn(),
         {
             accessorKey: "id",
             header: ({ column }) => (
