@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { Eye, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { DataTableColumnHeader } from "@/components/common/data-table/data-table-column-header";
 import { DataTableRowActions } from "@/components/common/data-table/data-table-row-actions";
 import { StatusBadge } from "../_components/badges/status-badge";
@@ -93,21 +93,21 @@ export function useContentColumns({ onToggleFeature, onArchive }: ContentActions
                 );
             },
         },
-        {
-            accessorKey: "views_count",
-            header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Views" />
-            ),
-            cell: ({ row }) => {
-                const views = row.getValue("views_count") as number;
-                return (
-                    <div className="flex items-center space-x-1">
-                        <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="tabular-nums">{views.toLocaleString()}</span>
-                    </div>
-                );
-            },
-        },
+        // {
+        //     accessorKey: "views_count",
+        //     header: ({ column }) => (
+        //         <DataTableColumnHeader column={column} title="Views" />
+        //     ),
+        //     cell: ({ row }) => {
+        //         const views = row.getValue("views_count") as number;
+        //         return (
+        //             <div className="flex items-center space-x-1">
+        //             <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
+        //             <span className="tabular-nums">{views.toLocaleString()}</span>
+        //         </div>
+        //         );
+        //     },
+        // },
         {
             accessorKey: "created_at",
             header: ({ column }) => (

@@ -10,7 +10,7 @@ export default function UserManagementPage() {
     return (
         <div className="space-y-4">
             <div>
-                <h1 className="text-3xl font-bold">User Management</h1>
+                <h1 className="text-2xl font-bold">User Management</h1>
                 <p className="text-muted-foreground">
                     Manage users, their roles, and account status.
                 </p>
