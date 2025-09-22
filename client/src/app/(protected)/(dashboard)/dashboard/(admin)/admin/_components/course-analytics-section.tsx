@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { BookOpen, TrendingUp } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { CourseAnalytics } from "./types"
 
 interface CourseAnalyticsSectionProps {
@@ -14,32 +15,21 @@ export function CourseAnalyticsSection({ data, isLoading }: CourseAnalyticsSecti
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-6 bg-muted rounded w-48 animate-pulse" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="animate-pulse">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <BookOpen className="h-5 w-5" />
+          Course Analytics
+        </h3>
+        <div className="space-y-4">
+          <Card>
             <CardHeader>
-              <div className="h-6 bg-muted rounded w-32" />
+              <Skeleton className="h-6 w-32" />
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="flex justify-between items-center">
-                    <div className="h-4 bg-muted rounded w-20" />
-                    <div className="h-6 bg-muted rounded w-12" />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="md:col-span-2 animate-pulse">
-            <CardHeader>
-              <div className="h-6 bg-muted rounded w-32" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="p-3 border rounded-lg">
-                    <div className="h-4 bg-muted rounded w-48" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-6 w-12" />
                   </div>
                 ))}
               </div>
@@ -56,7 +46,7 @@ export function CourseAnalyticsSection({ data, isLoading }: CourseAnalyticsSecti
         <BookOpen className="h-5 w-5" />
         Course Analytics
       </h3>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -89,7 +79,7 @@ export function CourseAnalyticsSection({ data, isLoading }: CourseAnalyticsSecti
         </Card>
 
         {data?.popular_courses && data.popular_courses.length > 0 && (
-          <Card className="md:col-span-2">
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />

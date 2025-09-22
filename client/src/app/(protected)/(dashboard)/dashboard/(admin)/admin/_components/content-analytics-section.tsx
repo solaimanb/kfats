@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { PenTool, ShoppingBag } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import type { ArticleAnalytics, ProductAnalytics } from "./types"
 
 interface ContentAnalyticsSectionProps {
@@ -30,8 +31,15 @@ export function ContentAnalyticsSection({ data, isLoading }: ContentAnalyticsSec
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -61,8 +69,15 @@ export function ContentAnalyticsSection({ data, isLoading }: ContentAnalyticsSec
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
