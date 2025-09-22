@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { UserCheck, Clock, CheckCircle, XCircle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface RoleApplication {
   id: string
@@ -29,21 +30,21 @@ export function RoleApplicationsSection({
 }: RoleApplicationsProps) {
   if (isLoading) {
     return (
-      <Card className="animate-pulse rounded-xs">
+      <Card className="rounded-xs">
         <CardHeader>
-          <div className="h-6 bg-muted rounded w-40" />
+          <Skeleton className="h-6 w-40" />
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex justify-between items-center p-3 bg-muted rounded">
+              <div key={i} className="flex justify-between items-center p-3 border rounded-lg">
                 <div className="space-y-2">
-                  <div className="h-4 bg-muted-foreground/20 rounded w-32" />
-                  <div className="h-3 bg-muted-foreground/20 rounded w-24" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
                 <div className="flex gap-2">
-                  <div className="h-8 bg-muted-foreground/20 rounded w-16" />
-                  <div className="h-8 bg-muted-foreground/20 rounded w-16" />
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-8 w-16" />
                 </div>
               </div>
             ))}

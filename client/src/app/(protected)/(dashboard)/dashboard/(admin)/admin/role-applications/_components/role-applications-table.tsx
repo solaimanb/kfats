@@ -63,7 +63,7 @@ export function RoleApplicationsTable() {
             <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {Array.from({ length: 4 }).map((_, index) => (
-                        <Card key={index}>
+                        <Card key={index} className="rounded-xs">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <Skeleton className="h-4 w-20" />
                                 <Skeleton className="h-4 w-4" />
@@ -104,7 +104,7 @@ export function RoleApplicationsTable() {
         <div className="space-y-6">
             {stats && !statsLoading && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
+                    <Card className="rounded-xs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
                             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -114,7 +114,7 @@ export function RoleApplicationsTable() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="rounded-xs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
                             <Clock className="h-4 w-4 text-yellow-500" />
@@ -124,7 +124,7 @@ export function RoleApplicationsTable() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="rounded-xs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Approved</CardTitle>
                             <Check className="h-4 w-4 text-green-500" />
@@ -134,7 +134,7 @@ export function RoleApplicationsTable() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="rounded-xs">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Rejected</CardTitle>
                             <X className="h-4 w-4 text-red-500" />
@@ -146,7 +146,7 @@ export function RoleApplicationsTable() {
                 </div>
             )}
 
-            <Card>
+            <Card className="rounded-xs">
                 <CardContent>
                     <DataTable
                         columns={columns}

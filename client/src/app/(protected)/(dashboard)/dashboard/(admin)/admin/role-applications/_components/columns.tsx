@@ -148,21 +148,6 @@ export const columns: ColumnDef<RoleApplication>[] = [
     },
   },
   {
-    accessorKey: "reason",
-    header: "Reason",
-    cell: ({ row }) => {
-      const reason = row.getValue("reason") as string
-      return (
-        <div className="max-w-[300px]">
-          <p className="text-sm line-clamp-2 leading-relaxed">
-            {reason}
-          </p>
-        </div>
-      )
-    },
-    enableSorting: false,
-  },
-  {
     accessorKey: "applied_at",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Applied" />

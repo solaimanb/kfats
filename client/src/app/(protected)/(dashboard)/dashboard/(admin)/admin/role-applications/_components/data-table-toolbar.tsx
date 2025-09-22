@@ -3,7 +3,6 @@
 import { X, RefreshCw } from "lucide-react"
 import { Table } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { DataTableViewOptions, DataTableFacetedFilter } from "@/components/common/data-table"
 import { useCallback } from "react"
 import {
@@ -79,14 +78,6 @@ export function DataTableToolbar<TData>({
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
-        <Input
-          placeholder="Search applications..."
-          value={(table.getColumn("reason")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("reason")?.setFilterValue(event.target.value)
-          }
-          className="h-8 w-[150px] lg:w-[250px]"
-        />
         {table.getColumn("requested_role") && (
           <DataTableFacetedFilter
             column={table.getColumn("requested_role")}
