@@ -86,7 +86,7 @@ export function UserManagementTable() {
     if (usersLoading) {
         return (
             <div className="space-y-6">
-                <Card>
+                <Card className="rounded-xs">
                     <CardHeader>
                         <Skeleton className="h-6 w-32 mb-4" />
                     </CardHeader>
@@ -162,7 +162,7 @@ export function UserManagementTable() {
     }
 
     return (
-        <Card>
+        <Card className="rounded-xs">
             <CardContent>
                 <DataTable
                     columns={columns}

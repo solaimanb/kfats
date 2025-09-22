@@ -18,7 +18,7 @@ export function DetailedUserAnalytics({ userAnalytics, isLoading }: DetailedUser
         <div className="h-6 bg-muted rounded w-32 animate-pulse" />
         <div className="grid gap-4 md:grid-cols-2">
           {Array.from({ length: 2 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
+            <Card key={i} className="animate-pulse rounded-xs">
               <CardHeader>
                 <div className="h-6 bg-muted rounded w-40" />
               </CardHeader>
@@ -46,7 +46,7 @@ export function DetailedUserAnalytics({ userAnalytics, isLoading }: DetailedUser
         User Analytics
       </h3>
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="rounded-xs">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -67,7 +67,7 @@ export function DetailedUserAnalytics({ userAnalytics, isLoading }: DetailedUser
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-xs">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />

@@ -29,7 +29,7 @@ export function RoleApplicationsSection({
 }: RoleApplicationsProps) {
   if (isLoading) {
     return (
-      <Card className="animate-pulse">
+      <Card className="animate-pulse rounded-xs">
         <CardHeader>
           <div className="h-6 bg-muted rounded w-40" />
         </CardHeader>
@@ -80,7 +80,7 @@ export function RoleApplicationsSection({
   }
 
   return (
-    <Card>
+    <Card className="rounded-xs">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserCheck className="h-5 w-5" />

@@ -22,7 +22,7 @@ export function ContentAnalyticsSection({ data, isLoading }: ContentAnalyticsSec
         Content Analytics
       </h3>
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="rounded-xs">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PenTool className="h-5 w-5" />
@@ -60,7 +60,7 @@ export function ContentAnalyticsSection({ data, isLoading }: ContentAnalyticsSec
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="rounded-xs">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5" />

@@ -20,7 +20,7 @@ export function CourseAnalyticsSection({ data, isLoading }: CourseAnalyticsSecti
           Course Analytics
         </h3>
         <div className="space-y-4">
-          <Card>
+          <Card className="rounded-xs">
             <CardHeader>
               <Skeleton className="h-6 w-32" />
             </CardHeader>
@@ -47,7 +47,7 @@ export function CourseAnalyticsSection({ data, isLoading }: CourseAnalyticsSecti
         Course Analytics
       </h3>
       <div className="space-y-4">
-        <Card>
+        <Card className="rounded-xs">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
@@ -79,7 +79,7 @@ export function CourseAnalyticsSection({ data, isLoading }: CourseAnalyticsSecti
         </Card>
 
         {data?.popular_courses && data.popular_courses.length > 0 && (
-          <Card>
+          <Card className="rounded-xs">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />

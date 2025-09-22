@@ -21,7 +21,7 @@ export function UserAnalyticsSection({
   if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="animate-pulse">
+        <Card className="animate-pulse rounded-xs">
           <CardHeader>
             <div className="h-6 bg-muted rounded w-32" />
           </CardHeader>
@@ -36,7 +36,7 @@ export function UserAnalyticsSection({
             </div>
           </CardContent>
         </Card>
-        <Card className="animate-pulse">
+        <Card className="animate-pulse rounded-xs">
           <CardHeader>
             <div className="h-6 bg-muted rounded w-32" />
           </CardHeader>
@@ -57,7 +57,7 @@ export function UserAnalyticsSection({
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card>
+      <Card className="rounded-xs">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -107,7 +107,7 @@ export function UserAnalyticsSection({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-xs">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />

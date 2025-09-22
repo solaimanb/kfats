@@ -13,7 +13,7 @@ interface RecentActivityProps {
 
 export function RecentActivity({ data, isLoading }: RecentActivityProps) {
   return (
-    <Card>
+    <Card className="rounded-xs">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <AlertCircle className="h-5 w-5" />

@@ -14,7 +14,7 @@ export function OverviewStats({ data, isLoading }: OverviewStatsProps) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i} className="relative overflow-hidden animate-pulse">
+          <Card key={i} className="relative overflow-hidden animate-pulse rounded-xs">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="h-4 bg-muted rounded w-20" />
               <div className="h-4 w-4 bg-muted rounded" />
@@ -72,7 +72,7 @@ export function OverviewStats({ data, isLoading }: OverviewStatsProps) {
         const GrowthIcon = stat.growthIcon || TrendingUp
         
         return (
-          <Card key={index} className="relative overflow-hidden">
+          <Card key={index} className="relative overflow-hidden rounded-xs">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
               <Icon className="h-4 w-4 text-muted-foreground" />
