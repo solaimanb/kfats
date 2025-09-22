@@ -14,7 +14,6 @@ export function middleware(request: NextRequest) {
     '/dashboard',
     '/courses/create',
     '/articles/create',
-    '/products/create',
     '/profile',
     '/role-application'
   ]

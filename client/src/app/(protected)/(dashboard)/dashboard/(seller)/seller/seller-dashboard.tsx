@@ -102,7 +102,7 @@ export function SellerDashboard({ }: SellerDashboardProps) {
   const recentActivity: SellerActivity[] = []
 
   const handleCreateProduct = () => {
-    router.push('/products/create')
+    router.push('/dashboard/seller/products/create')
   }
 
   const handleViewProduct = (product: { id: number; name?: string }) => {
