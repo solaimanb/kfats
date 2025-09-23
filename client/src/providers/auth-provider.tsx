@@ -38,16 +38,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const storedUser = tokenUtils.getUser()
 
       if (token && storedUser) {
-        const currentUser = await AuthAPI.verifyToken()
-        setUser(currentUser)
-        tokenUtils.setUser(currentUser)
+        // Try to verify token, but don't logout on failure
+        // Only verify if we have valid stored data
+        try {
+          const currentUser = await AuthAPI.verifyToken()
+          setUser(currentUser)
+          tokenUtils.setUser(currentUser)
+        } catch (verifyError) {
+          console.warn('Token verification failed during initialization, using stored user:', verifyError)
+          // Use stored user data instead of logging out immediately
+          // Let natural API calls handle auth failures later
+          setUser(storedUser)
+        }
       } else {
         tokenUtils.clearAuth()
       }
     } catch (error) {
       console.error('Auth initialization failed:', error)
-      tokenUtils.clearAuth()
-      setUser(null)
+      // Don't clear auth on general initialization errors
+      // Only clear if there's no stored data at all
+      const storedUser = tokenUtils.getUser()
+      if (!storedUser) {
+        tokenUtils.clearAuth()
+        setUser(null)
+      } else {
+        setUser(storedUser)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -108,7 +124,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       tokenUtils.setUser(currentUser)
     } catch (error) {
       console.error('Failed to refetch user:', error)
-      logout()
+      // Only logout if it's actually an authentication error (401)
+      // Don't logout on network errors or other API failures
+      if (error instanceof Error && error.message.includes('Unauthorized')) {
+        logout()
+      } else {
+        // For other errors, just log them but don't logout
+        console.warn('User verification failed, but not logging out:', error)
+      }
     }
   }
 

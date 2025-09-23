@@ -43,7 +43,7 @@ export function WriterDashboard({}: WriterDashboardProps) {
   };
 
   const handleGoToMyArticles = () => {
-    router.push("/dashboard/my-articles");
+    router.push("/dashboard/writer/my-articles");
   };
 
   return (

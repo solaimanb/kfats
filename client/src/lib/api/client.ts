@@ -34,19 +34,28 @@ apiClient.interceptors.response.use(
     return response
   },
   (error) => {
-    // Only force logout on explicit authentication failures from protected endpoints (/users/me etc.)
+    // Only handle auth errors from specific endpoints, not general 401s
     if (error.response?.status === 401) {
       try {
         const url: string | undefined = error.config?.url
-        const isAuthCheck = url?.includes('/users/me') || url?.includes('/auth')
-        if (isAuthCheck) {
-          Cookies.remove('kfats_token')
-          Cookies.remove('kfats_user')
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login'
-          }
+        // Only clear tokens for explicit auth verification endpoints
+        // Avoid clearing on 404s or other route errors
+        const isAuthVerification = url?.includes('/users/me') && error.response?.data?.detail?.includes('Unauthorized')
+        const isFromBrowser = typeof window !== 'undefined'
+        
+        if (isAuthVerification && isFromBrowser) {
+          console.log('Auth verification failed, clearing tokens')
+          // Only clear tokens, don't force redirect here
+          // Let the AuthProvider handle the logout flow
+          Cookies.remove('kfats_token', { path: '/' })
+          Cookies.remove('kfats_user', { path: '/' })
+          Cookies.remove('kfats_role', { path: '/' })
+        } else {
+          console.warn('401 error but not clearing auth:', url, error.response?.data)
         }
-      } catch {}
+      } catch (interceptorError) {
+        console.error('Error in response interceptor:', interceptorError)
+      }
     }
 
     const message = error.response?.data?.detail || error.message || 'An error occurred'

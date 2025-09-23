@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useOrder } from "@/lib/hooks/useOrders";
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useAuth } from "@/providers/auth-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

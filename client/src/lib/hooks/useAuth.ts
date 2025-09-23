@@ -1,45 +1,36 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AuthAPI } from '../api/auth'
 import { LoginFormData, RegisterFormData, UserRole } from '../types/api'
 
-// Query keys
-export const authKeys = {
+// Query keys for cache management
+export const authQueryKeys = {
   all: ['auth'] as const,
-  me: () => [...authKeys.all, 'me'] as const,
-}
-
-/**
- * Hook to get current user
- */
-export function useMe() {
-  return useQuery({
-    queryKey: authKeys.me(),
-    queryFn: AuthAPI.verifyToken,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  })
+  me: () => [...authQueryKeys.all, 'me'] as const,
 }
 
 /**
  * Hook for login mutation
+ * Used by login forms
  */
-export function useLogin() {
+export function useLoginMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (credentials: LoginFormData) => AuthAPI.login(credentials),
     onSuccess: (data) => {
       // Update user cache
-      queryClient.setQueryData(authKeys.me(), data.user)
+      queryClient.setQueryData(authQueryKeys.me(), data.user)
       // Invalidate all auth queries
-      queryClient.invalidateQueries({ queryKey: authKeys.all })
+      queryClient.invalidateQueries({ queryKey: authQueryKeys.all })
     },
   })
 }
 
 /**
  * Hook for register mutation
+ * Used by signup forms
  */
-export function useRegister() {
+export function useRegisterMutation() {
   return useMutation({
     mutationFn: (userData: RegisterFormData) => AuthAPI.register(userData),
   })
@@ -47,35 +38,16 @@ export function useRegister() {
 
 /**
  * Hook for role upgrade mutation
+ * Used for role applications
  */
-export function useRoleUpgrade() {
+export function useRoleUpgradeMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (targetRole: UserRole) => AuthAPI.upgradeRole(targetRole),
     onSuccess: () => {
       // Invalidate user data to refetch updated role
-      queryClient.invalidateQueries({ queryKey: authKeys.me() })
+      queryClient.invalidateQueries({ queryKey: authQueryKeys.me() })
     },
   })
-}
-
-/**
- * Combined auth hook for convenience
- */
-export function useAuth() {
-  const { data: user, isLoading, error } = useMe()
-  const login = useLogin()
-  const register = useRegister()
-  const roleUpgrade = useRoleUpgrade()
-
-  return {
-    user,
-    isLoading,
-    error,
-    isAuthenticated: !!user,
-    login,
-    register,
-    roleUpgrade,
-  }
 }

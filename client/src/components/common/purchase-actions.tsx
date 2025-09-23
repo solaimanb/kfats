@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useAuth } from "@/providers/auth-provider";
 import { useCreateOrder } from "@/lib/hooks/useOrders";
 import { useUpdateProductStock } from "@/lib/hooks/useProducts";
 import { Button } from "@/components/ui/button";
