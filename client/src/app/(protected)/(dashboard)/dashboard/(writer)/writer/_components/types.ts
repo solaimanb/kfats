@@ -5,8 +5,6 @@ export interface WriterOverviewData {
     publishedArticles: number
     draftArticles: number
     archivedArticles: number
-    totalViews: number
-    averageViews: number
     engagementRate: number
     recentArticles: number
 }
@@ -24,19 +22,17 @@ export interface ContentAnalytics {
     popularArticles: Array<{
         id: number
         title: string
-        views: number
         engagement_rate: number
         published_date: string
     }>
-    viewsTrend: Array<{
+    engagementTrend: Array<{
         date: string
-        views: number
         articles_published: number
+        engagement_rate: number
     }>
     topicPerformance: Array<{
         topic: string
         articles_count: number
-        total_views: number
         average_engagement: number
     }>
     readingTrends: Array<{

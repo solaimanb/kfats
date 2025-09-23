@@ -173,6 +173,7 @@ export enum EnrollmentStatus {
 export interface Article {
   id: number;
   title: string;
+  slug: string;
   content: string;
   excerpt?: string;
   featured_image_url?: string;

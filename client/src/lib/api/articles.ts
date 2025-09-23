@@ -46,6 +46,14 @@ export class ArticlesAPI {
   }
 
   /**
+   * Get article by slug
+   */
+  static async getArticleBySlug(slug: string): Promise<Article> {
+    const response = await apiClient.get<Article>(`/articles/by-slug/${slug}`);
+    return response.data;
+  }
+
+  /**
    * Get writer's articles
    */
   static async getWriterArticles(params?: {

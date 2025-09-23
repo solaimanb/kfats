@@ -12,8 +12,6 @@ export function calculateWriterOverview(articles: Article[]): WriterOverviewData
     const publishedArticles = articles.filter(a => a.status === ArticleStatus.PUBLISHED).length
     const draftArticles = articles.filter(a => a.status === ArticleStatus.DRAFT).length
     const archivedArticles = articles.filter(a => a.status === ArticleStatus.ARCHIVED).length
-    const totalViews = articles.reduce((sum, a) => sum + a.views_count, 0)
-    const averageViews = totalArticles > 0 ? Math.round(totalViews / totalArticles) : 0
 
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -21,14 +19,15 @@ export function calculateWriterOverview(articles: Article[]): WriterOverviewData
         new Date(a.created_at) > thirtyDaysAgo
     ).length
 
+    // Calculate engagement rate based on published articles and activity
+    const engagementRate = publishedArticles > 0 ? Math.min(95, Math.round((publishedArticles * 8) + (recentArticles * 3))) : 0
+
     return {
         totalArticles,
         publishedArticles,
         draftArticles,
         archivedArticles,
-        totalViews,
-        averageViews,
-        engagementRate: publishedArticles > 0 ? Math.round((totalViews / publishedArticles) * 0.1) : 0,
+        engagementRate,
         recentArticles
     }
 }
@@ -41,16 +40,15 @@ export function generateContentAnalytics(articles: Article[]): ContentAnalytics 
 
     return {
         popularArticles: publishedArticles
-            .sort((a, b) => b.views_count - a.views_count)
+            .sort((a, b) => (b.created_at > a.created_at ? 1 : -1))
             .slice(0, 5)
             .map(article => ({
                 id: article.id,
                 title: article.title,
-                views: article.views_count,
                 engagement_rate: Math.round(Math.random() * 15 + 5),
                 published_date: article.published_at || article.created_at
             })),
-        viewsTrend: generateViewsTrend(),
+        engagementTrend: generateEngagementTrend(),
         topicPerformance: generateTopicPerformance(articles),
         readingTrends: generateReadingTrends()
     }
@@ -120,16 +118,16 @@ export function getTrendIndicator(trend: 'up' | 'down' | 'stable'): {
 }
 
 /**
- * Generate mock views trend data
+ * Generate mock engagement trend data
  */
-function generateViewsTrend() {
+function generateEngagementTrend() {
     const trend = []
     for (let i = 29; i >= 0; i--) {
         const date = new Date()
         date.setDate(date.getDate() - i)
         trend.push({
             date: date.toISOString().split('T')[0],
-            views: Math.floor(Math.random() * 100 + 20),
+            engagement_rate: Math.floor(Math.random() * 20 + 5),
             articles_published: Math.random() > 0.8 ? 1 : 0
         })
     }
@@ -145,7 +143,6 @@ function generateTopicPerformance(_articles: Article[]) {
     return topics.map(topic => ({
         topic,
         articles_count: Math.floor(Math.random() * 5 + 1),
-        total_views: Math.floor(Math.random() * 500 + 100),
         average_engagement: Math.floor(Math.random() * 15 + 5)
     }))
 }

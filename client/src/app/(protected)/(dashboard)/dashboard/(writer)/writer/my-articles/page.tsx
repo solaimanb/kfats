@@ -110,10 +110,6 @@ export default function MyArticlesPage() {
     router.push(`/articles/${articleId}/edit`);
   };
 
-  const handleViewArticle = (articleId: number) => {
-    router.push(`/articles/${articleId}`);
-  };
-
   const handleGoToDashboard = () => {
     router.push("/dashboard");
   };
@@ -150,7 +146,6 @@ export default function MyArticlesPage() {
         articles={(myArticles as PaginatedResponse<Article>)?.items || []}
         isLoading={isLoading}
         onEditArticle={handleEditArticle}
-        onViewArticle={handleViewArticle}
       />
     </div>
   );

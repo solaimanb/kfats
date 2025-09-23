@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from app.core.database import get_async_db
-from app.models.article import Article as DBArticle
+from app.models.article import Article as DBArticle, generate_slug
 from app.models.user import User as DBUser
 from app.schemas.article import Article, ArticleCreate, ArticleUpdate
 from app.schemas.common import ArticleStatus, UserRole, SuccessResponse, PaginatedResponse
@@ -22,11 +22,31 @@ async def create_article(
 ):
     """Create a new article (Writer/Admin only)."""
     
-    # Default to published for approved writers, unless explicitly set as draft
-    default_status = article_data.status if hasattr(article_data, 'status') and article_data.status else ArticleStatus.PUBLISHED
+    # Generate slug from title
+    base_slug = generate_slug(article_data.title)
+    slug = base_slug
+    
+    # Ensure slug is unique
+    counter = 1
+    while True:
+        result = await db.execute(
+            select(func.count(DBArticle.id)).where(DBArticle.slug == slug)
+        )
+        if result.scalar() == 0:
+            break
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+    
+    # Default to published for approved writers
+    default_status = ArticleStatus.PUBLISHED
     
     db_article = DBArticle(
-        **article_data.model_dump(exclude={'status'}),
+        title=article_data.title,
+        slug=slug,
+        content=article_data.content,
+        excerpt=article_data.excerpt,
+        featured_image_url=article_data.featured_image_url,
+        tags=article_data.tags,
         author_id=current_user.id,
         status=default_status,
         published_at=datetime.utcnow() if default_status == ArticleStatus.PUBLISHED else None
@@ -62,7 +82,7 @@ async def get_articles(
     if author_id:
         count_query = count_query.where(DBArticle.author_id == author_id)
     total_result = await db.execute(count_query)
-    total = total_result.scalar()
+    total = total_result.scalar() or 0
     
     # Apply pagination
     skip = (page - 1) * size
@@ -93,7 +113,7 @@ async def get_my_articles(
     # Get total count
     count_query = select(func.count(DBArticle.id)).where(DBArticle.author_id == current_user.id)
     total_result = await db.execute(count_query)
-    total = total_result.scalar()
+    total = total_result.scalar() or 0
     
     # Apply pagination
     skip = (page - 1) * size
@@ -124,8 +144,38 @@ async def get_article(article_id: int, db: AsyncSession = Depends(get_async_db))
         )
     
     # Increment view count
-    article.views_count += 1
+    setattr(article, 'views_count', getattr(article, 'views_count', 0) + 1)
     await db.commit()
+    await db.refresh(article)
+    
+    return Article.model_validate(article)
+
+
+@router.get("/by-slug/{slug}", response_model=Article)
+async def get_article_by_slug(slug: str, db: AsyncSession = Depends(get_async_db)):
+    """Get article by slug."""
+    
+    result = await db.execute(
+        select(DBArticle).where(DBArticle.slug == slug.lower())
+    )
+    article = result.scalars().first()
+    if not article:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Article not found"
+        )
+    
+    # Only show published articles in public slug lookup
+    if article.status.value != ArticleStatus.PUBLISHED.value:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Article not found"
+        )
+    
+    # Increment view count
+    setattr(article, 'views_count', getattr(article, 'views_count', 0) + 1)
+    await db.commit()
+    await db.refresh(article)
     
     return Article.model_validate(article)
 
@@ -150,7 +200,7 @@ async def update_article(
         )
     
     # Check ownership
-    if current_user.role != UserRole.ADMIN and article.author_id != current_user.id:
+    if current_user.role.value != UserRole.ADMIN.value and getattr(article, 'author_id') != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only edit your own articles"
@@ -158,13 +208,34 @@ async def update_article(
     
     # Update fields
     update_data = article_update.model_dump(exclude_unset=True)
+    
+    # If title is being updated, regenerate slug
+    if 'title' in update_data:
+        base_slug = generate_slug(update_data['title'])
+        slug = base_slug
+        
+        # Ensure slug is unique (but exclude current article)
+        counter = 1
+        while True:
+            result = await db.execute(
+                select(func.count(DBArticle.id)).where(
+                    DBArticle.slug == slug,
+                    DBArticle.id != article_id
+                )
+            )
+            if result.scalar() == 0:
+                break
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        
+        update_data['slug'] = slug
+    
     for field, value in update_data.items():
         setattr(article, field, value)
     
     # Set published_at when status changes to published
-    if article_update.status == ArticleStatus.PUBLISHED and article.published_at is None:
-        from datetime import datetime
-        article.published_at = datetime.utcnow()
+    if article_update.status == ArticleStatus.PUBLISHED and getattr(article, 'published_at') is None:
+        setattr(article, 'published_at', datetime.utcnow())
     
     await db.commit()
     await db.refresh(article)
@@ -191,7 +262,7 @@ async def delete_article(
         )
     
     # Check ownership
-    if current_user.role != UserRole.ADMIN and article.author_id != current_user.id:
+    if current_user.role.value != UserRole.ADMIN.value and getattr(article, 'author_id') != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only delete your own articles"

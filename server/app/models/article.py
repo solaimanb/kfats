@@ -1,7 +1,24 @@
-from sqlalchemy import Column, String, Text, Enum as SQLEnum, Integer, ForeignKey, DateTime, JSON, Boolean
+from sqlalchemy import Column, String, Text, Enum as SQLEnum, Integer, DateTime, JSON, Boolean
+from sqlalchemy.schema import ForeignKey
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 from ..schemas.common import ArticleStatus
+import re
+import unicodedata
+
+
+def generate_slug(title: str) -> str:
+    """Generate a URL-friendly slug from title."""
+    # Normalize unicode characters
+    slug = unicodedata.normalize('NFKD', title.lower())
+    # Remove non-ascii characters
+    slug = slug.encode('ascii', 'ignore').decode('ascii')
+    # Replace spaces and special characters with hyphens
+    slug = re.sub(r'[^a-z0-9]+', '-', slug)
+    # Remove leading/trailing hyphens and multiple consecutive hyphens
+    slug = re.sub(r'^-|-$', '', slug)
+    slug = re.sub(r'-+', '-', slug)
+    return slug
 
 
 class Article(BaseModel):
@@ -9,6 +26,7 @@ class Article(BaseModel):
     __tablename__ = "articles"
     
     title = Column(String, nullable=False, index=True)
+    slug = Column(String, nullable=False, unique=True, index=True)
     content = Column(Text, nullable=False)
     excerpt = Column(String, index=True, nullable=True)
     featured_image_url = Column(String, nullable=True)

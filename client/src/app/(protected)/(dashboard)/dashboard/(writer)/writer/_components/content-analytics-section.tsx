@@ -6,7 +6,6 @@ import { ContentAnalytics } from "./types"
 import { formatNumber } from "./utils"
 import {
     TrendingUp,
-    Eye,
     BarChart3,
     Clock,
     Star
@@ -61,11 +60,6 @@ export function ContentAnalyticsSection({ analytics, isLoading }: ContentAnalyti
                                             {article.title}
                                         </p>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span className="flex items-center gap-1">
-                                                <Eye className="h-3 w-3" />
-                                                {formatNumber(article.views)}
-                                            </span>
-                                            <span>•</span>
                                             <span>{article.engagement_rate}% engagement</span>
                                         </div>
                                     </div>
@@ -105,7 +99,7 @@ export function ContentAnalyticsSection({ analytics, isLoading }: ContentAnalyti
                                         </Badge>
                                     </div>
                                     <div className="text-xs text-muted-foreground">
-                                        {formatNumber(topic.total_views)} views
+                                        {topic.average_engagement}% avg engagement
                                     </div>
                                 </div>
                                 <div className="w-full bg-muted rounded-full h-2">
@@ -135,20 +129,20 @@ export function ContentAnalyticsSection({ analytics, isLoading }: ContentAnalyti
                         <div className="grid grid-cols-2 gap-4">
                             <div className="text-center p-3 bg-muted/30 rounded-lg">
                                 <div className="text-lg font-bold text-green-600">
-                                    {formatNumber(analytics.viewsTrend.reduce((sum, day) => sum + day.views, 0))}
+                                    {formatNumber(analytics.engagementTrend.reduce((sum, day) => sum + day.engagement_rate, 0) / analytics.engagementTrend.length)}%
                                 </div>
-                                <div className="text-xs text-muted-foreground">Total Views</div>
+                                <div className="text-xs text-muted-foreground">Average Engagement</div>
                             </div>
                             <div className="text-center p-3 bg-muted/30 rounded-lg">
                                 <div className="text-lg font-bold text-blue-600">
-                                    {analytics.viewsTrend.reduce((sum, day) => sum + day.articles_published, 0)}
+                                    {analytics.engagementTrend.reduce((sum, day) => sum + day.articles_published, 0)}
                                 </div>
                                 <div className="text-xs text-muted-foreground">Articles Published</div>
                             </div>
                         </div>
 
                         <div className="text-xs text-muted-foreground">
-                            Average: {Math.round(analytics.viewsTrend.reduce((sum, day) => sum + day.views, 0) / 30)} views/day
+                            Recent trends show {analytics.engagementTrend.length > 0 ? 'steady' : 'no'} engagement activity
                         </div>
                     </div>
                 </CardContent>

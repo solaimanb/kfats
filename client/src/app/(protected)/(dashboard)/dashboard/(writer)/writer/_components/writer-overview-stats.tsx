@@ -3,13 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { WriterOverviewData } from "./types"
-import { formatNumber } from "./utils"
 import {
     PenTool,
-    Eye,
     FileText,
     TrendingUp,
-    BarChart3,
     Calendar,
     Archive,
     Target
@@ -56,22 +53,6 @@ export function WriterOverviewStats({ data, isLoading }: WriterOverviewStatsProp
             icon: PenTool,
             color: "text-green-600",
             bgColor: "bg-green-50"
-        },
-        {
-            title: "Total Views",
-            value: formatNumber(data.totalViews),
-            description: "Across all articles",
-            icon: Eye,
-            color: "text-purple-600",
-            bgColor: "bg-purple-50"
-        },
-        {
-            title: "Average Views",
-            value: formatNumber(data.averageViews),
-            description: "Per article",
-            icon: BarChart3,
-            color: "text-orange-600",
-            bgColor: "bg-orange-50"
         },
         {
             title: "Engagement Rate",

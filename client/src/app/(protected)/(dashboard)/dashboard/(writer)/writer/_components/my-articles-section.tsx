@@ -5,13 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Article } from "@/lib/types/api";
 import {
-  formatNumber,
   getArticleStatusColor,
   calculateReadingTime,
 } from "./utils";
 import {
   PenTool,
-  Eye,
   Edit,
   Plus,
   Calendar,
@@ -24,7 +22,6 @@ interface MyArticlesSectionProps {
   isLoading?: boolean;
   onCreateArticle?: () => void;
   onEditArticle?: (articleId: number) => void;
-  onViewArticle?: (articleId: number) => void;
   onViewAllArticles?: () => void;
   maxDisplay?: number;
 }
@@ -34,7 +31,6 @@ export function MyArticlesSection({
   isLoading,
   onCreateArticle,
   onEditArticle,
-  onViewArticle,
   onViewAllArticles,
   maxDisplay = 6,
 }: MyArticlesSectionProps) {
@@ -88,10 +84,6 @@ export function MyArticlesSection({
 
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          {formatNumber(article.views_count)} views
-                        </span>
-                        <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {calculateReadingTime(article.content)} min read
                         </span>
@@ -114,14 +106,6 @@ export function MyArticlesSection({
                 </div>
 
                 <div className="flex items-center gap-1 ml-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onViewArticle?.(article.id)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -166,7 +150,7 @@ export function MyArticlesSection({
                 Write Your First Article
               </Button>
               <p className="text-xs text-muted-foreground">
-                Pro tip: Articles with engaging titles get 3x more views
+                Pro tip: Articles with engaging titles get 3x more engagement
               </p>
             </div>
           </div>

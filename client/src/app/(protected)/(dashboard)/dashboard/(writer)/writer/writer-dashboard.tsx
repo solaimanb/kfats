@@ -38,10 +38,6 @@ export function WriterDashboard({}: WriterDashboardProps) {
     router.push(`/articles/${articleId}/edit`);
   };
 
-  const handleViewArticle = (articleId: number) => {
-    router.push(`/articles/${articleId}`);
-  };
-
   const handleGoToMyArticles = () => {
     router.push("/dashboard/writer/my-articles");
   };
@@ -82,7 +78,6 @@ export function WriterDashboard({}: WriterDashboardProps) {
             isLoading={isLoading}
             onCreateArticle={handleCreateArticle}
             onEditArticle={handleEditArticle}
-            onViewArticle={handleViewArticle}
             onViewAllArticles={handleGoToMyArticles}
             maxDisplay={4}
           />

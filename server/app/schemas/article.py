@@ -28,6 +28,7 @@ class ArticleUpdate(BaseModel):
 
 class Article(ArticleBase):
     id: int
+    slug: str
     author_id: int
     status: ArticleStatus
     views_count: int

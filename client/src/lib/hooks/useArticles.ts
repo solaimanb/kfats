@@ -10,6 +10,7 @@ export const articlesKeys = {
     [...articlesKeys.lists(), { filters }] as const,
   details: () => [...articlesKeys.all, "detail"] as const,
   detail: (id: number) => [...articlesKeys.details(), id] as const,
+  detailBySlug: (slug: string) => [...articlesKeys.details(), "slug", slug] as const,
   myArticles: () => [...articlesKeys.all, "my-articles"] as const,
 };
 
@@ -38,6 +39,18 @@ export function useArticle(articleId: number) {
     queryKey: articlesKeys.detail(articleId),
     queryFn: () => ArticlesAPI.getArticleById(articleId),
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Hook to get article by slug
+ */
+export function useArticleBySlug(slug: string) {
+  return useQuery({
+    queryKey: articlesKeys.detailBySlug(slug),
+    queryFn: () => ArticlesAPI.getArticleBySlug(slug),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!slug, // Only run query if slug is provided
   });
 }
 
@@ -84,9 +97,14 @@ export function useUpdateArticle() {
       articleData: Partial<ArticleCreate>;
     }) => ArticlesAPI.updateArticle(articleId, articleData),
     onSuccess: (updatedArticle: Article) => {
-      // Update specific article cache
+      // Update specific article cache (by ID)
       queryClient.setQueryData(
         articlesKeys.detail(updatedArticle.id),
+        updatedArticle
+      );
+      // Update specific article cache (by slug)
+      queryClient.setQueryData(
+        articlesKeys.detailBySlug(updatedArticle.slug),
         updatedArticle
       );
       // Invalidate related queries
@@ -114,19 +132,4 @@ export function useDeleteArticle() {
   });
 }
 
-/**
- * Hook for incrementing article views
- */
-export function useIncrementArticleViews() {
-  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (articleId: number) => ArticlesAPI.getArticleById(articleId),
-    onSuccess: (_, articleId) => {
-      // Invalidate article detail to refetch updated view count
-      queryClient.invalidateQueries({
-        queryKey: articlesKeys.detail(articleId),
-      });
-    },
-  });
-}
