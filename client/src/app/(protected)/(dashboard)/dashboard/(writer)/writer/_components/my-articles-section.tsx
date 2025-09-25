@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,18 +21,12 @@ import {
 interface MyArticlesSectionProps {
   articles: Article[];
   isLoading?: boolean;
-  onCreateArticle?: () => void;
-  onEditArticle?: (articleId: number) => void;
-  onViewAllArticles?: () => void;
   maxDisplay?: number;
 }
 
 export function MyArticlesSection({
   articles,
   isLoading,
-  onCreateArticle,
-  onEditArticle,
-  onViewAllArticles,
   maxDisplay = 6,
 }: MyArticlesSectionProps) {
   if (isLoading) {
@@ -109,10 +104,12 @@ export function MyArticlesSection({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onEditArticle?.(article.id)}
+                    asChild
                     className="h-8 w-8 p-0"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Link href={`/dashboard/writer/articles/${article.slug}/edit`}>
+                      <Edit className="h-4 w-4" />
+                    </Link>
                   </Button>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                     <MoreHorizontal className="h-4 w-4" />
@@ -126,10 +123,12 @@ export function MyArticlesSection({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={onViewAllArticles}
+                  asChild
                   className="w-full"
                 >
-                  View All Articles ({sortedArticles.length})
+                  <Link href="/dashboard/writer/my-articles">
+                    View All Articles ({sortedArticles.length})
+                  </Link>
                 </Button>
               </div>
             )}
@@ -145,9 +144,11 @@ export function MyArticlesSection({
               expertise with readers.
             </p>
             <div className="space-y-2">
-              <Button onClick={onCreateArticle}>
-                <Plus className="h-4 w-4 mr-2" />
-                Write Your First Article
+              <Button asChild>
+                <Link href="/dashboard/writer/articles/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Write Your First Article
+                </Link>
               </Button>
               <p className="text-xs text-muted-foreground">
                 Pro tip: Articles with engaging titles get 3x more engagement

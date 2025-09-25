@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArticlesAPI } from "../api/articles";
-import { ArticleCreate, Article } from "../types/api";
+import {
+  Article,
+  ArticleCreate,
+  ArticleUpdate,
+} from "../types/api";
 
 // Query keys
 export const articlesKeys = {
@@ -94,7 +98,7 @@ export function useUpdateArticle() {
       articleData,
     }: {
       articleId: number;
-      articleData: Partial<ArticleCreate>;
+      articleData: ArticleUpdate;
     }) => ArticlesAPI.updateArticle(articleId, articleData),
     onSuccess: (updatedArticle: Article) => {
       // Update specific article cache (by ID)

@@ -2,6 +2,7 @@ import { apiClient } from "./client";
 import {
   Article,
   ArticleCreate,
+  ArticleUpdate,
   PaginatedResponse,
   ApiResponse,
 } from "../types/api";
@@ -72,7 +73,7 @@ export class ArticlesAPI {
    */
   static async updateArticle(
     articleId: number,
-    articleData: Partial<ArticleCreate>
+    articleData: ArticleUpdate
   ): Promise<Article> {
     const response = await apiClient.put<Article>(
       `/articles/${articleId}`,

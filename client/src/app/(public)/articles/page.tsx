@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useArticles } from "@/lib/hooks/useArticles";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ import {
 import { PaginatedResponse, Article } from "@/lib/types/api";
 
 export default function ArticlesListPage() {
-  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -200,77 +199,75 @@ export default function ArticlesListPage() {
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {articles.map((article) => (
-              <Card 
-                key={article.id} 
-                className="group cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => router.push(`/articles/${article.slug}`)}
-              >
-                {/* Featured Image */}
-                {article.featured_image_url && (
-                  <div className="aspect-video overflow-hidden rounded-t-lg">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={article.featured_image_url}
-                      alt={article.title}
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-                  </div>
-                )}
-
-                <CardContent className="p-4 space-y-3">
-                  {/* Title */}
-                  <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-                    {article.title}
-                  </h3>
-
-                  {/* Excerpt */}
-                  {article.excerpt && (
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {article.excerpt}
-                    </p>
-                  )}
-
-                  {/* Meta */}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>{new Date(article.published_at || article.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{calculateReadTime(article.content)} min</span>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  {article.tags && article.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {article.tags.slice(0, 3).map((tag, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                      {article.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{article.tags.length - 3}
-                        </Badge>
-                      )}
+              <Link key={article.id} href={`/articles/${article.slug}`}>
+                <Card className="group cursor-pointer hover:shadow-lg transition-shadow h-full">
+                  {/* Featured Image */}
+                  {article.featured_image_url && (
+                    <div className="aspect-video overflow-hidden rounded-t-lg">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={article.featured_image_url}
+                        alt={article.title}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
                     </div>
                   )}
 
-                  {/* Read More */}
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <User className="h-3 w-3" />
-                      <span>Author #{article.author_id}</span>
+                  <CardContent className="p-4 space-y-3">
+                    {/* Title */}
+                    <h3 className="font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+                      {article.title}
+                    </h3>
+
+                    {/* Excerpt */}
+                    {article.excerpt && (
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {article.excerpt}
+                      </p>
+                    )}
+
+                    {/* Meta */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>{new Date(article.published_at || article.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{calculateReadTime(article.content)} min</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-primary group-hover:underline">
-                      <span>Read more</span>
-                      <ChevronRight className="h-3 w-3" />
+
+                    {/* Tags */}
+                    {article.tags && article.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {article.tags.slice(0, 3).map((tag, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {article.tags.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{article.tags.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Read More */}
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <User className="h-3 w-3" />
+                        <span>Author #{article.author_id}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-primary group-hover:underline">
+                        <span>Read more</span>
+                        <ChevronRight className="h-3 w-3" />
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 

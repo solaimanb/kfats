@@ -200,6 +200,10 @@ export interface ArticleCreate {
   tags?: string[];
 }
 
+export interface ArticleUpdate extends ArticleCreate {
+  status?: ArticleStatus;
+}
+
 // Product Types
 export interface Product {
   id: number;

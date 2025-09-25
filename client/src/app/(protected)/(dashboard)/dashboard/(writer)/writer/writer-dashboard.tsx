@@ -1,8 +1,7 @@
 "use client";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useWriterArticles } from "@/lib/hooks/useArticles";
 import {
   calculateWriterOverview,
@@ -13,7 +12,7 @@ import {
   MyArticlesSection,
   WriterOverviewStats,
 } from "./_components";
-import { BarChart3, PenTool, ExternalLink } from "lucide-react";
+import { PenTool, ExternalLink } from "lucide-react";
 import { PaginatedResponse, Article } from "@/lib/types/api";
 
 interface WriterDashboardProps {
@@ -21,7 +20,6 @@ interface WriterDashboardProps {
 }
 
 export function WriterDashboard({}: WriterDashboardProps) {
-  const router = useRouter();
   const { data: myArticles, isLoading } = useWriterArticles();
 
   const articlesArray = (myArticles as PaginatedResponse<Article>)?.items || [];
@@ -30,18 +28,6 @@ export function WriterDashboard({}: WriterDashboardProps) {
   const contentAnalytics =
     articlesArray.length > 0 ? generateContentAnalytics(articlesArray) : null;
 
-  const handleCreateArticle = () => {
-    router.push("/articles/create");
-  };
-
-  const handleEditArticle = (articleId: number) => {
-    router.push(`/articles/${articleId}/edit`);
-  };
-
-  const handleGoToMyArticles = () => {
-    router.push("/dashboard/writer/my-articles");
-  };
-
   return (
     <div className="space-y-6">
       {overviewData && (
@@ -49,49 +35,34 @@ export function WriterDashboard({}: WriterDashboardProps) {
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={handleCreateArticle}>
-          <PenTool className="h-4 w-4 mr-2" />
-          Write New Article
+        <Button variant="default" asChild>
+          <Link href="/dashboard/writer/articles/create">
+            <PenTool className="h-4 w-4 mr-2" />
+            Write New Article
+          </Link>
         </Button>
-        <Button variant="outline" onClick={handleGoToMyArticles}>
-          <ExternalLink className="h-4 w-4 mr-2" />
-          Manage All Articles
+        <Button variant="outline" asChild>
+          <Link href="/dashboard/writer/my-articles">
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Manage All Articles
+          </Link>
         </Button>
       </div>
 
-      <Tabs defaultValue="articles" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="articles" className="flex items-center gap-2">
-            <PenTool className="h-4 w-4" />
-            <span className="hidden sm:inline">Recent Articles</span>
-            <span className="sm:hidden">Articles</span>
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Analytics</span>
-          </TabsTrigger>
-        </TabsList>
+      <div className="space-y-6">
+        <MyArticlesSection
+          articles={articlesArray}
+          isLoading={isLoading}
+          maxDisplay={4}
+        />
 
-        <TabsContent value="articles" className="space-y-4">
-          <MyArticlesSection
-            articles={articlesArray}
+        {contentAnalytics && (
+          <ContentAnalyticsSection
+            analytics={contentAnalytics}
             isLoading={isLoading}
-            onCreateArticle={handleCreateArticle}
-            onEditArticle={handleEditArticle}
-            onViewAllArticles={handleGoToMyArticles}
-            maxDisplay={4}
           />
-        </TabsContent>
-
-        <TabsContent value="analytics" className="space-y-4">
-          {contentAnalytics && (
-            <ContentAnalyticsSection
-              analytics={contentAnalytics}
-              isLoading={isLoading}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   );
 }

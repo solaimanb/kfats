@@ -106,8 +106,8 @@ export default function MyArticlesPage() {
     router.push("/articles/create");
   };
 
-  const handleEditArticle = (articleId: number) => {
-    router.push(`/articles/${articleId}/edit`);
+  const handleEditArticle = (articleSlug: string) => {
+    router.push(`/articles/${articleSlug}/edit`);
   };
 
   const handleGoToDashboard = () => {
