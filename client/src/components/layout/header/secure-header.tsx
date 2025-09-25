@@ -46,6 +46,7 @@ export default function SecureHeader() {
       { href: "/courses", label: "Courses", icon: BookOpen },
       { href: "/articles", label: "Articles", icon: PenTool },
       { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
+      { href: "/about", label: "About", icon: GraduationCap },
     ];
 
     const roleLinks = [];
