@@ -39,7 +39,7 @@ export default function MyArticlesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold">My Articles</h1>
+            <h1 className="text-2xl font-bold">My Articles</h1>
             <p className="text-muted-foreground">
               Manage your published content and analytics
             </p>
@@ -108,7 +108,7 @@ export default function MyArticlesPage() {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">My Articles</h1>
+            <h1 className="text-2xl font-bold">My Articles</h1>
             <Badge className="bg-purple-100 text-purple-800 border-purple-200 flex items-center gap-1">
               <PenTool className="h-3 w-3" />
               Writer

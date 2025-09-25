@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { usePathname } from "next/navigation"
-import Link from "next/link"
-import { useAuth } from "@/providers/auth-provider"
-import { UserRole } from "@/lib/types/api"
-import { AppSidebarSkeleton } from "./app-sidebar-skeleton"
+import * as React from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/providers/auth-provider";
+import { UserRole } from "@/lib/types/api";
+import { AppSidebarSkeleton } from "./app-sidebar-skeleton";
 import {
   Sidebar,
   SidebarContent,
@@ -19,16 +19,16 @@ import {
   SidebarGroupLabel,
   SidebarRail,
   SidebarSeparator,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -45,26 +45,26 @@ import {
   LogOut,
   ChevronUp,
   Home,
-} from "lucide-react"
-import { getRoleBadgeClasses, getRoleIcon } from "@/lib/utils/role"
+} from "lucide-react";
+import { getRoleBadgeClasses, getRoleIcon } from "@/lib/utils/role";
 
 const getNavigationData = (userRole: UserRole) => {
   const getDashboardUrl = (role: UserRole) => {
     switch (role) {
       case UserRole.ADMIN:
-        return "/dashboard/admin"
+        return "/dashboard/admin";
       case UserRole.WRITER:
-        return "/dashboard/writer"
+        return "/dashboard/writer";
       case UserRole.MENTOR:
-        return "/dashboard/mentor"
+        return "/dashboard/mentor";
       case UserRole.SELLER:
-        return "/dashboard/seller"
+        return "/dashboard/seller";
       case UserRole.STUDENT:
-        return "/dashboard/student"
+        return "/dashboard/student";
       default:
-        return "/dashboard"
+        return "/dashboard";
     }
-  }
+  };
 
   const baseNavigation = [
     {
@@ -73,7 +73,7 @@ const getNavigationData = (userRole: UserRole) => {
       icon: LayoutDashboard,
       isActive: false,
     },
-  ]
+  ];
 
   const roleSpecificNavigation = {
     [UserRole.STUDENT]: [
@@ -113,7 +113,7 @@ const getNavigationData = (userRole: UserRole) => {
       },
       {
         title: "Write Article",
-        url: "/articles/create",
+        url: "/dashboard/writer/articles/create",
         icon: Plus,
       },
       // {
@@ -173,7 +173,7 @@ const getNavigationData = (userRole: UserRole) => {
         icon: UserPlus,
       },
     ],
-  }
+  };
 
   const quickLinks = [
     {
@@ -191,22 +191,21 @@ const getNavigationData = (userRole: UserRole) => {
       url: "/marketplace",
       icon: ShoppingBag,
     },
-  ]
+  ];
 
   return {
     main: [...baseNavigation, ...(roleSpecificNavigation[userRole] || [])],
     quickLinks,
-  }
-}
+  };
+};
 
 export function AppSidebar() {
-  const { user, logout } = useAuth()
-  const pathname = usePathname()
+  const { user, logout } = useAuth();
+  const pathname = usePathname();
 
-  if (!user) return <AppSidebarSkeleton />
+  if (!user) return <AppSidebarSkeleton />;
 
-  const navigation = getNavigationData(user.role)
-
+  const navigation = getNavigationData(user.role);
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -317,14 +316,22 @@ export function AppSidebar() {
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src={user.avatar_url} alt={user.full_name} />
                     <AvatarFallback className="rounded-lg">
-                      {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {user.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{user.full_name}</span>
+                    <span className="truncate font-semibold">
+                      {user.full_name}
+                    </span>
                     <div className="flex items-center gap-1">
                       {getRoleIcon(user.role)}
-                      <span className="truncate text-xs capitalize">{user.role}</span>
+                      <span className="truncate text-xs capitalize">
+                        {user.role}
+                      </span>
                     </div>
                   </div>
                   <ChevronUp className="ml-auto size-4" />
@@ -340,16 +347,27 @@ export function AppSidebar() {
                   <Avatar className="h-8 w-8 rounded-lg">
                     <AvatarImage src={user.avatar_url} alt={user.full_name} />
                     <AvatarFallback className="rounded-lg">
-                      {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {user.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">{user.full_name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                    <span className="truncate font-semibold">
+                      {user.full_name}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {user.email}
+                    </span>
                   </div>
                   <Badge
                     variant="secondary"
-                    className={`${getRoleBadgeClasses(user.role, 'solid')} text-xs`}
+                    className={`${getRoleBadgeClasses(
+                      user.role,
+                      "solid"
+                    )} text-xs`}
                   >
                     {user.role.toUpperCase()}
                   </Badge>
@@ -388,5 +406,5 @@ export function AppSidebar() {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }
