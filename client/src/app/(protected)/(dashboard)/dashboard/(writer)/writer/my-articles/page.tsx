@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth, useRoleAccess } from "@/providers/auth-provider";
 import { useWriterArticles } from "@/lib/hooks/useArticles";
 import { useRouter } from "next/navigation";
@@ -102,18 +103,6 @@ export default function MyArticlesPage() {
     );
   }
 
-  const handleCreateArticle = () => {
-    router.push("/articles/create");
-  };
-
-  const handleEditArticle = (articleSlug: string) => {
-    router.push(`/articles/${articleSlug}/edit`);
-  };
-
-  const handleGoToDashboard = () => {
-    router.push("/dashboard");
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -131,13 +120,17 @@ export default function MyArticlesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleGoToDashboard}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Dashboard
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/writer">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Dashboard
+            </Link>
           </Button>
-          <Button onClick={handleCreateArticle}>
-            <PenTool className="h-4 w-4 mr-2" />
-            Write Article
+          <Button asChild>
+            <Link href="/dashboard/writer/articles/create">
+              <PenTool className="h-4 w-4 mr-2" />
+              Write Article
+            </Link>
           </Button>
         </div>
       </div>
@@ -145,7 +138,6 @@ export default function MyArticlesPage() {
       <MyArticlesSection
         articles={(myArticles as PaginatedResponse<Article>)?.items || []}
         isLoading={isLoading}
-        onEditArticle={handleEditArticle}
       />
     </div>
   );
