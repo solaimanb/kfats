@@ -32,6 +32,8 @@ if config.config_file_name is not None:
 from app.models.base import Base
 target_metadata = Base.metadata
 
+# Get the naming convention from metadata
+naming_convention = target_metadata.naming_convention
 
 # Provide naming convention - already present on metadata, but set here for clarity
 compare_type = True
@@ -61,6 +63,7 @@ def run_migrations_offline() -> None:
         compare_type=compare_type,
         compare_server_default=compare_server_default,
         include_object=include_object,
+        render_as_batch=True,
     )
 
     with context.begin_transaction():
@@ -75,6 +78,7 @@ def do_run_migrations(connection: Connection) -> None:
         compare_type=compare_type,
         compare_server_default=compare_server_default,
         include_object=include_object,
+        render_as_batch=True,
     )
 
     with context.begin_transaction():
