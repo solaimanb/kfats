@@ -17,20 +17,60 @@ export function ContentAnalyticsSection({ analytics, isLoading }: ContentAnalyti
     if (isLoading) {
         return (
             <div className="grid gap-4 md:grid-cols-2">
-                {Array.from({ length: 2 }).map((_, i) => (
-                    <Card key={i}>
-                        <CardHeader>
+                {/* Top Performing Articles Card */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+                            <div className="h-5 w-40 bg-muted animate-pulse rounded" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="flex items-center justify-between p-2 rounded-lg">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <div className="w-6 h-6 bg-muted animate-pulse rounded-full" />
+                                        <div className="flex-1">
+                                            <div className="h-4 w-3/4 bg-muted animate-pulse rounded mb-1" />
+                                            <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
+                                        </div>
+                                    </div>
+                                    <div className="h-5 w-8 bg-muted animate-pulse rounded" />
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Topic Performance Card */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <div className="h-4 w-4 bg-muted animate-pulse rounded" />
                             <div className="h-5 w-32 bg-muted animate-pulse rounded" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                {Array.from({ length: 3 }).map((_, j) => (
-                                    <div key={j} className="h-4 bg-muted animate-pulse rounded" />
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {Array.from({ length: 3 }).map((_, i) => (
+                                <div key={i} className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+                                            <div className="h-5 w-12 bg-muted animate-pulse rounded" />
+                                        </div>
+                                        <div className="h-3 w-20 bg-muted animate-pulse rounded" />
+                                    </div>
+                                    <div className="w-full bg-muted rounded-full h-2">
+                                        <div className="bg-muted animate-pulse h-2 rounded-full w-3/4" />
+                                    </div>
+                                    <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         )
     }

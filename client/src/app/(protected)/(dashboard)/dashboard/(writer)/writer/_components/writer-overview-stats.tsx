@@ -21,16 +21,20 @@ export function WriterOverviewStats({ data, isLoading }: WriterOverviewStatsProp
     if (isLoading) {
         return (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                    <Card key={i}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <Card key={i} className="relative overflow-hidden">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                            <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+                            <div className={`p-2 rounded-lg bg-muted animate-pulse`} />
                         </CardHeader>
                         <CardContent>
-                            <div className="h-8 w-16 bg-muted animate-pulse rounded mb-2" />
+                            <div className="h-8 w-12 bg-muted animate-pulse rounded mb-2" />
                             <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                            {i === 2 && (
+                                <div className="h-5 w-16 bg-muted animate-pulse rounded mt-2" />
+                            )}
                         </CardContent>
+                        <div className="absolute inset-0 bg-gradient-to-br from-transparent to-muted/5 pointer-events-none" />
                     </Card>
                 ))}
             </div>

@@ -10,9 +10,7 @@ import {
   calculateReadingTime,
 } from "./utils";
 import {
-  PenTool,
   Edit,
-  Plus,
   Calendar,
   Clock,
   MoreHorizontal,
@@ -40,8 +38,33 @@ export function MyArticlesSection({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
+            {Array.from({ length: maxDisplay }).map((_, i) => (
+              <div key={i} className="flex items-start justify-between p-4 border rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <div className="h-4 w-3/4 bg-muted animate-pulse rounded mb-2" />
+                      <div className="h-3 w-full bg-muted animate-pulse rounded mb-1" />
+                      <div className="h-3 w-2/3 bg-muted animate-pulse rounded mb-3" />
+                      <div className="flex items-center gap-4 text-xs">
+                        <div className="flex items-center gap-1">
+                          <div className="h-3 w-3 bg-muted animate-pulse rounded" />
+                          <div className="h-3 w-12 bg-muted animate-pulse rounded" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="h-3 w-3 bg-muted animate-pulse rounded" />
+                          <div className="h-3 w-16 bg-muted animate-pulse rounded" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-5 w-16 bg-muted animate-pulse rounded" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 ml-3">
+                  <div className="h-8 w-8 bg-muted animate-pulse rounded" />
+                  <div className="h-8 w-8 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
             ))}
           </div>
         </CardContent>
@@ -136,23 +159,13 @@ export function MyArticlesSection({
         ) : (
           <div className="text-center py-12">
             <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-              <PenTool className="h-12 w-12 text-muted-foreground" />
+              <div className="h-12 w-12 bg-muted animate-pulse rounded" />
             </div>
-            <h3 className="text-lg font-medium mb-2">No articles yet</h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-              Start writing your first article to share your knowledge and
-              expertise with readers.
-            </p>
+            <div className="h-6 w-48 bg-muted animate-pulse rounded mx-auto mb-2" />
+            <div className="h-4 w-64 bg-muted animate-pulse rounded mx-auto mb-6" />
             <div className="space-y-2">
-              <Button asChild>
-                <Link href="/dashboard/writer/articles/create">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Write Your First Article
-                </Link>
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Pro tip: Articles with engaging titles get 3x more engagement
-              </p>
+              <div className="h-10 w-48 bg-muted animate-pulse rounded mx-auto" />
+              <div className="h-3 w-56 bg-muted animate-pulse rounded mx-auto" />
             </div>
           </div>
         )}

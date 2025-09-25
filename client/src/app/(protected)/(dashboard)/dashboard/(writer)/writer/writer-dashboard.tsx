@@ -30,9 +30,19 @@ export function WriterDashboard({}: WriterDashboardProps) {
 
   return (
     <div className="space-y-6">
-      {overviewData && (
-        <WriterOverviewStats data={overviewData} isLoading={isLoading} />
-      )}
+      <WriterOverviewStats
+        data={
+          overviewData || {
+            totalArticles: 0,
+            publishedArticles: 0,
+            draftArticles: 0,
+            archivedArticles: 0,
+            engagementRate: 0,
+            recentArticles: 0,
+          }
+        }
+        isLoading={isLoading || !overviewData}
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <Button variant="default" asChild>
@@ -56,12 +66,17 @@ export function WriterDashboard({}: WriterDashboardProps) {
           maxDisplay={4}
         />
 
-        {contentAnalytics && (
-          <ContentAnalyticsSection
-            analytics={contentAnalytics}
-            isLoading={isLoading}
-          />
-        )}
+        <ContentAnalyticsSection
+          analytics={
+            contentAnalytics || {
+              popularArticles: [],
+              engagementTrend: [],
+              topicPerformance: [],
+              readingTrends: [],
+            }
+          }
+          isLoading={isLoading || !contentAnalytics}
+        />
       </div>
     </div>
   );
