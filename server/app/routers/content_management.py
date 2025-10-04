@@ -58,6 +58,7 @@ def map_content_to_overview_item(content: Any, content_type: str, author_name: s
     return ContentOverviewItem(
         id=content.id,
         title=title,
+        slug=getattr(content, 'slug', None),
         type=content_type[:-1],
         status=content.status.value if hasattr(content.status, 'value') else content.status,
         author_id=getattr(content, get_content_type_author_field(content_type)),
@@ -127,7 +128,7 @@ async def get_all_content(
 
         count_result = await db.execute(select(func.count(model.id)).select_from(query.subquery()))
         type_count = count_result.scalar()
-        total_count += type_count
+        total_count += type_count or 0
 
         skip = (page - 1) * size
         result = await db.execute(
@@ -145,7 +146,7 @@ async def get_all_content(
                 continue
 
             content_items.append(map_content_to_overview_item(
-                item, ct, author.full_name, author.role.value
+                item, ct, str(author.full_name), str(author.role.value)
             ))
 
     content_items.sort(key=lambda x: x.created_at, reverse=True)
@@ -484,7 +485,8 @@ async def get_content_overview_stats(
 
         # Combine the counts
         role_totals = {}
-        for role, count in article_authors + course_authors + product_authors:
+        all_authors = list(article_authors) + list(course_authors) + list(product_authors)
+        for role, count in all_authors:
             role_key = role.value if hasattr(role, 'value') else str(role)
             role_totals[role_key] = role_totals.get(role_key, 0) + count
 

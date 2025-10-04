@@ -25,6 +25,7 @@ export interface PaginationInfo {
 }
 
 export interface ContentActions {
+    onView: (content: ContentOverviewItem) => void;
     onToggleFeature: (content: ContentOverviewItem) => void;
     onArchive: (content: ContentOverviewItem) => void;
 }

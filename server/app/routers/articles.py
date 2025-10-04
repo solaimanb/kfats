@@ -105,13 +105,17 @@ async def get_my_articles(
     current_user: User = Depends(get_writer_or_admin),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get paginated articles created by current writer."""
+    """Get paginated articles created by current writer (or all articles for admin)."""
     
-    # Build base query
-    query = select(DBArticle).where(DBArticle.author_id == current_user.id)
+    # Build base query - admins see all articles, writers see only their own
+    if current_user.role == UserRole.ADMIN:
+        query = select(DBArticle)
+        count_query = select(func.count(DBArticle.id))
+    else:
+        query = select(DBArticle).where(DBArticle.author_id == current_user.id)
+        count_query = select(func.count(DBArticle.id)).where(DBArticle.author_id == current_user.id)
     
     # Get total count
-    count_query = select(func.count(DBArticle.id)).where(DBArticle.author_id == current_user.id)
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
     

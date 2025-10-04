@@ -6,6 +6,7 @@ export type { PaginatedResponse } from '@/lib/types/api'
 export interface ContentOverviewItem {
   id: number
   title: string
+  slug?: string | null
   type: 'article' | 'course' | 'product'
   status: string
   author_id: number

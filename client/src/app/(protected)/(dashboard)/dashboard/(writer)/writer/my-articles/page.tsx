@@ -25,6 +25,7 @@ export default function MyArticlesPage() {
   const { canWriteArticles } = useRoleAccess();
   const { data: myArticles, isLoading, error } = useWriterArticles();
   const router = useRouter();
+  console.log("My Articles Data:", myArticles);
 
   useEffect(() => {
     document.title = `My Articles - ${user?.full_name || "Writer"} | KFATS`;

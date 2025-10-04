@@ -144,18 +144,24 @@ async def get_my_products(
     current_user: User = Depends(get_seller_or_admin),
     db: AsyncSession = Depends(get_async_db),
 ):
-    """Get paginated products created by current seller."""
+    """Get paginated products created by current seller (or all products for admin)."""
 
-    # Build base query
-    query = select(DBProduct).where(DBProduct.seller_id == current_user.id)
+    # Build base query - admins see all products, sellers see only their own
+    if current_user.role == UserRole.ADMIN:
+        query = select(DBProduct)
+        count_stmt = select(func.count()).select_from(DBProduct)
+    else:
+        query = select(DBProduct).where(DBProduct.seller_id == current_user.id)
+        count_stmt = select(func.count()).select_from(DBProduct).where(DBProduct.seller_id == current_user.id)
     
-    # Get total count
-    count_stmt = select(func.count()).select_from(DBProduct).where(DBProduct.seller_id == current_user.id)
     total = await db.scalar(count_stmt) or 0
     
     # Apply pagination
     skip = (page - 1) * size
-    stmt = select(DBProduct).where(DBProduct.seller_id == current_user.id).offset(skip).limit(size)
+    if current_user.role == UserRole.ADMIN:
+        stmt = select(DBProduct).offset(skip).limit(size)
+    else:
+        stmt = select(DBProduct).where(DBProduct.seller_id == current_user.id).offset(skip).limit(size)
     res = await db.execute(stmt)
     products = res.scalars().all()
     

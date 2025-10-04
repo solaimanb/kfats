@@ -8,7 +8,7 @@ import { StatusBadge } from "../_components/badges/status-badge";
 import { TypeBadge } from "../_components/badges/type-badge";
 import type { ContentOverviewItem, ContentActions } from "../_types/types";
 
-export function useContentColumns({ onToggleFeature, onArchive }: ContentActions) {
+export function useContentColumns({ onView, onToggleFeature, onArchive }: ContentActions) {
     return useMemo((): ColumnDef<ContentOverviewItem>[] => [
         createSelectionColumn(),
         {
@@ -162,7 +162,7 @@ export function useContentColumns({ onToggleFeature, onArchive }: ContentActions
                 return (
                     <DataTableRowActions
                         row={row}
-                        onView={(data) => console.log("View", data.id)}
+                        onView={(data) => onView(data)}
                         onEdit={(data) => console.log("Edit", data.id)}
                         customActions={[
                             {
@@ -179,5 +179,5 @@ export function useContentColumns({ onToggleFeature, onArchive }: ContentActions
                 );
             },
         },
-    ], [onToggleFeature, onArchive]);
+    ], [onView, onToggleFeature, onArchive]);
 }

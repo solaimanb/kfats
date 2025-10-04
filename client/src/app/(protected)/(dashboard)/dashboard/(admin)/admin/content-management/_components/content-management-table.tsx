@@ -40,8 +40,9 @@ export function ContentManagementTable() {
         isFetching: statsFetching,
         refetch: refetchStats
     } = useContentStats();
+    console.log("Content Response:", contentResponse);
 
-    const { handleToggleFeature, handleArchive } = useContentActions();
+    const { handleToggleFeature, handleArchive, handleView } = useContentActions();
     const statsCards = useStatsCards(stats);
 
     const handleRefresh = () => {
@@ -62,6 +63,7 @@ export function ContentManagementTable() {
     }, [contentResponse]);
 
     const columns = useContentColumns({
+        onView: handleView,
         onToggleFeature: handleToggleFeature,
         onArchive: handleArchive
     });

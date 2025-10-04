@@ -140,15 +140,18 @@ async def get_my_courses(
     current_user: User = Depends(get_mentor_or_admin),
     db: AsyncSession = Depends(get_async_db),
 ):
-    """Get paginated list of courses created by current mentor."""
+    """Get paginated list of courses created by current mentor (or all courses for admin)."""
 
-    # Build base query
-    query = select(DBCourse).where(DBCourse.mentor_id == current_user.id)
-
-    # Get total count
-    count_query = select(func.count(DBCourse.id)).where(
-        DBCourse.mentor_id == current_user.id
-    )
+    # Build base query - admins see all courses, mentors see only their own
+    if current_user.role == UserRole.ADMIN:
+        query = select(DBCourse)
+        count_query = select(func.count(DBCourse.id))
+    else:
+        query = select(DBCourse).where(DBCourse.mentor_id == current_user.id)
+        count_query = select(func.count(DBCourse.id)).where(
+            DBCourse.mentor_id == current_user.id
+        )
+    
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 

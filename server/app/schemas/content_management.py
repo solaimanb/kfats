@@ -18,6 +18,7 @@ class AdminNotesRequest(BaseModel):
 class ContentOverviewItem(BaseModel):
     id: int
     title: str
+    slug: Optional[str] = None
     type: str  # "article", "course", "product"
     status: str
     author_id: int
